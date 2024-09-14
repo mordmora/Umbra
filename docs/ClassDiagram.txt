@@ -1,0 +1,85 @@
+classDiagram
+    class Lexer {
+        -source: string
+        -errorManager: ErrorManager*
+        -current: int
+        -line: int
+        -column: int
+        +Lexer(source: string)
+        +Lexer(source: string, errorManager: ErrorManager&)
+        +tokenize(): vector~Token~
+    }
+
+    class ErrorManager {
+        -errors: vector~unique_ptr~CompilerError~~
+        +addError(error: unique_ptr~CompilerError~)
+        +getErrors(): const vector~unique_ptr~CompilerError~~&
+        +hasErrors(): bool
+    }
+
+    class CompilerError {
+        -type: ErrorType
+        -message: string
+        -line: int
+        -column: int
+        +CompilerError(type: ErrorType, message: string, line: int, column: int)
+    }
+
+    class Parser {
+        -lexer: Lexer&
+        -errorManager: ErrorManager*
+        -tokens: vector~Token~
+        -current: size_t
+        +Parser(lexer: Lexer&, errorManager: ErrorManager&)
+        +parse(): unique_ptr~ProgramNode~
+        -statement(): unique_ptr~StatementNode~
+        -variableDeclaration(): unique_ptr~VariableDeclNode~
+        -printStatement(): unique_ptr~PrintNode~
+        -expression(): unique_ptr~ExpressionNode~
+    }
+
+    class ASTNode {
+        +~ASTNode(): virtual
+    }
+
+    class ExpressionNode {
+        +~ExpressionNode(): virtual
+    }
+
+    class StatementNode {
+        +~StatementNode(): virtual
+    }
+
+    class ProgramNode {
+        +statements: vector~unique_ptr~StatementNode~~
+    }
+
+    class NumberLiteralNode {
+        +value: double
+    }
+
+    class VariableNode {
+        +name: string
+    }
+
+    class VariableDeclNode {
+        +name: string
+        +initializer: unique_ptr~ExpressionNode~
+    }
+
+    class PrintNode {
+        +expression: unique_ptr~ExpressionNode~
+    }
+
+    Lexer --> ErrorManager
+    Parser --> Lexer
+    Parser --> ErrorManager
+    Parser --> ASTNode
+    ASTNode <|-- ExpressionNode
+    ASTNode <|-- StatementNode
+    ASTNode <|-- ProgramNode
+    ExpressionNode <|-- NumberLiteralNode
+    ExpressionNode <|-- VariableNode
+    StatementNode <|-- VariableDeclNode
+    StatementNode <|-- PrintNode
+    ErrorManager --> CompilerError

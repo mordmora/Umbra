@@ -1,0 +1,23 @@
+digraph Umbra_varDeclaration {
+    rankdir = LR;
+    node [shape = box; style = filled; fontname = "Arial";];
+    edge [fontname = "Arial"; fontsize = 10;];
+    
+    Statement [label = "varDeclaration";fillcolor = lightblue;];
+    VarType [label = "Type";fillcolor = lightblue;];
+    VarIdentifier [label = "TOK_IDENTIFIER";fillcolor = lightyellow;];
+    NEWLINE [label = "TOK_NEWLINE";fillcolor = lightblue;];
+    Assignment [label = "TOK_ASSIG";];
+    TOK_COMMA [label = "TOK_COMMA";shape = box;fillcolor = lightgray;];
+    Expression [label = "expression";shape = box;fillcolor = darkmagenta;];
+    
+    // Variable Declaration
+    // VarDecl [label = "Variable Declaration", fillcolor = lightyellow];
+    Statement -> VarType;
+    VarType -> VarIdentifier;
+    VarIdentifier -> TOK_COMMA [label = "0..n";];
+    TOK_COMMA -> VarIdentifier;
+    VarIdentifier -> Assignment [label = "TOK_ASSIGN (optional)";];
+    Assignment -> Expression;
+    Expression -> NEWLINE;
+}

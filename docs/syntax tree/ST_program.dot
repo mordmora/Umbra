@@ -1,0 +1,12 @@
+digraph UmbraProgram {
+    rankdir = LR;
+    node[shape = box, style = filled, fillcolor = lightblue];
+
+    Program[label = "Program"];
+    FunctionDef[label = "FunctionDef", fillcolor = lightgreen];
+    EOF[label = "TOK_EOF"];
+
+    Program -> FunctionDef;
+    FunctionDef -> FunctionDef[label = "1..n"];
+    FunctionDef -> EOF;
+}

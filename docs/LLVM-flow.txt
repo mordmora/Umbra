@@ -1,0 +1,57 @@
+---
+config:
+  theme: base
+  layout: elk
+---
+flowchart LR
+ subgraph subGraph0["UMBRA-Team Implementation Scope"]
+        B["Lexer"]
+        C["Parser"]
+        D["AST Generation"]
+        E["IR Generation (LLVM)"]
+  end
+ subgraph subGraph1["LLVM Provided Facilities"]
+        F["LLVM Optimization"]
+        G["LLVM Code Generation"]
+        H["Linking"]
+  end
+    A["Source code"] --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    B -.-> B1["Token Stream"]
+    C -.-> C1["Concrete Syntax Tree (CST)"]
+    D -.-> D1["Abstract Syntax Tree (AST)"]
+    E -.-> E1["LLVM IR Code"]
+    F -.-> F1["Optimized LLVM IR Code"]
+    G -.-> G1["Machine Code"]
+    H -.-> H1["Executable Code"]
+    B1 -.-> C
+    C1 -.-> D
+    D1 -.-> E
+    E1 -.-> F
+    F1 -.-> G
+    G1 -.-> H
+     B:::phase
+     C:::phase
+     D:::phase
+     E:::phase
+     F:::phase
+     G:::phase
+     H:::phase
+     A:::product
+     B1:::product
+     C1:::product
+     D1:::product
+     E1:::product
+     F1:::product
+     G1:::product
+     H1:::product
+    classDef phase fill:#bfb,stroke:#333,stroke-width:2px
+    classDef product stroke:#333,stroke-width:1px
+    style subGraph0 stroke:#000000
+    style subGraph1 stroke:#000000
+

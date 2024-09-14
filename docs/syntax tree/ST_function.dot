@@ -1,0 +1,47 @@
+digraph UmbraFunction {
+    rankdir = LR;
+    node [shape = box; style = filled; fillcolor = lightblue;];
+    edge [color = gray; fontcolor = black;];
+    
+    // Definición de nodos
+    FuncDef [label = "FunctionDef";];
+    FuncKeyword [label = "TOK_FUNC";fillcolor = lightgreen;];
+    Identifier [label = "TOK_IDENTIFIER";fillcolor = lightyellow;];
+    LeftParen [label = "TOK_LEFT_PAREN";shape = box;fillcolor = lightgray;];
+    RightParen [label = "TOK_RIGHT_PAREN";shape = box;fillcolor = lightgray;];
+    Arrow [label = "TOK_ARROW";shape = box;fillcolor = orange;];
+    Type [label = "Type";fillcolor = lightblue;];
+    LeftBrace [label = "TOK_LEFT_BRACE";shape = box;fillcolor = lightgray;];
+    Statements [label = "Statement";fillcolor = lightcoral;];
+    RightBrace [label = "TOK_RIGHT_BRACE";shape = box;fillcolor = lightgray;];
+    
+    // Parámetros opcionales
+    Params [label = "TOK_IDENTIFIER";fillcolor = lightyellow;];
+    ParamList [label = "Param List";fillcolor = lightcyan;];
+    TOK_COMMA [label = "TOK_COMMA";shape = box;fillcolor = lightgray;];
+    
+    // Definición del flujo
+    FuncDef -> FuncKeyword -> Identifier -> LeftParen;
+    LeftParen -> ParamList [label = "<optional>";];
+    ParamList -> Params [label = "0..n";];
+    Params -> TOK_COMMA [label = "";];
+    TOK_COMMA -> Params;
+    RightParen -> Arrow -> Type -> LeftBrace -> Statements;
+    Statements -> Statements [label = "1..n";];
+    Statements -> RightBrace;
+    
+    // Agrupación de parámetros
+    subgraph cluster_params {
+        label = "Parámetros";
+        style = dashed;
+        ParamList -> RightParen;
+    }
+    
+    // Alineación horizontal para mejorar la legibilidad
+    subgraph {
+        rank = same;
+        LeftParen;
+        ParamList;
+        RightParen;
+    }
+}

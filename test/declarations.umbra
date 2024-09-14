@@ -1,0 +1,5 @@
+float a = 2.3
+int b = 3
+char d = 'a'
+float[b] f 
+string c = "hola mundo"

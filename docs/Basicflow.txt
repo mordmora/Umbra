@@ -1,0 +1,9 @@
+graph TD
+    A[Código Fuente] --> B[Lexer]
+    B --> C[Parser]
+    C --> D[AST]
+    D --> E[Generador de Código LLVM]
+    E --> F[Código LLVM IR]
+    F --> G[Optimizador LLVM]
+    G --> H[Generador de Código Máquina LLVM]
+    H --> I[Código Ejecutable]

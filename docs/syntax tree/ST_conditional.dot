@@ -1,0 +1,38 @@
+digraph UmbraConditional {
+    rankdir = TB;
+    node [shape = box; style = filled; fontname = "Arial";];
+    edge [fontname = "Arial"; fontsize = 10;];
+    
+    Conditional [label = "Conditional";fillcolor = lightblue;];
+    
+    Conditional -> TOK_IF;
+    TOK_IF -> IfExpression [label = "Expression";];
+    IfExpression -> IfLeftBrace [label = "{";];
+    IfLeftBrace -> IfStatements [label = "Statement(s)";];
+    IfStatements -> IfStatements [label = "1..n";];
+    IfStatements -> IfRightBrace [label = "}";];
+    
+    
+    IfRightBrace -> TOK_ELSEIF [label = "0 .. n";];
+    TOK_ELSEIF -> ElseIfExpression [label = "Expression";];
+    ElseIfExpression -> ElseIfLeftBrace [label = "{";];
+    ElseIfLeftBrace -> ElseIfStatements [label = "Statement(s)";];
+    ElseIfStatements -> ElseIfStatements [label = "1..n";];
+    ElseIfStatements -> ElseIfRightBrace [label = "}";];
+    ElseIfRightBrace -> TOK_ELSEIF [label = "0..n"; constraint = false;];
+    
+    
+    IfRightBrace -> TOK_ELSE [label = "optional";];
+    ElseIfRightBrace -> TOK_ELSE [label = "else";];
+    TOK_ELSE -> ElseLeftBrace [label = "{";];
+    ElseLeftBrace -> ElseStatements [label = "Statement(s)";];
+    ElseStatements -> ElseStatements [label = "1..n";];
+    ElseStatements -> ElseRightBrace [label = "}";];
+    
+    IfExpression [label = "Expression";fillcolor = darkmagenta;];
+    ElseIfExpression [label = "Expression";fillcolor = darkmagenta;];
+    
+    IfStatements [label = "Statement(s)";fillcolor = lightsalmon;];
+    ElseIfStatements [label = "Statement(s)";fillcolor = lightsalmon;];
+    ElseStatements [label = "Statement(s)";fillcolor = lightsalmon;];
+}

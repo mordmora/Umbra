@@ -1,0 +1,15 @@
+digraph UmbraBinaryOperation {
+    rankdir = LR;
+    node [shape = box; style = filled; fontname = "Arial";];
+    edge [fontname = "Arial"; fontsize = 10;];
+    
+    BinaryOperation [label = "Binary Expression";fillcolor = lightblue;];
+    
+    Expression1 [label = "Expression - LHS";fillcolor = darkmagenta;];
+    Operator [label = "Operator";fillcolor = lightgreen;];
+    Expression2 [label = "Expression - RHS";fillcolor = darkmagenta;];
+    
+    BinaryOperation -> Expression1;
+    Expression1 -> Operator;
+    Operator -> Expression2;
+}

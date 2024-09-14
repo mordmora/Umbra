@@ -1,0 +1,5 @@
+float b
+int a
+func start() { 
+    print("Hello, Umbra!")
+}
