@@ -61,5 +61,7 @@ README.md: Provides an overview of the project (you are here!).
 
 Getting Started
 
+![How to contribute](./HOW_TO_CONTRIBUTE.md)
+
 License
 "# Umbra" 
