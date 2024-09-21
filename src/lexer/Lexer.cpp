@@ -20,10 +20,11 @@ std::vector<Lexer::Token> Lexer::tokenize() {
 
     while (!isAtEnd()) {
         start = current;
-        ignoreWhiteSpace();
         lastChar = advance();
-        //std::cout << "\033[32m]" << "is error here?" << "\033[0m" << std::endl;
-        
+        if(isBlankSpace(lastChar)){
+            column++;
+            continue;
+        }
         if (lastChar == '\n') {
             if (!lastWasReturn) {
                 addToken(TokenType::TOK_NEWLINE);
@@ -216,18 +217,13 @@ bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 
+bool Lexer::isBlankSpace(char c) const { return c == ' ' || c == '\t' || c == '\r'; }
+
 void Lexer::reset() {
     current = 0;
     start = 0;
     line = 1;
     column = 1;
-}
-
-void Lexer::ignoreWhiteSpace() {
-
-    while (isWhitespace((lastChar = advance()))) {
-        //std::cout << "skipped blankspace -> " <<"\"" <<lastChar <<"\""<<std::endl;
-    }
 }
 
 } // namespace umbra

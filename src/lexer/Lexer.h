@@ -39,7 +39,6 @@ class Lexer {
     int line = 1;
     int start = 0;
     int column = 1;
-    void ignoreWhiteSpace();
     char advance();
     bool isAtEnd() const;
     char peek() const;
