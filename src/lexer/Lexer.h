@@ -57,6 +57,7 @@ class Lexer {
     bool isWhitespace(char c) const;
     void scanToken();
     void handleIdentifierOrKeyword();
+    bool isBlankSpace(char c) const;
 };
 
 } // namespace umbra
