@@ -42,6 +42,6 @@
 
     Para abrir un pull request, navega hasta el repositorio principal como puedes ver en la siguiente imagen. Podrás ver la última rama que subiste 'example', entonces debes hacer click en ```'compare and pull request'```.
     ![pr_img](./pr_example.png)
-    Explica claramente los cambios que has realizado y luego crea el pull request.
+      Antes de hacer el PR, asegurate de explicar claramente los cambios que has realizado en la descripción.
 
 Y es todo.
