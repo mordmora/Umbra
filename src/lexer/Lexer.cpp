@@ -21,7 +21,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
     while (!isAtEnd()) {
         start = current;
         lastChar = advance();
-        if(isBlankSpace(lastChar)){
+        if (isBlankSpace(lastChar)) {
             column++;
             continue;
         }
@@ -79,10 +79,16 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             addToken(TokenType::TOK_COMMA);
             break;
         case '.':
-            addToken(TokenType::TOK_DOT);
+            if (isDigit(peek())) {
+                state = State::Decimal;
+                number();
+            } else {
+                addToken(TokenType::TOK_DOT);
+            }
             break;
         default:
             if (isDigit(lastChar)) {
+                state = State::Integer;
                 number();
             } else if (isAlpha(lastChar)) {
                 identifier();
@@ -176,24 +182,89 @@ void Lexer::string() {
 }
 
 void Lexer::number() {
+    while (state != State::Acceptance) {
 
-    while (isDigit(peek()))
-        advance();
-
-    if (peek() == '.') {
-        if (!isDigit(peekNext())) {
-            std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                   ", column " + std::to_string(column) +
-                                   ": expected digits after decimal point.";
-            errorManager->addError(
-                std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-            advance();
-        } else {
-            advance();
+        switch (state) { // 5555 5555h 555.5 555. 555e 555e 55.555
+        case State::Integer:
             while (isDigit(peek()))
                 advance();
+            if (isBlankSpace(peek()) || isSing(peek())) {
+                state = State::Acceptance;
+            } else if (peek() == '.') {
+                state = State::Decimal;
+                advance();
+            } else if (peek() == 'e' || peek() == 'E') {
+                state = State::NotationNumber;
+                advance();
+            } else {
+                state = State::Rejection;
+            }
+            break;
+        case State::Decimal:
+            if (!isDigit(peek())) {
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column) +
+                                       ": expected digits after decimal point.";
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                state = State::Acceptance; // como se encontro error especifico acepta muestra error
+            } else {
+                while (isDigit(peek()))
+                    advance();
+                if (isBlankSpace(peek()) || isSing(peek())) {
+                    state = State::Acceptance;
+                } else if (peek() == '.') {
+                    std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                           ", column " + std::to_string(column);
+                    errorManager->addError(std::make_unique<CompilerError>(ErrorType::LEXICAL,
+                                                                           errorMsg, line, column));
+                    state = State::Acceptance;
+                    advance();
+                } else if (peek() == 'e' || peek() == 'E') {
+                    state = State::NotationNumber;
+                    advance();
+                } else {
+                    state = State::Rejection;
+                }
+            }
+
+            break;
+        case State::NotationNumber:
+            if (peek() == '-') {
+                advance();
+            }
+            if (!isDigit(peek())) {
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column) +
+                                       ": expected digits after - or E";
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                state = State::Acceptance;
+            }
+            while (isDigit(peek()))
+                advance();
+
+            if (isBlankSpace(peek()) || isSing(peek())) {
+                state = State::Acceptance;
+            } else {
+                state = State::Rejection;
+            }
+
+            break;
+
+        default:
+            if (state == State::Rejection) {
+                state = State::Acceptance;
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column);
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+            }
+            state = State::Acceptance;
+            break;
         }
     }
+
     addToken(TokenType::TOK_NUMBER, source.substr(start, current - start));
 }
 
@@ -214,6 +285,11 @@ bool Lexer::isAlpha(char c) const {
 bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
+
+bool Lexer::isSing(char c) const {
+    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' ||
+           c == '%';
+}
 
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 
