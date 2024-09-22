@@ -20,9 +20,12 @@ std::vector<Lexer::Token> Lexer::tokenize() {
 
     while (!isAtEnd()) {
         start = current;
-        char c = advance();
-
-        if (c == '\n') {
+        lastChar = advance();
+        if(isBlankSpace(lastChar)){
+            column++;
+            continue;
+        }
+        if (lastChar == '\n') {
             if (!lastWasReturn) {
                 addToken(TokenType::TOK_NEWLINE);
                 lastWasReturn = true;
@@ -32,12 +35,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             continue;
         }
         lastWasReturn = false;
-        switch (c) {
-        case ' ':
-        case '\r':
-        case '\t':
-            // Ignorar espacios en blanco
-            break;
+        switch (lastChar) {
         case '\'':
             charliteral();
             break;
@@ -84,12 +82,12 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             addToken(TokenType::TOK_DOT);
             break;
         default:
-            if (isDigit(c)) {
+            if (isDigit(lastChar)) {
                 number();
-            } else if (isAlpha(c)) {
+            } else if (isAlpha(lastChar)) {
                 identifier();
             } else {
-                std::string errorMsg = "Unexpected character: " + std::string(1, c);
+                std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
                 errorManager->addError(
                     std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
             }
@@ -104,7 +102,6 @@ char Lexer::advance() {
     column++;
     return source[current++];
 }
-
 bool Lexer::isAtEnd() const {
     return static_cast<std::string::size_type>(current) >= source.length();
 }
@@ -219,6 +216,8 @@ bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+
+bool Lexer::isBlankSpace(char c) const { return c == ' ' || c == '\t' || c == '\r'; }
 
 void Lexer::reset() {
     current = 0;

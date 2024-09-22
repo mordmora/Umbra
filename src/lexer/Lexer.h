@@ -33,12 +33,12 @@ class Lexer {
     std::unique_ptr<ErrorManager> internalErrorManager;
     ErrorManager *errorManager;
     std::vector<Token> tokens;
+    char lastChar = ' ';
     // std::unordered_map<std::string, TokenType> keywords;
     int current = 0;
     int line = 1;
     int start = 0;
     int column = 1;
-
     char advance();
     bool isAtEnd() const;
     char peek() const;
@@ -56,6 +56,7 @@ class Lexer {
     bool isWhitespace(char c) const;
     void scanToken();
     void handleIdentifierOrKeyword();
+    bool isBlankSpace(char c) const;
 };
 
 } // namespace umbra
