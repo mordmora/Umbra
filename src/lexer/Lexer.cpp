@@ -287,8 +287,8 @@ bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
 bool Lexer::isSing(char c) const {
-    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' ||
-           c == '%';
+    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' || 
+           c == '%' || c=='!';
 }
 
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
