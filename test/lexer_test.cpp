@@ -26,7 +26,7 @@ TEST(LexerTest, TokenizeSimpleAssignment) {
 
 // Prueba de operadores aritméticos
 TEST(LexerTest, TokenizeArithmeticOperations_ValidateAllTokens) {
-    std::string source = "float a = 5.0 float b = 3.0 float result = a + b * 2";
+    std::string source = "float a = 5.0 float b = .22e-99 float result = a + b * 2";
     Lexer lexer(source);
     std::vector<Lexer::Token> tokens = lexer.tokenize();
 
@@ -49,7 +49,7 @@ TEST(LexerTest, TokenizeArithmeticOperations_ValidateAllTokens) {
     EXPECT_EQ(tokens[6].type, TokenType::TOK_ASSIGN); // Token '='
     EXPECT_EQ(tokens[6].lexeme, "=");
     EXPECT_EQ(tokens[7].type, TokenType::TOK_NUMBER); // Token '3.0'
-    EXPECT_EQ(tokens[7].lexeme, "3.0");
+    EXPECT_EQ(tokens[7].lexeme, ".22e-99");
     EXPECT_EQ(tokens[8].type, TokenType::TOK_FLOAT); // Token 'float'
     EXPECT_EQ(tokens[8].lexeme, "float");
     EXPECT_EQ(tokens[9].type, TokenType::TOK_IDENTIFIER); // Token 'result'
