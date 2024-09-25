@@ -73,7 +73,7 @@ TEST(LexerTest, TokenizeArithmeticOperations_ValidateAllTokens) {
 
 
 
-// Prueba de operadores de comparacion y de Operadores de desplazamiento de bits
+// Testing comparison operators and bit shift operators
 TEST(LexerTest, TokenizeComparisonOperatorsAndShiftOperators_ValidateAllTokens) {
     std::string source = "a != 5.0 b >= 3.0 a <= b == 2 b << 2 b >> 2";
     Lexer lexer(source);

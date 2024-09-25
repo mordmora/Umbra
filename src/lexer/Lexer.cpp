@@ -215,7 +215,7 @@ void Lexer::number() {
         case State::Integer:
             while (isDigit(peek()))
                 advance();
-            if (isBlankSpace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek())) {
                 state = State::Acceptance;
             } else if (peek() == '.') {
                 state = State::Decimal;
@@ -238,7 +238,7 @@ void Lexer::number() {
             } else {
                 while (isDigit(peek()))
                     advance();
-                if (isBlankSpace(peek()) || isSing(peek())) {
+                if (isWhitespace(peek()) || isSing(peek())) {
                     state = State::Acceptance;
                 } else if (peek() == '.') {
                     std::string errorMsg = "Malformed number at line " + std::to_string(line) +
@@ -271,7 +271,7 @@ void Lexer::number() {
             while (isDigit(peek()))
                 advance();
 
-            if (isBlankSpace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek())) {
                 state = State::Acceptance;
             } else {
                 state = State::Rejection;
