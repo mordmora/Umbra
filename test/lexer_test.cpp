@@ -69,6 +69,62 @@ TEST(LexerTest, TokenizeArithmeticOperations_ValidateAllTokens) {
     EXPECT_EQ(tokens[16].type, TokenType::TOK_EOF); // Token 'EOF'
 }
 
+
+
+
+
+// Prueba de operadores de comparacion y de Operadores de desplazamiento de bits
+TEST(LexerTest, TokenizeComparisonOperatorsAndShiftOperators_ValidateAllTokens) {
+    std::string source = "a != 5.0 b >= 3.0 a <= b == 2 b << 2 b >> 2";
+    Lexer lexer(source);
+    std::vector<Lexer::Token> tokens = lexer.tokenize();
+
+    // El número total de tokens debería ser 11
+    ASSERT_EQ(tokens.size(), 18); // 11 tokens en total
+
+    // Validación completa de cada token
+
+    EXPECT_EQ(tokens[0].type, TokenType::TOK_IDENTIFIER); // Token 'a'
+    EXPECT_EQ(tokens[0].lexeme, "a");
+    EXPECT_EQ(tokens[1].type, TokenType::TOK_DIFFERENT); // Token '!='
+    EXPECT_EQ(tokens[1].lexeme, "!=");
+    EXPECT_EQ(tokens[2].type, TokenType::TOK_NUMBER); // Token '5.0'
+    EXPECT_EQ(tokens[2].lexeme, "5.0");
+    EXPECT_EQ(tokens[3].type, TokenType::TOK_IDENTIFIER); // Token 'b'
+    EXPECT_EQ(tokens[3].lexeme, "b");
+    EXPECT_EQ(tokens[4].type, TokenType::TOK_GREATER_EQ); // Token '>='
+    EXPECT_EQ(tokens[4].lexeme, ">=");
+    EXPECT_EQ(tokens[5].type, TokenType::TOK_NUMBER); // Token '3.0'
+    EXPECT_EQ(tokens[5].lexeme, "3.0");
+    EXPECT_EQ(tokens[6].type, TokenType::TOK_IDENTIFIER); // Token 'a'
+    EXPECT_EQ(tokens[6].lexeme, "a");
+    EXPECT_EQ(tokens[7].type, TokenType::TOK_LESS_EQ); // Token '<='
+    EXPECT_EQ(tokens[7].lexeme, "<=");
+    EXPECT_EQ(tokens[8].type, TokenType::TOK_IDENTIFIER); // Token 'b'
+    EXPECT_EQ(tokens[8].lexeme, "b");
+    EXPECT_EQ(tokens[9].type, TokenType::TOK_EQUAL); // Token '=='
+    EXPECT_EQ(tokens[9].lexeme, "==");
+    EXPECT_EQ(tokens[10].type, TokenType::TOK_NUMBER); // Token '2'
+    EXPECT_EQ(tokens[10].lexeme, "2");
+    EXPECT_EQ(tokens[11].type, TokenType::TOK_IDENTIFIER); // Token 'b'
+    EXPECT_EQ(tokens[11].lexeme, "b");
+    EXPECT_EQ(tokens[12].type, TokenType::TOK_LEFT_SHIFT); // Token '<<'
+    EXPECT_EQ(tokens[12].lexeme, "<<");
+    EXPECT_EQ(tokens[13].type, TokenType::TOK_NUMBER); // Token '2'
+    EXPECT_EQ(tokens[13].lexeme, "2");
+    EXPECT_EQ(tokens[14].type, TokenType::TOK_IDENTIFIER); // Token 'b'
+    EXPECT_EQ(tokens[14].lexeme, "b");
+    EXPECT_EQ(tokens[15].type, TokenType::TOK_RIGHT_SHIFT); // Token '=='
+    EXPECT_EQ(tokens[15].lexeme, ">>");
+    EXPECT_EQ(tokens[16].type, TokenType::TOK_NUMBER); // Token '2'
+    EXPECT_EQ(tokens[16].lexeme, "2");
+    EXPECT_EQ(tokens[17].type, TokenType::TOK_EOF); // Token 'EOF'
+
+}
+
+
+
+
 // Prueba de control de flujo con if/else
 TEST(LexerTest, TokenizeIfElseControlFlow) {
     std::string source = "bool flag = true if flag { int x = 1 } else { int x = 2 }";

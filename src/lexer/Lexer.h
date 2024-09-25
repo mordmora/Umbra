@@ -61,6 +61,7 @@ class Lexer {
     void scanToken();
     void handleIdentifierOrKeyword();
     bool isBlankSpace(char c) const;
+    void errorMessage(char c); // error unexpected character c
 };
 
 } // namespace umbra
