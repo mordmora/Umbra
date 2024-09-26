@@ -43,7 +43,36 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             string();
             break;
         case '=':
-            addToken(TokenType::TOK_ASSIGN);
+            if (match('=')) {
+                addToken(TokenType::TOK_EQUAL);
+            } else {
+                addToken(TokenType::TOK_ASSIGN);
+            }
+            break;
+        case '!':
+            if (match('=')) {
+                addToken(TokenType::TOK_DIFFERENT);
+            } else {
+                errorMessage(lastChar); // esto puede cambiar en un futuro para if(!true)
+            }
+            break;
+        case '<':
+            if (match('<')) {
+                addToken(TokenType::TOK_LEFT_SHIFT);
+            } else if (match('=')) {
+                addToken(TokenType::TOK_LESS_EQ);
+            } else {
+                addToken(TokenType::TOK_LESS);
+            }
+            break;
+        case '>':
+            if (match('>')) {
+                addToken(TokenType::TOK_RIGHT_SHIFT);
+            } else if (match('=')) {
+                addToken(TokenType::TOK_GREATER_EQ);
+            } else {
+                addToken(TokenType::TOK_GREATER);
+            }
             break;
         case '-':
             if (match('>'))
@@ -93,9 +122,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             } else if (isAlpha(lastChar)) {
                 identifier();
             } else {
-                std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                errorMessage(lastChar);
             }
             break;
         }
@@ -188,7 +215,7 @@ void Lexer::number() {
         case State::Integer:
             while (isDigit(peek()))
                 advance();
-            if (isBlankSpace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek())) {
                 state = State::Acceptance;
             } else if (peek() == '.') {
                 state = State::Decimal;
@@ -211,7 +238,7 @@ void Lexer::number() {
             } else {
                 while (isDigit(peek()))
                     advance();
-                if (isBlankSpace(peek()) || isSing(peek())) {
+                if (isWhitespace(peek()) || isSing(peek())) {
                     state = State::Acceptance;
                 } else if (peek() == '.') {
                     std::string errorMsg = "Malformed number at line " + std::to_string(line) +
@@ -244,7 +271,7 @@ void Lexer::number() {
             while (isDigit(peek()))
                 advance();
 
-            if (isBlankSpace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek())) {
                 state = State::Acceptance;
             } else {
                 state = State::Rejection;
@@ -287,8 +314,8 @@ bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
 bool Lexer::isSing(char c) const {
-    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' || 
-           c == '%' || c=='!';
+    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' ||
+           c == '%' || c == '!';
 }
 
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
@@ -300,6 +327,12 @@ void Lexer::reset() {
     start = 0;
     line = 1;
     column = 1;
+}
+
+void Lexer::errorMessage(char lastChar) { // unexpected character error
+    std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
+    errorManager->addError(
+        std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
 }
 
 } // namespace umbra
