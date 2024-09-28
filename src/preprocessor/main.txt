@@ -1,0 +1,9 @@
+printf("hola mundo")
+
+a
+
+b
+
+use test.txt
+
+1111111

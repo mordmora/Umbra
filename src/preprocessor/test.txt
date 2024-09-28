@@ -1,0 +1,5 @@
+print("Contenido del archivo test.txt")
+a+b
+c+d
+
+use main.txt

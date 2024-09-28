@@ -2,22 +2,13 @@
 #include "error/ErrorManager.h"
 #include "lexer/Lexer.h"
 #include "parser/Parser.h"
+#include "preprocessor/Preprocessor.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>
 
 namespace umbra {
-
-std::string readFile(const std::string &filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Unable to open file: " + filename);
-    }
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
 
 void printAST(ASTNode *node) {
     PrintVisitor visitor;
