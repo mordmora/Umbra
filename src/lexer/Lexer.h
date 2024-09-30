@@ -33,11 +33,14 @@ class Lexer {
     std::unique_ptr<ErrorManager> internalErrorManager;
     ErrorManager *errorManager;
     std::vector<Token> tokens;
+    char lastChar = ' ';
+    enum class State { Start, Integer, Decimal, NotationNumber, Acceptance, Rejection };
     // std::unordered_map<std::string, TokenType> keywords;
     int current = 0;
     int line = 1;
     int start = 0;
     int column = 1;
+    State state=State::Start;
 
     char advance();
     bool isAtEnd() const;
@@ -53,9 +56,12 @@ class Lexer {
     bool isAlpha(char c) const;
     bool isAlphaNumeric(char c) const;
     bool isDigit(char c) const;
+    bool isSing(char c) const;
     bool isWhitespace(char c) const;
     void scanToken();
     void handleIdentifierOrKeyword();
+    bool isBlankSpace(char c) const;
+    void errorMessage(char c); // error unexpected character c
 };
 
 } // namespace umbra

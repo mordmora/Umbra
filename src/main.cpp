@@ -33,6 +33,12 @@ int main(int argc, char *argv[]) {
 
         // Print tokens (for debugging)
         std::cout << "Tokens:" << std::endl;
+        #define RAW_DEBUG
+        #if defined (RAW_DEBUG)
+            for(const auto &token : tokens){
+                std::cout << token.lexeme;
+            }
+        #else
         for (const auto &token : tokens) {
             std::cout << "Token: Type=" << lexer.tokenManager.tokenTypeToString(token.type)
                       << ", Lexeme='";
@@ -43,6 +49,7 @@ int main(int argc, char *argv[]) {
             }
             std::cout << "', Line=" << token.line << ", Column=" << token.column << std::endl;
         }
+        #endif
 
         std::cout << "Lexical analysis completed" << std::endl;
 

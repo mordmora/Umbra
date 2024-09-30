@@ -20,9 +20,12 @@ std::vector<Lexer::Token> Lexer::tokenize() {
 
     while (!isAtEnd()) {
         start = current;
-        char c = advance();
-
-        if (c == '\n') {
+        lastChar = advance();
+        if (isBlankSpace(lastChar)) {
+            column++;
+            continue;
+        }
+        if (lastChar == '\n') {
             if (!lastWasReturn) {
                 addToken(TokenType::TOK_NEWLINE);
                 lastWasReturn = true;
@@ -32,12 +35,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             continue;
         }
         lastWasReturn = false;
-        switch (c) {
-        case ' ':
-        case '\r':
-        case '\t':
-            // Ignorar espacios en blanco
-            break;
+        switch (lastChar) {
         case '\'':
             charliteral();
             break;
@@ -45,7 +43,36 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             string();
             break;
         case '=':
-            addToken(TokenType::TOK_ASSIGN);
+            if (match('=')) {
+                addToken(TokenType::TOK_EQUAL);
+            } else {
+                addToken(TokenType::TOK_ASSIGN);
+            }
+            break;
+        case '!':
+            if (match('=')) {
+                addToken(TokenType::TOK_DIFFERENT);
+            } else {
+                errorMessage(lastChar); // esto puede cambiar en un futuro para if(!true)
+            }
+            break;
+        case '<':
+            if (match('<')) {
+                addToken(TokenType::TOK_LEFT_SHIFT);
+            } else if (match('=')) {
+                addToken(TokenType::TOK_LESS_EQ);
+            } else {
+                addToken(TokenType::TOK_LESS);
+            }
+            break;
+        case '>':
+            if (match('>')) {
+                addToken(TokenType::TOK_RIGHT_SHIFT);
+            } else if (match('=')) {
+                addToken(TokenType::TOK_GREATER_EQ);
+            } else {
+                addToken(TokenType::TOK_GREATER);
+            }
             break;
         case '-':
             if (match('>'))
@@ -81,17 +108,21 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             addToken(TokenType::TOK_COMMA);
             break;
         case '.':
-            addToken(TokenType::TOK_DOT);
+            if (isDigit(peek())) {
+                state = State::Decimal;
+                number();
+            } else {
+                addToken(TokenType::TOK_DOT);
+            }
             break;
         default:
-            if (isDigit(c)) {
+            if (isDigit(lastChar)) {
+                state = State::Integer;
                 number();
-            } else if (isAlpha(c)) {
+            } else if (isAlpha(lastChar)) {
                 identifier();
             } else {
-                std::string errorMsg = "Unexpected character: " + std::string(1, c);
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                errorMessage(lastChar);
             }
             break;
         }
@@ -104,7 +135,6 @@ char Lexer::advance() {
     column++;
     return source[current++];
 }
-
 bool Lexer::isAtEnd() const {
     return static_cast<std::string::size_type>(current) >= source.length();
 }
@@ -179,24 +209,89 @@ void Lexer::string() {
 }
 
 void Lexer::number() {
+    while (state != State::Acceptance) {
 
-    while (isDigit(peek()))
-        advance();
-
-    if (peek() == '.') {
-        if (!isDigit(peekNext())) {
-            std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                   ", column " + std::to_string(column) +
-                                   ": expected digits after decimal point.";
-            errorManager->addError(
-                std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-            advance();
-        } else {
-            advance();
+        switch (state) { // 5555 5555h 555.5 555. 555e 555e 55.555
+        case State::Integer:
             while (isDigit(peek()))
                 advance();
+            if (isWhitespace(peek()) || isSing(peek())) {
+                state = State::Acceptance;
+            } else if (peek() == '.') {
+                state = State::Decimal;
+                advance();
+            } else if (peek() == 'e' || peek() == 'E') {
+                state = State::NotationNumber;
+                advance();
+            } else {
+                state = State::Rejection;
+            }
+            break;
+        case State::Decimal:
+            if (!isDigit(peek())) {
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column) +
+                                       ": expected digits after decimal point.";
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                state = State::Acceptance; // como se encontro error especifico acepta muestra error
+            } else {
+                while (isDigit(peek()))
+                    advance();
+                if (isWhitespace(peek()) || isSing(peek())) {
+                    state = State::Acceptance;
+                } else if (peek() == '.') {
+                    std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                           ", column " + std::to_string(column);
+                    errorManager->addError(std::make_unique<CompilerError>(ErrorType::LEXICAL,
+                                                                           errorMsg, line, column));
+                    state = State::Acceptance;
+                    advance();
+                } else if (peek() == 'e' || peek() == 'E') {
+                    state = State::NotationNumber;
+                    advance();
+                } else {
+                    state = State::Rejection;
+                }
+            }
+
+            break;
+        case State::NotationNumber:
+            if (peek() == '-') {
+                advance();
+            }
+            if (!isDigit(peek())) {
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column) +
+                                       ": expected digits after - or E";
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                state = State::Acceptance;
+            }
+            while (isDigit(peek()))
+                advance();
+
+            if (isWhitespace(peek()) || isSing(peek())) {
+                state = State::Acceptance;
+            } else {
+                state = State::Rejection;
+            }
+
+            break;
+
+        default:
+            if (state == State::Rejection) {
+                state = State::Acceptance;
+                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
+                                       ", column " + std::to_string(column);
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+            }
+            state = State::Acceptance;
+            break;
         }
     }
+
     addToken(TokenType::TOK_NUMBER, source.substr(start, current - start));
 }
 
@@ -218,13 +313,26 @@ bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
+bool Lexer::isSing(char c) const {
+    return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' ||
+           c == '%' || c == '!';
+}
+
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
+
+bool Lexer::isBlankSpace(char c) const { return c == ' ' || c == '\t' || c == '\r'; }
 
 void Lexer::reset() {
     current = 0;
     start = 0;
     line = 1;
     column = 1;
+}
+
+void Lexer::errorMessage(char lastChar) { // unexpected character error
+    std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
+    errorManager->addError(
+        std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
 }
 
 } // namespace umbra

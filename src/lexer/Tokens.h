@@ -72,7 +72,11 @@ enum class TokenType {
     TOK_LEFT_PAREN,
     TOK_RIGHT_PAREN,
     TOK_COMMA,
-    TOK_DOT
+    TOK_DOT,
+
+    //Bit shift operators
+    TOK_LEFT_SHIFT,  //<<
+    TOK_RIGHT_SHIFT  //>>
 
 };
 
@@ -148,7 +152,9 @@ class TokenManager {
             {TokenType::TOK_LEFT_PAREN, "TOK_LEFT_PAREN"},
             {TokenType::TOK_RIGHT_PAREN, "TOK_RIGHT_PAREN"},
             {TokenType::TOK_COMMA, "TOK_COMMA"},
-            {TokenType::TOK_DOT, "TOK_DOT"}};
+            {TokenType::TOK_DOT, "TOK_DOT"},
+            {TokenType::TOK_LEFT_SHIFT, "TOK_RIGHT_SHIFT"},
+            {TokenType::TOK_RIGHT_SHIFT, "TOK_LEFT_SHIFT"}};
         auto it = tokenTypeToStringMap.find(type);
         if (it != tokenTypeToStringMap.end()) {
             return it->second;
