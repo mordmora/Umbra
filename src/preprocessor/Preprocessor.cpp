@@ -1,11 +1,12 @@
 #include"Preprocessor.h"
 #include <experimental/optional>
 #include <fstream>
-#include <io>
+#include<iostream>
 
-#define INCLUDE_KEYWORD = "use"
 
 namespace umbra {
+    
+#define INCLUDE_KEYWORD "use"
 
 using namespace std::experimental;
 
@@ -57,15 +58,45 @@ std::pair<std::string, std::size_t> getWord(const std::string &input_str, std::s
     return {out, index};
 }
 
-bool Preprocessor::fileExist(){
-    return _access(origin.fileName, 0);
+bool Preprocessor::fileExist(const std::ifstream &file){
+    return file.good();
 }
 
+
+
 std::string Preprocessor::includeFiles(const std::string& filename, int level){
-    
-    if(!fileExist()){
+
+    std::ifstream file(filename.c_str());
+    if(!fileExist(file)){
         throw std::runtime_error("El archivo especificado no se pudo localizar");
     }
+    File f = File(filename, origin.location, false, origin.callBy);
+
+    if(contains(f)){
+        return "";
+    }
+
+    included.insert(f);
+    std::string result;
+    std::string line;
+    while(std::getline(file, line)){
+        std::size_t loc = 0;
+        std::string word;
+        std::tie(word, loc) = getWord(line, loc);
+
+        if(word != INCLUDE_KEYWORD){
+            std::cout << line << std::endl;
+        } else {
+            std::string included_file;
+            std::tie(included_file, loc) = getWord(line, loc);
+
+            std::cout << "Incluyendo " << included_file << "desde " << std::endl;
+
+            result += includeFiles(included_file, level + 1);
+        }
+    }
+    file.close();
+    return result;
 }
 
 };

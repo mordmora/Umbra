@@ -33,7 +33,7 @@ class Preprocessor {
     private:
         File origin;
 
-        bool fileExist();
+        bool fileExist(const std::ifstream &file);
         std::set<File> included;
         std::pair<std::string, std::size_t> getWord(const std::string &input_str, std::size_t index);
         std::unique_ptr<std::string> readfile(std::string &filename);
