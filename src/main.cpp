@@ -8,6 +8,7 @@
 #include <memory>
 #include <sstream>
 
+
 namespace umbra {
 
 void printAST(ASTNode *node) {
@@ -22,9 +23,11 @@ int main(int argc, char *argv[]) {
         std::cerr << "Usage: " << argv[0] << " <source_file>" << std::endl;
         return 1;
     }
-
     try {
-        std::string sourceCode = umbra::readFile(argv[1]);
+        umbra::SourceLocation location = {argv[1], 0, 0};
+        umbra::File file = {argv[1], location, false, nullptr};
+        umbra::Preprocessor preprocessor(file);
+        std::string sourceCode = preprocessor.out;
         umbra::ErrorManager errorManager;
         umbra::Lexer lexer(sourceCode, errorManager);
 
