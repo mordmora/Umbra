@@ -5,6 +5,16 @@
 #include<memory>
 #include<vector>
 
+/*
+ * TODO:
+ * - Ajustar una ruta relativa virtual para no indicar de forma explicita la ubicacion de los archivos
+ *   en las cabeceras, sino que se tome tomo ruta principal la carpeta donde esta ubicado el codigo fuente
+ *
+ * - Crear herramientas de diagnostico para garantizar y optimizar el manejo de archivos incluidos
+ *
+ * */
+
+
 namespace umbra {
 
 #define INCLUDE_KEYWORD "use"
