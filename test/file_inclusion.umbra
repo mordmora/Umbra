@@ -1,0 +1,4 @@
+use ../test/declarations.umbra
+use ../test/numeros.umbra
+
+printf("File inclusion are so good")

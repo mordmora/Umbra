@@ -3,14 +3,13 @@
 
 #include <unordered_map>
 #include <string>
-#include<experimental/optional>
+#include<optional>
 #include<memory>
 
 namespace umbra {
 /*
 Declaration file for Umbra preprocessor
 */
-using namespace std::experimental;
 
 /*
 Estructura para mantener un control de donde se incluye el archivo
@@ -37,20 +36,20 @@ struct File {
     std::string fileName;
     SourceLocation location;
     bool resolved;
-    optional<std::string> callBy = nullopt;
+    std::optional<std::string> callBy = std::nullopt;
 
 
     File();
-    
+
     File(const std::string& fileName, SourceLocation location, bool resolved,
-            const optional<std::string> &callBy);
+            const std::optional<std::string> &callBy);
 };
 
 /*
 Se realizó una implementación de inclusión de archivos algo primitiva pero eficaz
 y directa.
 
-Para evitar las inclusiones ciclicas debido a la naturaleza recursiva de la 
+Para evitar las inclusiones ciclicas debido a la naturaleza recursiva de la
 inclusión de archivos, se usó un Set de archivos para mantener un registro
 de que archivos se han incluido
 */
@@ -63,7 +62,7 @@ class Preprocessor {
         std::pair<std::string, std::size_t> getWord(const std::string &input_str, std::size_t index);
         bool contains(File f);
 
-       
+
     public:
         Preprocessor(File origin);
         void markAsResolved(File file);

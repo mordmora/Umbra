@@ -4,12 +4,14 @@
 #include "parser/Parser.h"
 #include "preprocessor/Preprocessor.h"
 #include <fstream>
+#include<optional>
 #include <iostream>
 #include <memory>
 #include <sstream>
 
 
 namespace umbra {
+
 
 void printAST(ASTNode *node) {
     PrintVisitor visitor;
@@ -25,7 +27,7 @@ int main(int argc, char *argv[]) {
     }
     try {
         umbra::SourceLocation location = {argv[1], 0, 0};
-        umbra::File file = {argv[1], location, false, nullptr};
+        umbra::File file = {argv[1], location, false, std::nullopt};
         umbra::Preprocessor preprocessor(file);
         std::string sourceCode = preprocessor.out;
         umbra::ErrorManager errorManager;

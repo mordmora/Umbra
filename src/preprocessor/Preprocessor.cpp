@@ -1,15 +1,14 @@
 #include"Preprocessor.h"
-#include <experimental/optional>
+#include <optional>
 #include <fstream>
 #include<iostream>
 #include<memory>
 #include<vector>
 
 namespace umbra {
-    
+
 #define INCLUDE_KEYWORD "use"
 
-using namespace std::experimental;
 
 SourceLocation::SourceLocation(const std::string &path, unsigned int col, unsigned int line)
     : path(std::move(path)), col(col), line(line) {}
@@ -17,7 +16,7 @@ SourceLocation::SourceLocation(const std::string &path, unsigned int col, unsign
 SourceLocation::SourceLocation(){}
 
 File::File(const std::string &fileName, SourceLocation location,
-           bool resolved, const optional<std::string> &callBy)
+           bool resolved, const std::optional<std::string> &callBy)
     :  fileName(fileName), location(location),
       resolved(resolved), callBy(callBy) {}
 
@@ -63,6 +62,7 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
 
     File f;
     std::ifstream file(inputFile.fileName);
+    std::cout<<inputFile.fileName << std::endl;
     if(!fileExist(file)){
         throw std::runtime_error("El archivo especificado no se pudo localizar");
     }
@@ -105,11 +105,3 @@ void Preprocessor::diagnosticTool(){
 
 };
 
-int main(){
-    umbra::SourceLocation location("main.umbra", 0, 0);
-    umbra::File f("main.umbra", location, false, " ");
-    umbra::Preprocessor pre(f);
-    pre.diagnosticTool();
-    std::cout << pre.out;
-    return 0;
-}
