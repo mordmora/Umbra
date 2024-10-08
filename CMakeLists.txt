@@ -44,20 +44,22 @@ add_library(umbra_lexer STATIC
     src/lexer/Lexer.h
     src/error/CompilerError.cpp
     src/error/ErrorManager.cpp
+    src/preprocessor/Preprocessor.cpp
 )
 
 
 
 # The Umbra compiler executable
-file(GLOB_RECURSE SOURCES 
-  "src/main.cpp"  
-  "src/parser/*.cpp"  
-  "src/lexer/*.cpp" 
+file(GLOB_RECURSE SOURCES
+  "src/main.cpp"
+  "src/parser/*.cpp"
+  "src/lexer/*.cpp"
   "src/ast/*.cpp"
   "src/ast/statementnodes/*.cpp"
   "src/ast/expressionnodes/*.cpp"
   "src/ast/visitor/*.cpp"
-  "src/error/*.cpp")
+  "src/error/*.cpp"
+  "src/preprocessor/*.cpp")
 add_executable(umbra_compiler ${SOURCES})
 #llvm_map_components_to_libnames(llvm_libs support core irreader)
 #target_link_libraries(umbra_compiler ${llvm_libs} umbra_lexer)
