@@ -7,6 +7,8 @@
 #include<memory>
 
 namespace umbra {
+
+using FILE_PATH = std::string;
 /*
 Declaration file for Umbra preprocessor
 */
@@ -19,7 +21,7 @@ struct SourceLocation {
     std::string path;
     unsigned int col;
     unsigned int line;
-    SourceLocation(const std::string& path, unsigned int col, unsigned int line);
+    SourceLocation(const std::string& path, std::size_t col, std::size_t line);
     SourceLocation();
 };
 
@@ -38,6 +40,7 @@ struct File {
     bool resolved;
     std::optional<std::string> callBy = std::nullopt;
 
+    bool equals(File);
 
     File();
 
@@ -58,13 +61,18 @@ class Preprocessor {
     private:
         File origin;
         bool fileExist(const std::ifstream &file);
+        void getRelativePath();
+        void detectByteOrderMark(std::ifstream& f);
+
+        void getWorkingPath();
         std::unordered_map<std::string, File> included;
         std::pair<std::string, std::size_t> getWord(const std::string &input_str, std::size_t index);
         bool contains(File f);
 
-
     public:
         Preprocessor(File origin);
+        FILE_PATH relativePath;
+        FILE_PATH workingPath;
         void markAsResolved(File file);
         std::string out;
         std::string includeFiles(File inputFile, int level);
