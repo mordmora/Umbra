@@ -1,5 +1,6 @@
 #include "Lexer.h"
 #include "Tokens.h"
+#include <bitset>
 #include <cctype>
 #include <iostream>
 #include <stdexcept>
@@ -34,7 +35,12 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             column = 1;
             continue;
         }
+
         lastWasReturn = false;
+        if (lastChar == '0' && peek() == 'b') {
+            if(isBinary(lastChar))
+                continue;
+        }
         switch (lastChar) {
         case '\'':
             charliteral();
@@ -334,5 +340,32 @@ void Lexer::errorMessage(char lastChar) { // unexpected character error
     errorManager->addError(
         std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
 }
-
+bool Lexer::isBinary(char c) {
+    // int binario = 0b010010
+    c = advance();
+    if(c != 'b') {
+        return false;
+    }
+    c = advance();
+    std::string binaryValue = "";
+    while (c == '0' || c == '1') {
+        binaryValue += c;
+        advance();
+    }
+    if (!isWhitespace(c)) {
+        std::string errorMsg = "Malformed binary number at line: " + std::to_string(line) +
+                               ", column: " + std::to_string(column);
+        errorManager->addError(
+            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+        return false;
+    }else if(binaryValue.empty()) {
+        std::string errorMsg = "Empty binary number at line: " + std::to_string(line) +
+                               ", column: " + std::to_string(column);
+        errorManager->addError(
+            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+        return false;
+    }
+    addToken(TokenType::TOK_BINARY, binaryValue);
+    return true;
+}
 } // namespace umbra
