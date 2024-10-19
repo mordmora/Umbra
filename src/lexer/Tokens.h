@@ -18,6 +18,7 @@ enum class TokenType {
     TOK_BOOL,
     TOK_CHAR,
     TOK_STRING,
+    TOK_BINARY,
     // TOK_ARRAY, wait for array definition
 
     // Keyword tokens for control structures
@@ -154,6 +155,7 @@ class TokenManager {
             {TokenType::TOK_COMMA, "TOK_COMMA"},
             {TokenType::TOK_DOT, "TOK_DOT"},
             {TokenType::TOK_LEFT_SHIFT, "TOK_RIGHT_SHIFT"},
+            {TokenType::TOK_BINARY, "TOK_BINARY"},
             {TokenType::TOK_RIGHT_SHIFT, "TOK_LEFT_SHIFT"}};
         auto it = tokenTypeToStringMap.find(type);
         if (it != tokenTypeToStringMap.end()) {
