@@ -1,10 +1,11 @@
 #include "Lexer.h"
 #include "Tokens.h"
-#include <bitset>
 #include <cctype>
 #include <iostream>
 #include <stdexcept>
 #include <unordered_map>
+#include <fstream>
+#include <string>
 
 namespace umbra {
 
@@ -35,12 +36,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             column = 1;
             continue;
         }
-
         lastWasReturn = false;
-        if (lastChar == '0' && peek() == 'b') {
-            if(isBinary(lastChar))
-                continue;
-        }
         switch (lastChar) {
         case '\'':
             charliteral();
@@ -335,37 +331,57 @@ void Lexer::reset() {
     column = 1;
 }
 
-void Lexer::errorMessage(char lastChar) { // unexpected character error
+void Lexer::errorMessage(char lastChar) { 
     std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
     errorManager->addError(
         std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
 }
-bool Lexer::isBinary(char c) {
-    // int binario = 0b010010
-    c = advance();
-    if(c != 'b') {
-        return false;
-    }
-    c = advance();
-    std::string binaryValue = "";
-    while (c == '0' || c == '1') {
-        binaryValue += c;
-        advance();
-    }
-    if (!isWhitespace(c)) {
-        std::string errorMsg = "Malformed binary number at line: " + std::to_string(line) +
-                               ", column: " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-        return false;
-    }else if(binaryValue.empty()) {
-        std::string errorMsg = "Empty binary number at line: " + std::to_string(line) +
-                               ", column: " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-        return false;
-    }
-    addToken(TokenType::TOK_BINARY, binaryValue);
-    return true;
+
+
+
+string decimalToBinary(int decimal) {
+  string binary = "";
+  while (decimal > 0) {
+    binary = to_string(decimal % 2) + binary;
+    decimal /= 2;
+  }
+  return binary;
 }
-} // namespace umbra
+
+int binaryToDecimal(string binary) {
+  int decimal = 0;
+  int power = 0;
+  for (int i = binary.length() - 1; i >= 0; i--) {
+    if (binary[i] == '1') {
+      decimal += pow(2, power);
+    }
+    power++;
+  }
+  return decimal;
+}
+
+void removeBOM(std::ifstream& inFile, std::ofstream& outFile) {
+    if (!inFile.is_open() || !outFile.is_open()) {
+        std::cerr << "Error: uno o ambos archivos no están abiertos." << std::endl;
+        return;
+    }
+
+    char bom[3] = {0};
+    inFile.read(bom, 3);
+
+    if (bom[0] == static_cast<char>(0xEF) && 
+        bom[1] == static_cast<char>(0xBB) && 
+        bom[2] == static_cast<char>(0xBF)) {
+        std::string content((std::istreambuf_iterator<char>(inFile)), 
+                            std::istreambuf_iterator<char>());
+        outFile << content; 
+    } else {
+        outFile.seekp(0);
+        outFile.write(bom, inFile.gcount());
+        outFile << std::string((std::istreambuf_iterator<char>(inFile)), 
+                                std::istreambuf_iterator<char>());
+    }
+}
+
+
+}
