@@ -1,0 +1,5 @@
+use io.umbra
+
+func main() : void {
+	print("Hola mundo")
+}

@@ -179,26 +179,30 @@ void Preprocessor::detectByteOrderMark(std::ifstream &f){
     unsigned char byteOrderMark[4];
     f.read(reinterpret_cast<char*>(byteOrderMark), 4);
 
+    //UTF-8 ok
+
     if(byteOrderMark[0] == 0xEF && byteOrderMark[1] == 0xBB && byteOrderMark[2] == 0xBF){
 
         return;
     }
 
     if(byteOrderMark[0] == 0xFE && byteOrderMark[1] == 0xFF){
-
+        std::cout << "Warning__________________>>>> UTF-16 Little endian file detected" << std::endl;
         return;
     }
 
     if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE){
-
+        std::cout << "Warning__________________>>>> UTF-16 Big endian file detected" << std::endl;
         return;
     }
 
     if(byteOrderMark[0] == 0x00 && byteOrderMark[1] == 0x00 && byteOrderMark[2] == 0xFE && byteOrderMark[3] == 0xFF){
+        std::cout << "Warning__________________>>>> UTF-32 Little endian file detected" << std::endl;
         return;
     }
 
     if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE && byteOrderMark[2] == 0x00 && byteOrderMark[3] == 0x00){
+        std::cout << "Warning_________________>>>> UTF-32 Big endiand file detected" << std::endl;
         return;
     }
     f.seekg(0);
@@ -210,7 +214,6 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
 
     std::string fileName = inputFile.fileName == fileNameWithRelativePath ? fileNameWithRelativePath : this->relativePath+inputFile.fileName;
 
-    std::cout << fileName << std::endl;
     File f;
     std::ifstream file(fileName, std::ios::binary);
     if(!fileExist(file)){
@@ -253,12 +256,6 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
     markAsResolved(inputFile);
     file.close();
     return result;
-}
-
-void Preprocessor::diagnosticTool(){
-    for(auto it : included){
-        std::cout << it.first << " Resolved: " << it.second.resolved << std::endl;
-    }
 }
 
 };
