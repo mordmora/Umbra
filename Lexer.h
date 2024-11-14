@@ -61,8 +61,8 @@ class Lexer {
     void scanToken();
     void handleIdentifierOrKeyword();
     bool isBlankSpace(char c) const;
-    bool isBinary(char c) ;
     void errorMessage(char c); // error unexpected character c
+    void binaryToDecimal(std::string binary);
 };
 
 } // namespace umbra
