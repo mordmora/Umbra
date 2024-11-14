@@ -1,0 +1,7 @@
+func print(string str): string {
+	sys_call(4, stdout ,string ,byte_size(string));
+}
+
+func read(byte input){
+	sys_call(3, stdin, input, byte_size(input));
+}
