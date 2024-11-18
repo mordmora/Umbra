@@ -1,77 +1,77 @@
 # Umbra Lang Compiler
-This repository contains the implementation of the Umbra Lang compiler. The project is structured as follows:
+Este repositorio contiene la implementación del compilador Umbra Lang. El proyecto está estructurado de la siguiente manera:
 
 ```plaintext
 │ umbra-lang/
 │
-├── src/                    # Source files for the compiler
-│   ├── lexer/              # Lexical analyzer implementation
-│   ├── parser/             # Syntactic parser 
-│   ├── ast/                # Abstract Syntax Tree definitions
-│   ├── codegen/            # Code generation for LLVM IR
-│   └── main.cpp            # Main entry point of the compiler
+├── src/                    # Ficheros fuente para el compilador
+│   ├── lexer/              # Aplicación del analizador léxico
+│   ├── parser/             # Analizador sintáctico 
+│   ├── ast/                # Definiciones del AST
+│   ├── codegen/            # Generación de código para LLVM IR
+│   └── main.cpp            # Punto de entrada principal del compilador
 │
-├── include/                # Public header files
+├── include/                # Ficheros de cabecera públicos
 │
-├── lib/                    # External libraries
+├── lib/                    # Bibliotecas externas
 │
-├── test/                   # Test files
-│   ├── lexer_tests/        # Tests for the lexical analyzer
-│   ├── parser_tests/       # Tests for the parser 
-│   └── codegen_tests/      # Tests for code generation
+├── test/                   # Ficheros de prueba
+│   ├── CMakeLists.txt      # Definición de pruebas        
+│   ├── lexer_tests/        # Pruebas para el analizador léxico
+│   ├── parser_tests/       # Pruebas del analizador sintáctico 
+│   └── codegen_tests/      # Pruebas de generación de código
 │
-├── examples/               # Example Umbra Lang programs
+├── examples/               # Ejemplos de programas Umbra Lang
 │
-├── docs/                   # Documentation files
+├── docs/                   # Ficheros de documentación
 │
-├── build/                  # Build output directory
+├── build/                  # Construcción de directorio de salida
 │
-├── .vscode/                # VS Code specific settings
-│   ├── tasks.json          # Build tasks configuration
-│   └── launch.json         # Debugger configuration
+├── .vscode/                # Ajustes específicos de VS Code
+│   ├── tasks.json          # Configuración de las tareas de construcción
+│   └── launch.json         # Configuración del depurador
 │
-├── CMakeLists.txt          # CMake configuration file
-├── .gitignore              # Git ignore file
-└── README.md               # This file
+├── CMakeLists.txt          # Archivo de configuración CMake
+├── .gitignore              # Fichero Git Ignore
+└── README.md               # Este archivo
 ```
 
-## Directory Contents
+## Contenido del Directorio
 
-**src/**: Contains all the source code for the Umbra Lang compiler.
+**src/**: Contiene todo el código fuente del compilador Umbra Lang.
+- **lexer/:** Implementación del analizador léxico.
+- **parser/:** Contendrá el analizador sintáctico (por implementar).
+- **ast/:** Definiciones para los nodos del Árbol de Sintaxis Abstracta.
+- **codegen/:** Módulo de generación de código para producir LLVM IR.
+- **main.cpp: ** El punto de entrada principal del compilador.
 
-- **lexer/:** Implementation of the lexical analyzer.
-- **parser/:** Will contain the syntactic parser (to be implemented).
-- **ast/:** Definitions for the Abstract Syntax Tree nodes.
-- **codegen/:** Code generation module for producing LLVM IR.
-- **main.cpp:** The main entry point of the compiler.
+**include/:** Ficheros de cabecera públicos, si el compilador expone alguna API pública.
 
+**lib/:** Bibliotecas externas o dependencias, si se utiliza alguna.
 
-**include/:** Public header files, if the compiler exposes any public API.
+**test/:** Contiene todos los ficheros de prueba para asegurar la corrección del compilador.
 
-**lib/:** External libraries or dependencies, if any are used.
+**examples/:** Programas de ejemplo de Umbra Lang para demostrar las características del lenguaje.
 
-**test/:** Contains all test files to ensure the compiler's correctness.
+**docs/:** Documentación del proyecto, especificaciones del lenguaje, etc.
 
-**examples/:** Sample Umbra Lang programs to demonstrate language features.
+**build/:** Directorio para los artefactos de compilación (no rastreados en git).
 
-**docs/:** Project documentation, language specifications, etc.
+**.vscode/:** Configuración de Visual Studio Code para facilitar el desarrollo.
 
-**build/:** Directory for build artifacts (not tracked in git).
+**CMakeLists.txt:** Configuración del sistema de compilación CMake.
 
-**.vscode/:** Visual Studio Code configuration for easier development.
+**.gitignore:** Especifica los archivos no rastreados intencionadamente para ignorarlos.
 
-**CMakeLists.txt:** CMake build system configuration.
-
-**.gitignore:** Specifies intentionally untracked files to ignore.
-
-**README.md:** Provides an overview of the project (you are here!).
-
-## Getting Started
-
-- [Setup](./SETUP.md)
-
-- [How to contribute](./HOW_TO_CONTRIBUTE.md)
+**README.md:** Proporciona una visión general del proyecto (¡estás aquí!).
 
 
-## License
+## Primeros Pasos
+
+- [Montaje](./SETUP.md)
+
+- [Como contribuir](./HOW_TO_CONTRIBUTE.md)
+
+
+## Licencia
 Apache 2.0 "Umbra" 
