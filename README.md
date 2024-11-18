@@ -1,6 +1,8 @@
+# Umbra Lang Compiler
 This repository contains the implementation of the Umbra Lang compiler. The project is structured as follows:
 
-Copyumbra-lang/
+```plaintext
+│ umbra-lang/
 │
 ├── src/                    # Source files for the compiler
 │   ├── lexer/              # Lexical analyzer implementation
@@ -31,40 +33,37 @@ Copyumbra-lang/
 ├── CMakeLists.txt          # CMake configuration file
 ├── .gitignore              # Git ignore file
 └── README.md               # This file
+```
+
+## Directory Contents
+
+**src/**: Contains all the source code for the Umbra Lang compiler.
+
+**lexer/:** Implementation of the lexical analyzer.
+**parser/:** Will contain the syntactic parser (to be implemented).
+**ast/:** Definitions for the Abstract Syntax Tree nodes.
+**codegen/:** Code generation module for producing LLVM IR.
+**main.cpp:** The main entry point of the compiler.
 
 
-Directory Contents
+**include/:** Public header files, if the compiler exposes any public API.
+**lib/:** External libraries or dependencies, if any are used.
+**test/:** Contains all test files to ensure the compiler's correctness.
 
-src/: Contains all the source code for the Umbra Lang compiler.
+**examples/:** Sample Umbra Lang programs to demonstrate language features.
+**docs/:** Project documentation, language specifications, etc.
+**build/:** Directory for build artifacts (not tracked in git).
+**.vscode/:** Visual Studio Code configuration for easier development.
+**CMakeLists.txt:** CMake build system configuration.
+**.gitignore:** Specifies intentionally untracked files to ignore.
+**README.md:** Provides an overview of the project (you are here!).
 
-lexer/: Implementation of the lexical analyzer.
-parser/: Will contain the syntactic parser (to be implemented).
-ast/: Definitions for the Abstract Syntax Tree nodes.
-codegen/: Code generation module for producing LLVM IR.
-main.cpp: The main entry point of the compiler.
+## Getting Started
 
+- [Setup](./SETUP.md)
 
-include/: Public header files, if the compiler exposes any public API.
-lib/: External libraries or dependencies, if any are used.
-test/: Contains all test files to ensure the compiler's correctness.
-
-Separate subdirectories for lexer, parser, and codegen tests.
-
-
-examples/: Sample Umbra Lang programs to demonstrate language features.
-docs/: Project documentation, language specifications, etc.
-build/: Directory for build artifacts (not tracked in git).
-.vscode/: Visual Studio Code configuration for easier development.
-CMakeLists.txt: CMake build system configuration.
-.gitignore: Specifies intentionally untracked files to ignore.
-README.md: Provides an overview of the project (you are here!).
-
-Getting Started
-
-![Setup](./SETUP.md)
-
-![How to contribute](./HOW_TO_CONTRIBUTE.md)
+- [How to contribute](./HOW_TO_CONTRIBUTE.md)
 
 
-License
-"# Umbra" 
+## License
+Apache 2.0 "Umbra" 
