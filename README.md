@@ -70,7 +70,9 @@ Este repositorio contiene la implementación del compilador Umbra Lang. El proye
 
 - [Montaje](./SETUP.md)
 
-- [Como contribuir](./HOW_TO_CONTRIBUTE.md)
+- [Cómo contribuir](./HOW_TO_CONTRIBUTE.md)
+
+- [Pruebas](./tests/TESTING.md)
 
 
 ## Licencia
