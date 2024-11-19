@@ -1,19 +1,21 @@
-# Minimum CMake required version
+# Versión mínima requerida de CMake
 cmake_minimum_required(VERSION 3.10)
+enable_testing()
 project(UmbraLang VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
-# Set default build type to Debug if not specified
+# Establecer el tipo de compilación predeterminado a Debug si no se especifica
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build: Debug or Release" FORCE)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-# Compiler flags for Debug and Release
+
+# Flags del compilador para Debug y Release
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Configuring Debug build")
   set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -23,14 +25,15 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 
+# Opciones de compilación según el compilador
 if(MSVC)
   add_compile_options(/W4 /WX)
 else()
-  #add_compile_options(-Wall -Wextra -Werror)
   add_compile_options(-Wall -Wextra)
 endif()
 
-# LLVM package
+
+# Paquete de LLVM
 #find_package(LLVM REQUIRED CONFIG)
 #message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 #message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -38,7 +41,7 @@ endif()
 #add_definitions(${LLVM_DEFINITIONS})
 
 
-# The lexer library
+# Biblioteca del analizador léxico 
 add_library(umbra_lexer STATIC
     src/lexer/Lexer.cpp
     src/lexer/Lexer.h
@@ -49,7 +52,7 @@ add_library(umbra_lexer STATIC
 
 
 
-# The Umbra compiler executable
+# Ejecutable del compilador Umbra
 file(GLOB_RECURSE SOURCES
   "src/main.cpp"
   "src/parser/*.cpp"
@@ -69,22 +72,5 @@ set_target_properties(umbra_compiler
 )
 
 
-# Add tests
-include(FetchContent)
-
-# Descargar GoogleTest
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/release-1.11.0.zip
-)
-FetchContent_MakeAvailable(googletest)
-
-add_executable(lexer_test test/lexer_test.cpp)
-target_link_libraries(lexer_test umbra_lexer gtest gtest_main)
-add_test(NAME lexer_test COMMAND lexer_test)
-
-
-set_target_properties(lexer_test
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
+# Agregar pruebas
+add_subdirectory(tests)
