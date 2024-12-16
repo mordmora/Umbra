@@ -178,11 +178,8 @@ void Preprocessor::markAsResolved(File inputFile) {
 void Preprocessor::detectByteOrderMark(std::ifstream &f){
     unsigned char byteOrderMark[4];
     f.read(reinterpret_cast<char*>(byteOrderMark), 4);
-
-    //UTF-8 ok
-
     if(byteOrderMark[0] == 0xEF && byteOrderMark[1] == 0xBB && byteOrderMark[2] == 0xBF){
-
+        std::cout << "UTF 8 detected, ok." << std::endl;
         return;
     }
 
