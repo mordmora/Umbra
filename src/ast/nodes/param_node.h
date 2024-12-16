@@ -15,9 +15,7 @@ public:
     const std::string& getType() const { return type; }
     const std::string& getIdentifier() const { return identifier; }
 
-    void accept(ASTVisitor& visitor) override {
-        // Lógica para aceptar un visitante
-    }
+    void accept(ASTVisitor& visitor) override;
 
 private:
     std::string type;

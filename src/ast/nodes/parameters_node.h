@@ -18,6 +18,7 @@ public:
         return parameters;
     }
 
+    void accept(ASTVisitor& visitor) override;
 
 private:
     std::vector<std::unique_ptr<ParamNode>> parameters;

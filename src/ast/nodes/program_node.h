@@ -20,6 +20,8 @@ namespace umbra {
         const std::vector<std::shared_ptr<FunctionDefinitionNode>>& getFunctions() const {
             return functions;
         }
+
+        void accept(ASTVisitor& visitor) override;
     private:
         std::unique_ptr<FunctionDefinitionNode> main;
         std::vector<std::shared_ptr<FunctionDefinitionNode>> functions;
