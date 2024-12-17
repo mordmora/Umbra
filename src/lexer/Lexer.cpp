@@ -368,4 +368,14 @@ bool Lexer::isBinary(char c) {
     addToken(TokenType::TOK_BINARY, binaryValue);
     return true;
 }
+
+Lexer::Token Lexer::peekToken() { return tokens[current]; }
+
+Lexer::Token Lexer::getNextToken() {
+    if (current < tokens.size()) {
+        return tokens[current++];
+    }
+    return tokens.back();
+}
+
 } // namespace umbra

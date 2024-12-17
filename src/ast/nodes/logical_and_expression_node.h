@@ -3,25 +3,26 @@
 #define LOGICAL_AND_EXPRESSION_NODE_H
 
 #include "expression_node.h"
-#include <memory>
+#include<memory>
 
 namespace umbra {
 
-class LogicalAndExpressionNode : public ExpressionNode {
-public:
-    LogicalAndExpressionNode(std::unique_ptr<ExpressionNode> left,
-                             std::unique_ptr<ExpressionNode> right)
-        : left(std::move(left)), right(std::move(right)) {}
+    class LogicalAndExpressionNode : public ExpressionNode {
+    public:
+        LogicalAndExpressionNode(std::unique_ptr<ExpressionNode> left,
+            std::unique_ptr<ExpressionNode> right)
+            : left(std::move(left)), right(std::move(right)) {
+        }
 
-    const ExpressionNode* getLeft() const { return left.get(); }
-    const ExpressionNode* getRight() const { return right.get(); }
+        const ExpressionNode* getLeft() const { return left.get(); }
+        const ExpressionNode* getRight() const { return right.get(); }
 
-    void accept(ASTVisitor& visitor) override;
+        void accept(ASTVisitor& visitor) override;
 
-private:
-    std::unique_ptr<ExpressionNode> left;
-    std::unique_ptr<ExpressionNode> right;
-};
+    private:
+        std::unique_ptr<ExpressionNode> left;
+        std::unique_ptr<ExpressionNode> right;
+    };
 
 } // namespace umbra
 

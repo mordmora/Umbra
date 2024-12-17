@@ -27,6 +27,8 @@ class Lexer {
     std::vector<Token> tokenize();
     const ErrorManager &getErrorManager() const { return *errorManager; }
     void reset();
+    Token peekToken();
+    Token getNextToken();
 
   private:
     std::string source;

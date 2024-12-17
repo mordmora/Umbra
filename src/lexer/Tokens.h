@@ -24,6 +24,7 @@ enum class TokenType {
     // Keyword tokens for control structures
     TOK_IF,
     TOK_ELSE,
+    TOK_ELSEIF,
     TOK_REPEAT,
     TOK_TIMES,
 
@@ -55,6 +56,12 @@ enum class TokenType {
     TOK_ADD,   // '+' (addition)
     TOK_MULT,  // '*' (multiplication)
     TOK_DIV,   // '/' (division)
+    TOK_MOD,   // '%' (modulo)
+
+    // Token for memory managment
+    TOK_PTR,
+    TOK_ACCESS,
+    TOK_REF,
 
     // Token for arrow operator (function definition)
     TOK_ARROW, // '->'
