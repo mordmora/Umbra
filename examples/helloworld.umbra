@@ -1,5 +1,4 @@
-float b
-int a
-func start() { 
-    print("Hello, Umbra!")
+func start() -> void {
+    int a
+    int b
 }

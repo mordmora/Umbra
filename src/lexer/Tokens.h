@@ -19,6 +19,8 @@ enum class TokenType {
     TOK_CHAR,
     TOK_STRING,
     TOK_BINARY,
+    TOK_ARRAY,
+    TOK_VOID,
     // TOK_ARRAY, wait for array definition
 
     // Keyword tokens for control structures
@@ -98,6 +100,8 @@ class TokenManager {
             {"bool", TokenType::TOK_BOOL},
             {"char", TokenType::TOK_CHAR},
             {"string", TokenType::TOK_STRING},
+            {"array", TokenType::TOK_ARRAY},
+            {"void", TokenType::TOK_VOID},
             {"if", TokenType::TOK_IF},
             {"else", TokenType::TOK_ELSE},
             {"repeat", TokenType::TOK_REPEAT},

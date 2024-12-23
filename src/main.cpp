@@ -1,4 +1,4 @@
-#include "ast/visitor/ASTVisitor.h"
+//#include "ast/visitor/ASTVisitor.h"
 #include "error/ErrorManager.h"
 #include "lexer/Lexer.h"
 #include "parser/Parser.h"
@@ -13,10 +13,10 @@
 namespace umbra {
 
 
-void printAST(ASTNode *node) {
-    PrintVisitor visitor;
-    node->accept(visitor);
-}
+//void printAST(ASTNode *node) {
+ //   PrintVisitor visitor;
+//    node->accept(visitor);
+//}
 
 } // namespace umbra
 
@@ -33,51 +33,34 @@ int main(int argc, char *argv[]) {
         umbra::ErrorManager errorManager;
         umbra::Lexer lexer(sourceCode, errorManager);
 
-        // Perform lexical analysis
         auto tokens = lexer.tokenize();
-
-        // Print tokens (for debugging)
+        #define DEBUG
+        #ifdef DEBUG
         std::cout << "Tokens:" << std::endl;
-        #define RAW_DEBUG
-        #if defined (RAW_DEBUG)
-            for(const auto &token : tokens){
-                std::cout << token.lexeme;
-            }
-        #else
         for (const auto &token : tokens) {
-            std::cout << "Token: Type=" << lexer.tokenManager.tokenTypeToString(token.type)
-                      << ", Lexeme='";
-            if (token.type == umbra::TokenType::TOK_NEWLINE) {
-                std::cout << "\\n";
-            } else {
-                std::cout << token.lexeme;
-            }
-            std::cout << "', Line=" << token.line << ", Column=" << token.column << std::endl;
+            std::cout << "Token: "<<static_cast<int>(token.type) << " " << token.lexeme << std::endl;
         }
         #endif
 
-        std::cout << "Lexical analysis completed" << std::endl;
-
-        // Perform parsing
         umbra::Parser parser(tokens, errorManager);
-        std::unique_ptr<umbra::ASTNode> ast;
 
         try {
-            ast = parser.parse();
-            std::cout << "Parsing completed." << std::endl;
-
+            auto ast = parser.parseProgram();
+            
             if (errorManager.hasErrors()) {
-                std::cerr << "Compilation failed. Errors:\n";
+                std::cerr << "\nCompilation failed with errors:\n";
                 std::cerr << errorManager.getErrorReport();
-            } else {
-                std::cerr << "Compilation successfully.\n";
+                return 1;
             }
-
-            // Print AST using our new PrintVisitor
-            std::cout << "Abstract Syntax Tree:" << std::endl;
-            umbra::printAST(ast.get());
-        } catch (const std::exception &e) {
-            std::cerr << "Parsing failed. Error: " << e.what() << std::endl;
+            
+            std::cout << "\nParsing completed successfully.\n";
+            
+            // Descomenta esto cuando implementes el PrintVisitor
+            // std::cout << "Abstract Syntax Tree:" << std::endl;
+            // umbra::printAST(ast.get());
+            
+        } catch (const std::exception& e) {
+            std::cerr << "Parser error: " << e.what() << std::endl;
             return 1;
         }
 

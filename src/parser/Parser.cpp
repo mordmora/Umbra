@@ -1,305 +1,243 @@
 #include "Parser.h"
-#include <stdexcept>
+#include "../error/ErrorManager.h"
+#include "../ast/nodes/include/variable_declaration_node.h"
+#include<vector>
+#include <iostream>
 
 namespace umbra {
 
-Parser::Parser(Lexer& lexer) : lexer(lexer), currentToken(lexer.getNextToken()) {
-}
-
-void Parser::advanceToken() {
-    currentToken = lexer.getNextToken();
-}
-
-void Parser::expectToken(TokenType expectedType) {
-    if (currentToken.type != expectedType) {
-        error();
-    }
-}
-
-void Parser::error() {
-    // Manejo de errores
-    exit(EXIT_FAILURE);
-}
-
-std::unique_ptr<ProgramNode> Parser::parseProgram() {
-    auto programNode = std::make_unique<ProgramNode>();
-    while (currentToken.type != TokenType::TOK_EOF) {
-        programNode->addFunction(parseFunctionDefinition());
-    }
-    return programNode;
-}
-
-std::unique_ptr<FunctionDefinitionNode> Parser::parseFunctionDefinition() {
-    expectToken(TokenType::TOK_FUNC);
-    advanceToken(); // Consumir 'func'
-
-    expectToken(TokenType::TOK_IDENTIFIER);
-    std::string funcName = currentToken.lexeme;
-    advanceToken(); // Consumir el nombre de la función
-
-    expectToken(TokenType::TOK_LEFT_PAREN);
-    advanceToken(); // Consumir '('
-
-    auto tail = parseFunctionDefinitionTail();
-    return std::make_unique<FunctionDefinitionNode>(funcName, std::move(tail));
-}
-
-std::unique_ptr<FunctionDefinitionTailNode> Parser::parseFunctionDefinitionTail() {
-    std::unique_ptr<ParametersNode> parameters = nullptr;
-
-    if (currentToken.type != TokenType::TOK_RIGHT_PAREN) {
-        parameters = parseParameterList();
+    Parser::Parser(const std::vector<Lexer::Token>& tokens) : tokens(tokens), current(tokens.begin()), errorManager(nullptr),
+        previousToken(*current) {
     }
 
-    expectToken(TokenType::TOK_RIGHT_PAREN);
-    advanceToken(); // Consumir ')'
-
-    expectToken(TokenType::TOK_ARROW);
-    advanceToken(); // Consumir '->'
-
-    auto returnType = parseType();
-
-    expectToken(TokenType::TOK_LEFT_BRACE);
-    advanceToken(); // Consumir '{'
-
-    auto statements = parseStatementList();
-
-    expectToken(TokenType::TOK_RIGHT_BRACE);
-    advanceToken(); // Consumir '}'
-
-    return std::make_unique<FunctionDefinitionTailNode>(
-        std::move(returnType), std::move(statements), std::move(parameters));
-}
-
-std::unique_ptr<ParametersNode> Parser::parseParameterList() {
-    auto parameters = std::make_unique<ParametersNode>(std::vector<std::unique_ptr<ParamNode>>{});
-    parameters->addParameter(parseParam());
-
-    while (currentToken.type == TokenType::TOK_COMMA) {
-        advanceToken(); // Consumir ','
-        parameters->addParameter(parseParam());
-    }
-    return parameters;
-}
-
-std::unique_ptr<ParamNode> Parser::parseParam() {
-    auto type = parseType();
-
-    expectToken(TokenType::TOK_IDENTIFIER);
-    std::string paramName = currentToken.lexeme;
-    advanceToken(); // Consumir el nombre del parámetro
-
-    return std::make_unique<ParamNode>(std::move(type), paramName);
-}
-
-std::unique_ptr<TypeNode> Parser::parseType() {
-    TypeNode::BaseType baseType;
-
-    switch (currentToken.type) {
-        case TokenType::TOK_INT:
-            baseType = TypeNode::BaseType::INT;
-            break;
-        case TokenType::TOK_FLOAT:
-            baseType = TypeNode::BaseType::FLOAT;
-            break;
-        case TokenType::TOK_BOOL:
-            baseType = TypeNode::BaseType::BOOL;
-            break;
-        case TokenType::TOK_CHAR:
-            baseType = TypeNode::BaseType::CHAR;
-            break;
-        case TokenType::TOK_STRING:
-            baseType = TypeNode::BaseType::STRING;
-            break;
-        default:
-            error();
-    }
-    advanceToken(); // Consumir el tipo
-
-    std::unique_ptr<TypeNode> typeNode = std::make_unique<TypeNode>(baseType);
-
-    while (currentToken.type == TokenType::TOK_LEFT_BRACKET) {
-        advanceToken(); // Consumir '['
-        expectToken(TokenType::TOK_RIGHT_BRACKET);
-        advanceToken(); // Consumir ']'
-
-        typeNode = std::make_unique<TypeNode>(TypeNode::BaseType::ARRAY, std::move(typeNode));
+    Parser::Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalErrorManager) : tokens(tokens), current(tokens.begin()),
+        errorManager(&externalErrorManager), previousToken(*current) {
     }
 
-    return typeNode;
-}
-
-std::unique_ptr<StatementListNode> Parser::parseStatementList() {
-    auto statementList = std::make_unique<StatementListNode>();
-    while (currentToken.type != TokenType::TOK_RIGHT_BRACE && currentToken.type != TokenType::TOK_END_OF_FILE) {
-        statementList->addStatement(parseStatement());
+    bool Parser::match(TokenType type) {
+        if (check(type)) {
+            advance();
+            return true;
+        }
+        return false;
     }
-    return statementList;
-}
 
-std::unique_ptr<StatementNode> Parser::parseStatement() {
-    switch (currentToken.type) {
-        case TokenType::TOK_IF:
+    bool Parser::check(TokenType type) const {
+        if (isAtEnd()) {
+            return false;
+        }
+        return peek().type == type;
+    }
+
+    Lexer::Token Parser::advance() {
+        if (!isAtEnd()) {
+            previousToken = *current;
+            return *current++;
+        }
+        return previous();
+    }
+
+    Lexer::Token Parser::previous() const { return previousToken; }
+
+    Lexer::Token Parser::peek() const { return *current; }
+
+    bool Parser::isAtEnd() const { return peek().type == TokenType::TOK_EOF; }
+
+    Lexer::Token Parser::consume(TokenType type, const std::string& message) {
+        Lexer::Token currentToken = peek();
+        if (check(type)) {
+            advance();
+            return currentToken;
+        }
+        errorManager->addError(
+            std::make_unique<CompilerError>(ErrorType::SYNTACTIC, message, peek().line, peek().column));
+        throw std::runtime_error(message);
+    }
+
+    bool Parser::isTypeToken(const Lexer::Token& token) {
+        return token.type == TokenType::TOK_INT || token.type == TokenType::TOK_FLOAT || token.type == TokenType::TOK_BOOL ||
+
+            token.type == TokenType::TOK_CHAR || token.type == TokenType::TOK_STRING || token.type == TokenType::TOK_ARRAY || token.type == TokenType::TOK_VOID;
+    }
+
+
+    //<program> ::= { <function_definition> }
+    std::shared_ptr<ProgramNode> Parser::parseProgram() {
+        std::vector<std::unique_ptr<FunctionDefinitionNode>> functionDefinitions;
+        while (!isAtEnd()) {
+            functionDefinitions.push_back(parseFunctionDefinition());
+            std::cout << "Function definition parsed" << std::endl;
+        }
+        return std::make_shared<ProgramNode>(std::move(functionDefinitions));
+    }
+
+    //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}"
+    std::unique_ptr<FunctionDefinitionNode> Parser::parseFunctionDefinition() {
+        if (!match(TokenType::TOK_FUNC)) {
+            errorManager->addError(
+                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected 'func' keyword", peek().line, peek().column));
+            synchronize();
+        }
+        Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected function name");
+        consume(TokenType::TOK_LEFT_PAREN, "Expected '('");
+
+        std::vector<std::unique_ptr<ParamNode>> parameters;
+        if (!check(TokenType::TOK_RIGHT_PAREN)) {
+            parameters = parseParameterList();
+        }
+        consume(TokenType::TOK_RIGHT_PAREN, "Expected ')'");
+        consume(TokenType::TOK_ARROW, "Expected '->'");
+        if (!isTypeToken(peek())) {
+            std::cout << "Expected return type" << std::endl;
+            errorManager->addError(
+                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected return type", peek().line, peek().column));
+            synchronize();
+        }
+        Lexer::Token typeToken = consume(peek().type, "Expected return type");
+
+
+        consume(TokenType::TOK_LEFT_BRACE, "Expected '{'");
+        if (match(TokenType::TOK_NEWLINE)) {
+
+        }
+        auto statemets = parseStatementList();
+        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
+        return std::make_unique<FunctionDefinitionNode>(identifier.lexeme, std::move(parameters), std::move(statemets), typeToken.type);
+    }
+
+    //<param> ::= <type> <identifier>
+    std::vector<std::unique_ptr<ParamNode>> Parser::parseParameterList() {
+        std::vector<std::unique_ptr<ParamNode>> parameters;
+        do {
+            Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected parameter name");
+            if (!isTypeToken(peek())) {
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected parameter type", peek().line, peek().column));
+                synchronize();
+            }
+            Lexer::Token typeToken = consume(peek().type, "Expected parameter type");
+            parameters.push_back(std::make_unique<ParamNode>(typeToken.type, identifier.lexeme));
+        } while (match(TokenType::TOK_COMMA));
+        return parameters;
+    }
+
+    std::unique_ptr<StatementListNode> Parser::parseStatementList() {
+        std::vector<std::unique_ptr<StatementNode>> statements;
+        while (!check(TokenType::TOK_RIGHT_BRACE) && !isAtEnd()) {
+            statements.push_back(parseStatement());
+        }
+        return std::make_unique<StatementListNode>(std::move(statements));
+    }
+
+    // <statement> ::= <variable_declaration> 
+    //           | <assignment_statement> 
+    //           | <conditional> 
+    //           | <loop> <newline>
+    //           | <memory_management> 
+    //           | <return_statement> 
+    //           | <expression> 
+    std::unique_ptr<StatementNode> Parser::parseStatement() {
+        if (match(TokenType::TOK_IF)) {
             return parseIfStatement();
-        // Agregar casos para otros tipos de declaraciones
-        default:
-            error();
-            return nullptr;
+        }
+        if (isTypeToken(peek())) {
+            return parseVariableDeclaration();
+        }
+        return nullptr;
     }
-}
-
-std::unique_ptr<StatementNode> Parser::parseIfStatement() {
-    advanceToken(); // Consumir 'if'
-
-    auto condition = parseExpression();
-
-    expectToken(TokenType::TOK_LEFT_BRACE);
-    advanceToken(); // Consumir '{'
-
-    auto thenStatements = parseStatementList();
-
-    expectToken(TokenType::TOK_RIGHT_BRACE);
-    advanceToken(); // Consumir '}'
-
-    std::vector<std::unique_ptr<ElseIfStatementNode>> elseIfClauses;
-
-    while (currentToken.type == TokenType::TOK_ELSEIF) {
-        advanceToken(); // Consumir 'elseif'
-        auto elseIfCondition = parseExpression();
-
-        expectToken(TokenType::TOK_LEFT_BRACE);
-        advanceToken(); // Consumir '{'
-
-        auto elseIfStatements = parseStatementList();
-
-        expectToken(TokenType::TOK_RIGHT_BRACE);
-        advanceToken(); // Consumir '}'
-
-        elseIfClauses.push_back(std::make_unique<ElseIfStatementNode>(
-            std::move(elseIfCondition), std::move(elseIfStatements)));
+    //<variable_declaration> ::= <type> <identifier> [ "=" <expression> ] <newline>
+    std::unique_ptr<StatementNode> Parser::parseVariableDeclaration() {
+        Lexer::Token typeToken = consume(peek().type, "Expected type");
+        Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
+        std::unique_ptr<ExpressionNode> expression;
+        // if (match(TokenType::TOK_ASSIGN)) {
+         //    expression = parseExpression();
+         //}
+        consume(TokenType::TOK_NEWLINE, "Expected newline");
+        return std::make_unique<VariableDeclarationNode>(typeToken.type, identifier.lexeme);
     }
 
-    std::unique_ptr<StatementListNode> elseStatements = nullptr;
 
-    if (currentToken.type == TokenType::TOK_ELSE) {
-        advanceToken(); // Consumir 'else'
+    //<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" }
+    // [ "else" "{" <statement_list> "}" ]
+    std::unique_ptr<StatementNode> Parser::parseIfStatement() {
+        // Parse initial if condition
+        std::unique_ptr<ExpressionNode> condition = parseExpression();
+        if (condition == nullptr) {
+            errorManager->addError(
+                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected expression", peek().line, peek().column));
+            synchronize();
+        }
 
-        expectToken(TokenType::TOK_LEFT_BRACE);
-        advanceToken(); // Consumir '{'
+        // Parse if body
+        consume(TokenType::TOK_LEFT_BRACE, "Expected '{'");
+        auto ifStatements = parseStatementList();
+        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
 
-        elseStatements = parseStatementList();
+        // Vector to store elseif conditions and their bodies
+        std::vector<std::pair<std::unique_ptr<ExpressionNode>, std::unique_ptr<StatementListNode>>> elseIfBranches;
 
-        expectToken(TokenType::TOK_RIGHT_BRACE);
-        advanceToken(); // Consumir '}'
+        // Parse elseif branches
+        while (match(TokenType::TOK_ELSEIF)) {
+            auto elseIfCondition = parseExpression();
+            if (elseIfCondition == nullptr) {
+                errorManager->addError(
+                    std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected expression in elseif", peek().line, peek().column));
+                synchronize();
+            }
+
+            consume(TokenType::TOK_LEFT_BRACE, "Expected '{' after elseif condition");
+            auto elseIfStatements = parseStatementList();
+            consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
+
+            elseIfBranches.push_back(std::make_pair(
+                std::move(elseIfCondition),
+                std::move(elseIfStatements)
+            ));
+        }
+
+        // Parse optional else branch
+        std::unique_ptr<StatementListNode> elseStatements;
+        if (match(TokenType::TOK_ELSE)) {
+            consume(TokenType::TOK_LEFT_BRACE, "Expected '{' after else");
+            elseStatements = parseStatementList();
+            consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
+        }
+
+        // Create and return the complete if statement node
+        return std::make_unique<IfStatementNode>(
+            std::move(condition),
+            std::move(ifStatements),
+            std::move(elseIfBranches),
+            std::move(elseStatements)
+        );
     }
 
-    return std::make_unique<IfStatementNode>(
-        std::move(condition), std::move(thenStatements),
-        std::move(elseIfClauses), std::move(elseStatements));
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseExpression() {
-    return parseLogicalOrExpression();
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseLogicalOrExpression() {
-    auto left = parseLogicalAndExpression();
-    while (currentToken.type == TokenType::TOK_OR) {
-        advanceToken(); // Consumir 'or'
-        auto right = parseLogicalAndExpression();
-        left = std::make_unique<LogicalOrExpressionNode>(std::move(left), std::move(right));
+    //<primary_expression> ::= <identifier> 
+    std::unique_ptr<ExpressionNode> Parser::parseExpression() {
+        auto expression = std::make_unique<IdentifierNode>(peek().lexeme);
+        advance();
+        return expression;
     }
-    return left;
-}
 
-std::unique_ptr<ExpressionNode> Parser::parseLogicalAndExpression() {
-    auto left = parseEqualityExpression();
-    while (currentToken.type == TokenType::TOK_AND) {
-        advanceToken(); // Consumir 'and'
-        auto right = parseEqualityExpression();
-        left = std::make_unique<LogicalAndExpressionNode>(std::move(left), std::move(right));
+    void Parser::synchronize() {
+        advance();
+        while (!isAtEnd()) {
+            if (previous().type == TokenType::TOK_NEWLINE) {
+                return;
+            }
+            switch (peek().type) {
+            case TokenType::TOK_FUNC:
+            case TokenType::TOK_IF:
+            case TokenType::TOK_ELSEIF:
+            case TokenType::TOK_ELSE:
+            case TokenType::TOK_REPEAT:
+            case TokenType::TOK_RETURN:
+                return;
+            default:
+                break;
+            }
+            advance();
+        }
     }
-    return left;
 }
-
-std::unique_ptr<ExpressionNode> Parser::parseEqualityExpression() {
-    auto left = parseRelationalExpression();
-    if (currentToken.type == TokenType::TOK_EQUAL_OP || currentToken.type == TokenType::TOK_NOT_EQUAL_OP) {
-        auto op = currentToken.type;
-        advanceToken(); // Consumir operador
-        auto right = parseRelationalExpression();
-        left = std::make_unique<EqualityExpressionNode>(
-            std::move(left),
-            (op == TokenType::TOK_EQUAL) ? EqualityExpressionNode::Operator::EQUAL : EqualityExpressionNode::Operator::NOT_EQUAL,
-            std::move(right));
-    }
-    return left;
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseRelationalExpression() {
-    auto left = parseAdditiveExpression();
-    if (currentToken.type == TokenType::TOK_LESS || currentToken.type == TokenType::TOK_GREATER ||
-        currentToken.type == TokenType::TOK_LESS_EQ || currentToken.type == TokenType::TOK_GREATER_EQ) {
-        auto op = currentToken.type;
-        advanceToken(); // Consumir operador
-        auto right = parseAdditiveExpression();
-        left = std::make_unique<RelationalExpressionNode>(
-            std::move(left),
-            static_cast<RelationalExpressionNode::Operator>(op),
-            std::move(right));
-    }
-    return left;
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseAdditiveExpression() {
-    auto left = parseMultiplicativeExpression();
-    while (currentToken.type == TokenType::TOK_ADD || currentToken.type == TokenType::TOK_MINUS) {
-        auto op = currentToken.type;
-        advanceToken(); // Consumir operador
-        auto right = parseMultiplicativeExpression();
-        left = std::make_unique<AdditiveExpressionNode>(
-            std::move(left),
-            (op == TokenType::TOK_ADD) ? AdditiveExpressionNode::Operator::ADD : AdditiveExpressionNode::Operator::SUBTRACT,
-            std::move(right));
-    }
-    return left;
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseMultiplicativeExpression() {
-    auto left = parseUnaryExpression();
-    while (currentToken.type == TokenType::TOK_MULT || currentToken.type == TokenType::TOK_DIV || currentToken.type == TokenType::TOK_MOD) {
-        auto op = currentToken.type;
-        advanceToken(); // Consumir operador
-        auto right = parseUnaryExpression();
-        left = std::make_unique<MultiplicativeExpressionNode>(
-            std::move(left),
-            static_cast<MultiplicativeExpressionNode::Operator>(op),
-            std::move(right));
-    }
-    return left;
-}
-
-std::unique_ptr<ExpressionNode> Parser::parseUnaryExpression() {
-    if (currentToken.type == TokenType::TOK_PTR || currentToken.type == TokenType::TOK_REF || currentToken.type == TokenType::TOK_ACCESS) {
-        auto op = currentToken.type;
-        advanceToken(); // Consumir operador
-        auto operand = parsePrimaryExpression();
-        return std::make_unique<UnaryExpressionNode>(
-            static_cast<UnaryExpressionNode::Operator>(op), std::move(operand));
-    }
-    return parsePrimaryExpression();
-}
-
-std::unique_ptr<PrimaryExpressionNode> Parser::parsePrimaryExpression() {
-    if (currentToken.type == TokenType::TOK_IDENTIFIER) {
-        std::string idName = currentToken.lexeme;
-        advanceToken(); // Consumir identificador
-        return std::make_unique<PrimaryExpressionNode>(
-            std::make_unique<IdentifierNode>(idName));
-    }
-    // Manejar literales, llamadas a funciones y expresiones entre paréntesis según sea necesario
-    error();
-    return nullptr;
-}
-
-} // namespace umbra

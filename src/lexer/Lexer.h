@@ -29,7 +29,7 @@ class Lexer {
     void reset();
     Token peekToken();
     Token getNextToken();
-
+    std::string getSource();
   private:
     std::string source;
     std::unique_ptr<ErrorManager> internalErrorManager;
@@ -60,8 +60,8 @@ class Lexer {
     bool isDigit(char c) const;
     bool isSing(char c) const;
     bool isWhitespace(char c) const;
-    void scanToken();
-    void handleIdentifierOrKeyword();
+    //void scanToken();
+    //void handleIdentifierOrKeyword();
     bool isBlankSpace(char c) const;
     bool isBinary(char c) ;
     void errorMessage(char c); // error unexpected character c
