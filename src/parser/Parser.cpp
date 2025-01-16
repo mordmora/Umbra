@@ -1,8 +1,10 @@
 #include "Parser.h"
 #include "../error/ErrorManager.h"
-#include "../ast/nodes/include/variable_declaration_node.h"
 #include<vector>
 #include <iostream>
+#include <sstream>
+
+#define UMBRA_PRINT(x) std::cout << x << std::endl;
 
 namespace umbra {
 
@@ -15,6 +17,9 @@ namespace umbra {
     }
 
     bool Parser::match(TokenType type) {
+        #ifdef UMBRA_DEBUG
+        std::cout << "Matching token: " << static_cast<int>(current->type) << " with " << static_cast<int>(type) << std::endl;
+        #endif
         if (check(type)) {
             advance();
             return true;
@@ -24,20 +29,50 @@ namespace umbra {
 
     bool Parser::check(TokenType type) const {
         if (isAtEnd()) {
+            #ifdef UMBRA_DEBUG
+            std::stringstream ss;
+            ss << "Check failed - at end of input" << std::endl;
+            UMBRA_PRINT(ss.str());
+            #endif
             return false;
         }
+        #ifdef UMBRA_DEBUG
+        std::stringstream ss;
+        ss << "Checking token type: " << static_cast<int>(type) 
+           << " against current: " << static_cast<int>(peek().type) << std::endl;
+        UMBRA_PRINT(ss.str());
+        #endif
         return peek().type == type;
     }
 
     Lexer::Token Parser::advance() {
         if (!isAtEnd()) {
+            #ifdef UMBRA_DEBUG
+            std::stringstream ss;
+            ss << "Advancing token: " << static_cast<int>(current->type)
+               << " at position: " << (current - tokens.begin()) << std::endl;
+            ss << "Token text: \"" << current->lexeme << "\"" << std::endl;
+            UMBRA_PRINT(ss.str());
+            #endif
             previousToken = *current;
             return *current++;
         }
+        #ifdef UMBRA_DEBUG
+        std::stringstream ss;
+        ss << "At end of input - returning previous token" << std::endl;
+        UMBRA_PRINT(ss.str());
+        #endif
         return previous();
     }
 
-    Lexer::Token Parser::previous() const { return previousToken; }
+    Lexer::Token Parser::previous() const { 
+        #ifdef UMBRA_DEBUG
+        std::stringstream ss;
+        ss << "Getting previous token: " << static_cast<int>(previousToken.type) << std::endl;
+        UMBRA_PRINT(ss.str());
+        #endif
+        return previousToken; 
+    }
 
     Lexer::Token Parser::peek() const { return *current; }
 
@@ -45,6 +80,9 @@ namespace umbra {
 
     Lexer::Token Parser::consume(TokenType type, const std::string& message) {
         Lexer::Token currentToken = peek();
+        #ifdef UMBRA_DEBUG
+        std::cout << "Consuming token: " << static_cast<int>(currentToken.type) << " with " << static_cast<int>(type) << std::endl;
+        #endif
         if (check(type)) {
             advance();
             return currentToken;
@@ -60,164 +98,43 @@ namespace umbra {
             token.type == TokenType::TOK_CHAR || token.type == TokenType::TOK_STRING || token.type == TokenType::TOK_ARRAY || token.type == TokenType::TOK_VOID;
     }
 
-
     //<program> ::= { <function_definition> }
     std::shared_ptr<ProgramNode> Parser::parseProgram() {
-        std::vector<std::unique_ptr<FunctionDefinitionNode>> functionDefinitions;
+        std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
         while (!isAtEnd()) {
             functionDefinitions.push_back(parseFunctionDefinition());
-            std::cout << "Function definition parsed" << std::endl;
+            if(match(TokenType::TOK_NEWLINE)) {
+                continue;
+            }
+
         }
         return std::make_shared<ProgramNode>(std::move(functionDefinitions));
     }
-
-    //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}"
-    std::unique_ptr<FunctionDefinitionNode> Parser::parseFunctionDefinition() {
-        if (!match(TokenType::TOK_FUNC)) {
-            errorManager->addError(
-                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected 'func' keyword", peek().line, peek().column));
-            synchronize();
+    //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
+    std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
+        if(!match(TokenType::TOK_FUNC)){
+            throw std::runtime_error("Expected 'func' keyword");
         }
-        Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected function name");
-        consume(TokenType::TOK_LEFT_PAREN, "Expected '('");
 
-        std::vector<std::unique_ptr<ParamNode>> parameters;
-        if (!check(TokenType::TOK_RIGHT_PAREN)) {
-            parameters = parseParameterList();
-        }
-        consume(TokenType::TOK_RIGHT_PAREN, "Expected ')'");
-        consume(TokenType::TOK_ARROW, "Expected '->'");
-        if (!isTypeToken(peek())) {
-            std::cout << "Expected return type" << std::endl;
-            errorManager->addError(
-                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected return type", peek().line, peek().column));
-            synchronize();
-        }
-        Lexer::Token typeToken = consume(peek().type, "Expected return type");
+        Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected function name");
 
+        consume(TokenType::TOK_LEFT_PAREN, "Expected '(' after function name");
 
-        consume(TokenType::TOK_LEFT_BRACE, "Expected '{'");
-        if (match(TokenType::TOK_NEWLINE)) {
+        std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters;
 
-        }
-        auto statemets = parseStatementList();
-        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
-        return std::make_unique<FunctionDefinitionNode>(identifier.lexeme, std::move(parameters), std::move(statemets), typeToken.type);
-    }
-
-    //<param> ::= <type> <identifier>
-    std::vector<std::unique_ptr<ParamNode>> Parser::parseParameterList() {
-        std::vector<std::unique_ptr<ParamNode>> parameters;
-        do {
-            Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected parameter name");
-            if (!isTypeToken(peek())) {
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected parameter type", peek().line, peek().column));
-                synchronize();
+        if(!check(TokenType::TOK_RIGHT_PAREN)){
+            do{
+                Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER, "Expected parameter name");
+                consume(TokenType::TOK_COMMA, "Expected ',' after parameter name");
+                auto paramType = parseType();
+                auto paramId = std::make_unique<Identifier>(paramName);
+                
             }
-            Lexer::Token typeToken = consume(peek().type, "Expected parameter type");
-            parameters.push_back(std::make_unique<ParamNode>(typeToken.type, identifier.lexeme));
-        } while (match(TokenType::TOK_COMMA));
-        return parameters;
+        }
     }
 
-    std::unique_ptr<StatementListNode> Parser::parseStatementList() {
-        std::vector<std::unique_ptr<StatementNode>> statements;
-        while (!check(TokenType::TOK_RIGHT_BRACE) && !isAtEnd()) {
-            statements.push_back(parseStatement());
-        }
-        return std::make_unique<StatementListNode>(std::move(statements));
-    }
-
-    // <statement> ::= <variable_declaration> 
-    //           | <assignment_statement> 
-    //           | <conditional> 
-    //           | <loop> <newline>
-    //           | <memory_management> 
-    //           | <return_statement> 
-    //           | <expression> 
-    std::unique_ptr<StatementNode> Parser::parseStatement() {
-        if (match(TokenType::TOK_IF)) {
-            return parseIfStatement();
-        }
-        if (isTypeToken(peek())) {
-            return parseVariableDeclaration();
-        }
-        return nullptr;
-    }
-    //<variable_declaration> ::= <type> <identifier> [ "=" <expression> ] <newline>
-    std::unique_ptr<StatementNode> Parser::parseVariableDeclaration() {
-        Lexer::Token typeToken = consume(peek().type, "Expected type");
-        Lexer::Token identifier = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
-        std::unique_ptr<ExpressionNode> expression;
-        // if (match(TokenType::TOK_ASSIGN)) {
-         //    expression = parseExpression();
-         //}
-        consume(TokenType::TOK_NEWLINE, "Expected newline");
-        return std::make_unique<VariableDeclarationNode>(typeToken.type, identifier.lexeme);
-    }
-
-
-    //<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" }
-    // [ "else" "{" <statement_list> "}" ]
-    std::unique_ptr<StatementNode> Parser::parseIfStatement() {
-        // Parse initial if condition
-        std::unique_ptr<ExpressionNode> condition = parseExpression();
-        if (condition == nullptr) {
-            errorManager->addError(
-                std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected expression", peek().line, peek().column));
-            synchronize();
-        }
-
-        // Parse if body
-        consume(TokenType::TOK_LEFT_BRACE, "Expected '{'");
-        auto ifStatements = parseStatementList();
-        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
-
-        // Vector to store elseif conditions and their bodies
-        std::vector<std::pair<std::unique_ptr<ExpressionNode>, std::unique_ptr<StatementListNode>>> elseIfBranches;
-
-        // Parse elseif branches
-        while (match(TokenType::TOK_ELSEIF)) {
-            auto elseIfCondition = parseExpression();
-            if (elseIfCondition == nullptr) {
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::SYNTACTIC, "Expected expression in elseif", peek().line, peek().column));
-                synchronize();
-            }
-
-            consume(TokenType::TOK_LEFT_BRACE, "Expected '{' after elseif condition");
-            auto elseIfStatements = parseStatementList();
-            consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
-
-            elseIfBranches.push_back(std::make_pair(
-                std::move(elseIfCondition),
-                std::move(elseIfStatements)
-            ));
-        }
-
-        // Parse optional else branch
-        std::unique_ptr<StatementListNode> elseStatements;
-        if (match(TokenType::TOK_ELSE)) {
-            consume(TokenType::TOK_LEFT_BRACE, "Expected '{' after else");
-            elseStatements = parseStatementList();
-            consume(TokenType::TOK_RIGHT_BRACE, "Expected '}'");
-        }
-
-        // Create and return the complete if statement node
-        return std::make_unique<IfStatementNode>(
-            std::move(condition),
-            std::move(ifStatements),
-            std::move(elseIfBranches),
-            std::move(elseStatements)
-        );
-    }
-
-    //<primary_expression> ::= <identifier> 
-    std::unique_ptr<ExpressionNode> Parser::parseExpression() {
-        auto expression = std::make_unique<IdentifierNode>(peek().lexeme);
-        advance();
-        return expression;
+    void Parser::error(const std::string& message, int line, int column) {
+        errorManager->addError(std::make_unique<CompilerError>(ErrorType::SYNTACTIC, message, line, column));
     }
 
     void Parser::synchronize() {

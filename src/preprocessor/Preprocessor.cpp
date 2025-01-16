@@ -82,7 +82,7 @@ std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &inp
         out += input_str[index];
         index++;
     }
-
+    out += NEWLINE;
     return {out, index};
 }
 

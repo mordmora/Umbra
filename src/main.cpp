@@ -3,6 +3,7 @@
 #include "lexer/Lexer.h"
 #include "parser/Parser.h"
 #include "preprocessor/Preprocessor.h"
+#include "lexer/Tokens.h"
 #include <fstream>
 #include<optional>
 #include <iostream>
@@ -38,7 +39,7 @@ int main(int argc, char *argv[]) {
         #ifdef DEBUG
         std::cout << "Tokens:" << std::endl;
         for (const auto &token : tokens) {
-            std::cout << "Token: "<<static_cast<int>(token.type) << " " << token.lexeme << std::endl;
+            std::cout << "Token: "<< lexer.tokenManager.tokenTypeToString(token.type) << " " << (token.lexeme == "\n" ? "New Line" : token.lexeme) << std::endl;
         }
         #endif
 

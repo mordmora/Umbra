@@ -6,6 +6,9 @@ project(UmbraLang VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DUMBRA_DEBUG)
+endif()
 
 # Establecer el tipo de compilación predeterminado a Debug si no se especifica
 if(NOT CMAKE_BUILD_TYPE)
@@ -29,7 +32,7 @@ endif()
 if(MSVC)
   add_compile_options(/W4 /WX)
 else()
-  add_compile_options(-Wall -Wextra)
+  add_compile_options(-Wall -Wextra )
 endif()
 
 

@@ -44,11 +44,14 @@ enum class TokenType {
 
     // Tokens for comparison operators
     TOK_EQUAL,      // 'equal'
+    TOK_NOT,        // 'not'
     TOK_DIFFERENT,  // 'different'
     TOK_LESS,       // 'less_than'
     TOK_GREATER,    // 'greater_than'
     TOK_LESS_EQ,    // 'less_or_equal'
     TOK_GREATER_EQ, // 'greater_or_equal'
+    TOK_TRUE,
+    TOK_FALSE,
 
     // Assignment token
     TOK_ASSIGN, // '='
@@ -113,6 +116,9 @@ class TokenManager {
             {"and", TokenType::TOK_AND},
             {"or", TokenType::TOK_OR},
             {"equal", TokenType::TOK_EQUAL},
+        {"not", TokenType::TOK_NOT},
+        {"true", TokenType::TOK_TRUE},
+        {"false", TokenType::TOK_FALSE},
             {"different", TokenType::TOK_DIFFERENT},
             {"less_than", TokenType::TOK_LESS},
             {"greater_than", TokenType::TOK_GREATER},
