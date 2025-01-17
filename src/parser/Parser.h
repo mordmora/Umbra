@@ -41,6 +41,20 @@ namespace umbra {
         std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
         std::unique_ptr<Type> parseType();
         std::vector<std::unique_ptr<Statement>> parseStatementList();
+        std::unique_ptr<Statement> parseStatement();
+        std::unique_ptr<VariableDeclaration> parseVariableDeclaration();
+        std::unique_ptr<Expression> parseExpression();
+        std::unique_ptr<Expression> parseLogicalOr();
+        std::unique_ptr<Expression> parseLogicalAnd();
+        std::unique_ptr<Expression> parseEquality();
+        std::unique_ptr<Expression> parseRelational();
+        std::unique_ptr<Expression> parseAditive();
+        std::unique_ptr<Expression> parseMultiplicative();
+        std::unique_ptr<Expression> parseUnary();
+        std::unique_ptr<Expression> parsePrimary();
+        std::unique_ptr<Expression> parseIdentifier();
+        std::unique_ptr<Statement> parseReturnStatement();
+        
 
         //void expectToken(TokenType expectedType);
         void error(const std::string& message, int line, int column);

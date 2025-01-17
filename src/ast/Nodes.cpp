@@ -204,5 +204,13 @@ namespace umbra {
 
     PrimaryExpression::PrimaryExpression(std::unique_ptr<Expression> parenthesized)
         : exprType(PARENTHESIZED), parenthesized(std::move(parenthesized)) {}
+
+    /**
+     * @brief Constructs a primary expression node
+     * @param functionCall Function call expression
+     */
+
+    PrimaryExpression::PrimaryExpression(std::unique_ptr<FunctionCall> functionCall)
+        : exprType(EXPRESSION_CALL), functionCall(std::move(functionCall)) {}
     
 } // namespace umbra

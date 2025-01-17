@@ -16,10 +16,16 @@ namespace umbra {
     class FunctionDefinition;
     class ParameterList;
     class Statement;
-    class Expression;
     class Type;
     class Identifier;
     class Literal;
+    class FunctionCall;
+
+    // Expression base class
+    class Expression : public ASTNode {
+    public:
+        void accept(ASTVisitor& visitor) override {}
+    };
 
     // Program node
     class ProgramNode : public ASTNode {
@@ -59,15 +65,18 @@ namespace umbra {
     };
 
     // Identifier node
-    class Identifier : public ASTNode {
+    class Identifier : public Expression {
     public:
         Identifier(std::string name);
-        void accept(ASTVisitor& visitor) override {}
+
         std::string name;
     };
 
     // Statement base class
-    class Statement : public ASTNode {};
+    class Statement : public ASTNode {
+    public:
+        void accept(ASTVisitor& visitor) override {}
+    };
 
     // Variable declaration node
     class VariableDeclaration : public Statement {
@@ -136,9 +145,6 @@ namespace umbra {
         std::unique_ptr<Expression> returnValue;
     };
 
-    // Expression base class
-    class Expression : public ASTNode {};
-
     // Binary expression node
     class BinaryExpression : public Expression {
     public:
@@ -159,23 +165,26 @@ namespace umbra {
     };
 
     // Primary expression node
-class PrimaryExpression : public Expression {
-public:
-    void accept(ASTVisitor& visitor) override {}
+    class PrimaryExpression : public Expression {
+    public:
+        void accept(ASTVisitor& visitor) override {}
 
-    enum Type { IDENTIFIER, LITERAL, FUNCTION_CALL, PARENTHESIZED } exprType;
+        enum Type { IDENTIFIER, LITERAL, EXPRESSION_CALL, PARENTHESIZED } exprType;
 
-    PrimaryExpression(std::unique_ptr<Identifier> identifier);
+        PrimaryExpression(std::unique_ptr<Identifier> identifier);
 
-    PrimaryExpression(std::unique_ptr<Literal> literal);
+        PrimaryExpression(std::unique_ptr<Literal> literal);
 
-    PrimaryExpression(std::unique_ptr<Expression> parenthesized);
+        PrimaryExpression(std::unique_ptr<Expression> parenthesized);
 
-    std::unique_ptr<Identifier> identifier; 
-    std::unique_ptr<Literal> literal;      
-    std::unique_ptr<Expression> parenthesized; 
+        PrimaryExpression(std::unique_ptr<FunctionCall> functionCall);
 
-};
+        std::unique_ptr<Identifier> identifier;
+        std::unique_ptr<Literal> literal;
+        std::unique_ptr<Expression> parenthesized;
+        std::unique_ptr<FunctionCall> functionCall;
+
+    };
 
     // Literal node
     class Literal : public ASTNode {
@@ -229,5 +238,6 @@ public:
         void accept(ASTVisitor& visitor) override {}
         std::string value;
     };
-}
+};
+
 #endif // AST_NODES_HPP
