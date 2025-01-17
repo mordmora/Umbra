@@ -127,11 +127,31 @@ namespace umbra {
                 Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER, "Expected parameter name");
                 consume(TokenType::TOK_COMMA, "Expected ',' after parameter name");
                 auto paramType = parseType();
-                auto paramId = std::make_unique<Identifier>(paramName);
-                
-            }
+                auto paramId = std::make_unique<Identifier>(paramName.lexeme);
+                parameters.push_back(std::make_pair(std::move(paramType), std::move(paramId)));
+            } while(match(TokenType::TOK_COMMA));
+        }
+
+        consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after parameter list");
+        consume(TokenType::TOK_ARROW, "Expected '->' after parameter list");
+
+        auto returnType = parseType();
+
+        consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before function body");
+        auto body = parseStatementList();
+        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
+
+        if(match(TokenType::TOK_NEWLINE)) {
+            return std::make_unique<FunctionDefinition>(std::make_unique<Identifier>(name.lexeme), 
+                std::make_unique<ParameterList>(std::move(parameters)), std::move(returnType), std::move(body));
+        }
+        else {
+            error("Expected newline after function body", name.line, name.column);
+            return nullptr;
         }
     }
+
+
 
     void Parser::error(const std::string& message, int line, int column) {
         errorManager->addError(std::make_unique<CompilerError>(ErrorType::SYNTACTIC, message, line, column));

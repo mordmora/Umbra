@@ -39,6 +39,8 @@ namespace umbra {
        // void advanceToken();
 
         std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
+        std::unique_ptr<Type> parseType();
+        std::vector<std::unique_ptr<Statement>> parseStatementList();
 
         //void expectToken(TokenType expectedType);
         void error(const std::string& message, int line, int column);
