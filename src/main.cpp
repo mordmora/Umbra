@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
         umbra::File file = {argv[1], location, false, std::nullopt};
         umbra::Preprocessor preprocessor(file);
         std::string sourceCode = preprocessor.out;
+        std::cout << sourceCode;
         umbra::ErrorManager errorManager;
         umbra::Lexer lexer(sourceCode, errorManager);
 
