@@ -1,3 +1,4 @@
 func start() -> int {
-    bool c = a + b + c * d
+    int c = (a + b + c * d)
 }
+

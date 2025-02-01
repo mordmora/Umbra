@@ -61,7 +61,7 @@ Preprocessor::Preprocessor(File file) : origin(file) {
 std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &input_str, std::size_t index) {
 
     const char BLANK = ' ';
-    const char TAB = '\t';
+    const char TAB = '\t'; 
     const char NEWLINE = '\n';
     const char CARRIAGE_RETURN = '\r';
     std::string out;
@@ -69,7 +69,7 @@ std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &inp
     //Se salta los espacios en blanco
 
     while (index < input_str.size() && (input_str[index] == BLANK
-        || input_str[index] == TAB || input_str[index] == CARRIAGE_RETURN))
+        || input_str[index] == TAB || input_str[index] == CARRIAGE_RETURN || input_str[index] == NEWLINE))
     {
         index++;
     }
@@ -82,7 +82,7 @@ std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &inp
         out += input_str[index];
         index++;
     }
-    out += NEWLINE;
+    //out += NEWLINE;
     return {out, index};
 }
 
@@ -218,50 +218,19 @@ void Preprocessor::markAsResolved(File inputFile) {
     }
 }
 
-
-void Preprocessor::detectByteOrderMark(std::ifstream &f){
-    unsigned char byteOrderMark[4];
-    f.read(reinterpret_cast<char*>(byteOrderMark), 4);
-    if(byteOrderMark[0] == 0xEF && byteOrderMark[1] == 0xBB && byteOrderMark[2] == 0xBF){
-        std::cout << "UTF 8 detected, ok." << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFE && byteOrderMark[1] == 0xFF){
-        std::cout << "Warning__________________>>>> UTF-16 Little endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE){
-        std::cout << "Warning__________________>>>> UTF-16 Big endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0x00 && byteOrderMark[1] == 0x00 && byteOrderMark[2] == 0xFE && byteOrderMark[3] == 0xFF){
-        std::cout << "Warning__________________>>>> UTF-32 Little endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE && byteOrderMark[2] == 0x00 && byteOrderMark[3] == 0x00){
-        std::cout << "Warning_________________>>>> UTF-32 Big endiand file detected" << std::endl;
-        return;
-    }
-    f.seekg(0);
-}
-
 std::string Preprocessor::includeFiles(File inputFile, int level){
 
     std::string fileNameWithRelativePath = this->relativePath + this->origin.fileName;
 
     std::string fileName = inputFile.fileName == fileNameWithRelativePath ? fileNameWithRelativePath : this->relativePath+inputFile.fileName;
-
+    std::cout << "Including file: " << fileName << std::endl;
     File f;
     std::ifstream file(fileName, std::ios::binary);
     if(!fileExist(file)){
         throw std::runtime_error("El archivo especificado no se pudo localizar");
     }
-
-    detectByteOrderMark(file);
+   
+    //detectByteOrderMark(file);
 
     if(contains(inputFile)){
         return "";
@@ -279,11 +248,11 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
         std::size_t col = 0;
         std::string word;
         std::tie(word, col) = getWord(line, col);
-
+        std::cout << "Word: " << word << std::endl;
         if(word != INCLUDE_KEYWORD){
             result += line + "\n"; 
         } else {
-
+            std::cout << "Merging..." << std::endl;
             std::string included_file;
             std::tie(included_file, col) = getWord(line, col);
             SourceLocation location = {inputFile.fileName, col - included_file.length(), row};

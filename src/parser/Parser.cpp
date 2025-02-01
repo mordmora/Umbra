@@ -184,6 +184,10 @@ namespace umbra {
         return previousToken; 
     }
 
+    void Parser::skipNewLines(){
+        while(match(TokenType::TOK_NEWLINE));
+    }
+
     Lexer::Token Parser::peek() const { return *current; }
 
     bool Parser::isAtEnd() const { return peek().type == TokenType::TOK_EOF; }
@@ -440,8 +444,6 @@ namespace umbra {
     void Parser::error(const std::string& message, int line, int column) {
         errorManager->addError(std::make_unique<CompilerError>(ErrorType::SYNTACTIC, message, line, column));
     }
-
-
 
     void Parser::synchronize() {
         advance();

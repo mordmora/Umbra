@@ -35,7 +35,7 @@ namespace umbra {
         bool isAtEnd() const;
         Lexer::Token consume(TokenType type, const std::string& message);
         void synchronize(); // Error recovery
-
+        void skipNewLines();
        // void advanceToken();
 
         std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
