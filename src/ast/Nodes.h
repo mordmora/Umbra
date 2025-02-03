@@ -169,21 +169,36 @@ namespace umbra {
     public:
         void accept(ASTVisitor& visitor) override {}
 
-        enum Type { IDENTIFIER, LITERAL, EXPRESSION_CALL, PARENTHESIZED } exprType;
+        enum Type { 
+            IDENTIFIER, 
+            LITERAL, 
+            EXPRESSION_CALL, 
+            PARENTHESIZED, 
+            ARRAY_ACCESS, 
+            MEMBER_ACCESS, 
+            CAST_EXPRESSION, 
+            TERNARY_EXPRESSION 
+        } exprType;
 
+        // Builder
         PrimaryExpression(std::unique_ptr<Identifier> identifier);
-
         PrimaryExpression(std::unique_ptr<Literal> literal);
-
         PrimaryExpression(std::unique_ptr<Expression> parenthesized);
-
         PrimaryExpression(std::unique_ptr<FunctionCall> functionCall);
+        PrimaryExpression(std::unique_ptr<ArrayAccessExpression> arrayAccess);
+        PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess);
+        PrimaryExpression(std::unique_ptr<CastExpression> castExpr);
+        PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr);
 
+        // Members
         std::unique_ptr<Identifier> identifier;
         std::unique_ptr<Literal> literal;
         std::unique_ptr<Expression> parenthesized;
         std::unique_ptr<FunctionCall> functionCall;
-
+        std::unique_ptr<ArrayAccessExpression> arrayAccess;
+        std::unique_ptr<MemberAccessExpression> memberAccess;
+        std::unique_ptr<CastExpression> castExpression;
+        std::unique_ptr<TernaryExpression> ternaryExpression;
     };
 
     // Literal node
@@ -238,6 +253,48 @@ namespace umbra {
         void accept(ASTVisitor& visitor) override {}
         std::string value;
     };
+
+    // Array access expression node
+    class ArrayAccessExpression : public Expression {
+    public:
+        ArrayAccessExpression(std::unique_ptr<Expression> array, 
+                            std::unique_ptr<Expression> index);
+        void accept(ASTVisitor& visitor) override {}
+        std::unique_ptr<Expression> array;
+        std::unique_ptr<Expression> index;
+    };
+
+    // Ternary conditional expression node
+    class TernaryExpression : public Expression {
+    public:
+        TernaryExpression(std::unique_ptr<Expression> condition,
+                        std::unique_ptr<Expression> trueExpr,
+                        std::unique_ptr<Expression> falseExpr);
+        void accept(ASTVisitor& visitor) override {}
+        std::unique_ptr<Expression> condition;
+        std::unique_ptr<Expression> trueExpr;
+        std::unique_ptr<Expression> falseExpr;
+    };
+
+    // Cast expression node
+    class CastExpression : public Expression {
+    public:
+        CastExpression(std::unique_ptr<Type> targetType,
+                    std::unique_ptr<Expression> expression);
+        void accept(ASTVisitor& visitor) override {}
+        std::unique_ptr<Type> targetType;
+        std::unique_ptr<Expression> expression;
+    };
+
+    class MemberAccessExpression : public Expression {
+    public:
+        MemberAccessExpression(std::unique_ptr<Expression> object,
+                            std::unique_ptr<Identifier> member);
+        void accept(ASTVisitor& visitor) override {}
+        std::unique_ptr<Expression> object;
+        std::unique_ptr<Identifier> member;
+    };
+
 };
 
 #endif // AST_NODES_HPP

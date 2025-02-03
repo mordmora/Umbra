@@ -3,6 +3,7 @@ build/
 bin/
 lib/
 out/
+.cache/
 
 # Archivos generados por CMake
 CMakeCache.txt
