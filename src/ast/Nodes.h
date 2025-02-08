@@ -1,6 +1,3 @@
-
-
-
 #ifndef AST_NODES_HPP
 #define AST_NODES_HPP
 
@@ -8,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include "ASTNode.h"
+#include "ASTVisitor.h"
 
 namespace umbra {
 
@@ -24,14 +22,14 @@ namespace umbra {
     // Expression base class
     class Expression : public ASTNode {
     public:
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override = 0;
     };
 
     // Program node
     class ProgramNode : public ASTNode {
     public:
         ProgramNode(std::vector<std::unique_ptr<FunctionDefinition>> functions);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::vector<std::unique_ptr<FunctionDefinition>> functions;
     };
 
@@ -40,7 +38,7 @@ namespace umbra {
     public:
         FunctionDefinition(std::unique_ptr<Identifier> name, std::unique_ptr<ParameterList> parameters,
             std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
         std::unique_ptr<Type> returnType;
@@ -51,7 +49,7 @@ namespace umbra {
     class ParameterList : public ASTNode {
     public:
         ParameterList(std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters;
     };
 
@@ -59,7 +57,7 @@ namespace umbra {
     class Type : public ASTNode {
     public:
         Type(std::string baseType, int arrayDimensions = 0);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::string baseType; // e.g., int, float, etc.
         int arrayDimensions = 0; // Number of dimensions if it's an array
     };
@@ -68,14 +66,14 @@ namespace umbra {
     class Identifier : public Expression {
     public:
         Identifier(std::string name);
-
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::string name;
     };
 
     // Statement base class
     class Statement : public ASTNode {
     public:
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
     };
 
     // Variable declaration node
@@ -83,7 +81,7 @@ namespace umbra {
     public:
         VariableDeclaration(std::unique_ptr<Type> type, std::unique_ptr<Identifier> name,
             std::unique_ptr<Expression> initializer);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Type> type;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<Expression> initializer;
@@ -93,7 +91,7 @@ namespace umbra {
     class AssignmentStatement : public Statement {
     public:
         AssignmentStatement(std::unique_ptr<Identifier> target, std::unique_ptr<Expression> value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Identifier> target;
         std::unique_ptr<Expression> index; // For array assignment
         std::unique_ptr<Expression> value;
@@ -104,7 +102,7 @@ namespace umbra {
     public:
         Conditional(std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches,
             std::vector<std::unique_ptr<Statement>> elseBranch);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         struct Branch {
             std::unique_ptr<Expression> condition;
             std::vector<std::unique_ptr<Statement>> body;
@@ -118,7 +116,7 @@ namespace umbra {
     class Loop : public Statement {
     public:
         Loop(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<Statement>> body);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Expression> condition;
         std::vector<std::unique_ptr<Statement>> body;
         bool isRepeatTimes = false; // true if "repeat N times", false if "repeat if"
@@ -130,7 +128,7 @@ namespace umbra {
         enum ActionType { ALLOCATE, DEALLOCATE };
         MemoryManagement(ActionType action, std::unique_ptr<Type> type, std::unique_ptr<Expression> size,
             std::unique_ptr<Identifier> target);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         ActionType action;
         std::unique_ptr<Type> type;
         std::unique_ptr<Expression> size; // For allocation
@@ -141,7 +139,7 @@ namespace umbra {
     class ReturnStatement : public Statement {
     public:
         ReturnStatement(std::unique_ptr<Expression> returnValue);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Expression> returnValue;
     };
 
@@ -149,7 +147,7 @@ namespace umbra {
     class BinaryExpression : public Expression {
     public:
         BinaryExpression(std::string op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::string op; // Operator (e.g., +, -, *, etc.)
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
@@ -159,7 +157,7 @@ namespace umbra {
     class UnaryExpression : public Expression {
     public:
         UnaryExpression(std::string op, std::unique_ptr<Expression> operand);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::string op; // Operator (e.g., ptr, ref, access)
         std::unique_ptr<Expression> operand;
     };
@@ -167,7 +165,7 @@ namespace umbra {
     // Primary expression node
     class PrimaryExpression : public Expression {
     public:
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
 
         enum Type { 
             IDENTIFIER, 
@@ -205,7 +203,7 @@ namespace umbra {
     class Literal : public ASTNode {
     public:
 
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         enum Type { INTEGER, FLOAT, BOOLEAN, CHAR, STRING } literalType;
 
         Literal(std::string value);
@@ -217,7 +215,7 @@ namespace umbra {
     class FunctionCall : public Expression {
     public:
         FunctionCall(std::unique_ptr<Identifier> functionName, std::vector<std::unique_ptr<Expression>> arguments);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Identifier> functionName;
         std::vector<std::unique_ptr<Expression>> arguments;
     };
@@ -226,7 +224,7 @@ namespace umbra {
     class NumericLiteral : public Literal {
     public:
         NumericLiteral(double value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         double value;
     };
 
@@ -234,7 +232,7 @@ namespace umbra {
     class BooleanLiteral : public Literal {
     public:
         BooleanLiteral(bool value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         bool value;
     };
 
@@ -242,7 +240,7 @@ namespace umbra {
     class CharLiteral : public Literal {
     public:
         CharLiteral(char value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         char value;
     };
 
@@ -250,7 +248,7 @@ namespace umbra {
     class StringLiteral : public Literal {
     public:
         StringLiteral(std::string value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::string value;
     };
 
@@ -259,7 +257,7 @@ namespace umbra {
     public:
         ArrayAccessExpression(std::unique_ptr<Expression> array, 
                             std::unique_ptr<Expression> index);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Expression> array;
         std::unique_ptr<Expression> index;
     };
@@ -270,7 +268,7 @@ namespace umbra {
         TernaryExpression(std::unique_ptr<Expression> condition,
                         std::unique_ptr<Expression> trueExpr,
                         std::unique_ptr<Expression> falseExpr);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Expression> condition;
         std::unique_ptr<Expression> trueExpr;
         std::unique_ptr<Expression> falseExpr;
@@ -281,7 +279,7 @@ namespace umbra {
     public:
         CastExpression(std::unique_ptr<Type> targetType,
                     std::unique_ptr<Expression> expression);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Type> targetType;
         std::unique_ptr<Expression> expression;
     };
@@ -290,7 +288,7 @@ namespace umbra {
     public:
         MemberAccessExpression(std::unique_ptr<Expression> object,
                             std::unique_ptr<Identifier> member);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override { visitor.visit(*this); }
         std::unique_ptr<Expression> object;
         std::unique_ptr<Identifier> member;
     };

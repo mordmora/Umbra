@@ -1,7 +1,7 @@
-# Versión mínima requerida de CMake
 cmake_minimum_required(VERSION 3.10)
 enable_testing()
 project(UmbraLang VERSION 0.1.0 LANGUAGES CXX)
+enable_language(C)  # Habilita el lenguaje C
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -17,7 +17,6 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-
 # Flags del compilador para Debug y Release
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Configuring Debug build")
@@ -27,7 +26,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
-
 # Opciones de compilación según el compilador
 if(MSVC)
   add_compile_options(/W4 /WX)
@@ -35,14 +33,13 @@ else()
   add_compile_options(-Wall -Wextra )
 endif()
 
-
 # Paquete de LLVM
-#find_package(LLVM REQUIRED CONFIG)
-#message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-#message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-#include_directories(${LLVM_INCLUDE_DIRS})
-#add_definitions(${LLVM_DEFINITIONS})
-
+find_package(LLVM REQUIRED CONFIG)
+if(LLVM_FOUND)
+  message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+  include_directories(${LLVM_INCLUDE_DIRS})
+  add_definitions(${LLVM_DEFINITIONS})
+endif()
 
 # Biblioteca del analizador léxico 
 add_library(umbra_lexer STATIC
@@ -52,8 +49,6 @@ add_library(umbra_lexer STATIC
     src/error/ErrorManager.cpp
     src/preprocessor/Preprocessor.cpp
 )
-
-
 
 # Ejecutable del compilador Umbra
 file(GLOB_RECURSE SOURCES
@@ -73,7 +68,6 @@ set_target_properties(umbra_compiler
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
-
 
 # Agregar pruebas
 add_subdirectory(tests)
