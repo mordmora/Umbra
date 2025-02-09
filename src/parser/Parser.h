@@ -1,48 +1,64 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "../ast/ASTNode.h"
-#include "../ast/statementnodes/StatementNode.h"
 #include "../lexer/Lexer.h"
-#include <memory>
+#include "../lexer/Tokens.h"
+#include "../error/ErrorManager.h"
+#include "../ast/ASTNode.h"
+#include "../ast/Nodes.h"
+
+
 #include <vector>
 
 namespace umbra {
 
-class Parser {
-  public:
-    // Parser(Lexer &lexer);
-    Parser(const std::vector<Lexer::Token> &tokens);
-    Parser(const std::vector<Lexer::Token> &tokens, ErrorManager &externalErrorManager);
+    class Parser {
+    public:
 
-    std::unique_ptr<ASTNode> parse();
+        Parser(const std::vector<Lexer::Token>& tokens);
+        Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalErrorManager);
+        std::shared_ptr<ProgramNode> parseProgram();
 
-  private:
-    // Lexer &lexer;
-    std::vector<Lexer::Token> tokens;
-    std::vector<Lexer::Token>::const_iterator current;
-    ErrorManager *errorManager;
-    Lexer::Token previousToken;
+    private:
 
-    bool match(TokenType type);
-    bool check(TokenType type) const;
-    Lexer::Token advance();
-    Lexer::Token previous() const;
-    Lexer::Token peek() const;
-    bool isAtEnd() const;
-    Lexer::Token consume(TokenType type, const std::string &message);
+        std::vector<Lexer::Token> tokens;
+        std::vector<Lexer::Token>::const_iterator current;
+        ErrorManager* errorManager;
+        Lexer::Token previousToken;
 
-    std::unique_ptr<ASTNode> parseStatement();
-    std::unique_ptr<ExpressionNode> parseNumber(const Lexer::Token &token);
-    std::unique_ptr<st_VariableDeclNode> parseVariableDeclaration();
-    std::unique_ptr<FunctionDeclNode> parseFunctionDefinition();
-    std::unique_ptr<ExpressionNode> parseExpression();
-    TokenType parseTypeSpecifier();
-    bool isTypeSpecifier(TokenType type) const;
-    bool isTypeCompatible(TokenType declaredType, ExpressionNode *expr);
-    std::string getExpressionTypeName(ExpressionNode *expr);
-    std::string getTypeName(TokenType expr);
-};
+        bool isTypeToken(const Lexer::Token& token);
+        bool match(TokenType type);
+        bool check(TokenType type) const;
+        Lexer::Token advance();
+        Lexer::Token previous() const;
+        Lexer::Token peek() const;
+        bool isAtEnd() const;
+        Lexer::Token consume(TokenType type, const std::string& message);
+        void synchronize(); // Error recovery
+        void skipNewLines();
+       // void advanceToken();
+
+        std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
+        std::unique_ptr<Type> parseType();
+        std::vector<std::unique_ptr<Statement>> parseStatementList();
+        std::unique_ptr<Statement> parseStatement();
+        std::unique_ptr<VariableDeclaration> parseVariableDeclaration();
+        std::unique_ptr<Expression> parseExpression();
+        std::unique_ptr<Expression> parseLogicalOr();
+        std::unique_ptr<Expression> parseLogicalAnd();
+        std::unique_ptr<Expression> parseEquality();
+        std::unique_ptr<Expression> parseRelational();
+        std::unique_ptr<Expression> parseAditive();
+        std::unique_ptr<Expression> parseMultiplicative();
+        std::unique_ptr<Expression> parseUnary();
+        std::unique_ptr<Expression> parsePrimary();
+        std::unique_ptr<Expression> parseIdentifier();
+        std::unique_ptr<Statement> parseReturnStatement();
+        
+
+        //void expectToken(TokenType expectedType);
+        void error(const std::string& message, int line, int column);
+    };
 
 } // namespace umbra
 

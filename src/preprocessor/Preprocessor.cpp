@@ -11,6 +11,8 @@
 #include<unistd.h>
 #include<limits.h>
 #include <sstream>
+#include <immintrin.h> // For SIMD
+#include <cstring>
 /*
  * TODO:
  * - Ajustar una ruta relativa virtual para no indicar de forma explicita la ubicacion de los archivos
@@ -45,7 +47,7 @@ bool Preprocessor::contains(File f){
 Preprocessor::Preprocessor(File file) : origin(file) {
     getRelativePath();
     getWorkingPath();
-    includeFiles(file, 0);
+    out = includeFiles(file, 0);
 }
 
 /*
@@ -59,14 +61,15 @@ Preprocessor::Preprocessor(File file) : origin(file) {
 std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &input_str, std::size_t index) {
 
     const char BLANK = ' ';
-    const char TAB = '\t';
+    const char TAB = '\t'; 
     const char NEWLINE = '\n';
+    const char CARRIAGE_RETURN = '\r';
     std::string out;
 
     //Se salta los espacios en blanco
 
     while (index < input_str.size() && (input_str[index] == BLANK
-        || input_str[index] == TAB))
+        || input_str[index] == TAB || input_str[index] == CARRIAGE_RETURN || input_str[index] == NEWLINE))
     {
         index++;
     }
@@ -79,7 +82,7 @@ std::pair<std::string, std::size_t> Preprocessor::getWord(const std::string &inp
         out += input_str[index];
         index++;
     }
-
+    //out += NEWLINE;
     return {out, index};
 }
 
@@ -93,27 +96,80 @@ bool Preprocessor::fileExist(const std::ifstream &file){
 * la cual es llamado el archivo principal del codigo fuente.
 *
 */
-void Preprocessor::getRelativePath(){
-
-    std::string fileName = origin.fileName;
-    std::string newFileName;
-    int lastSeparatorIndex = -1;
-
-    for(int i = fileName.size() - 1; i >= 0 ;--i){
-
-        if(fileName[i] == '/' || fileName[i] == '\\'){
-
-            lastSeparatorIndex = i;
-            break;
+void Preprocessor::getRelativePath() {
+    if (!origin.fileName.data()) return;
+    
+    const char* __restrict__ fname = origin.fileName.data();
+    const size_t len = origin.fileName.size();
+    
+    // SIMD path separator search
+    alignas(32) char separators[32] = {0};
+    __m256i separator_mask;
+    
+    #ifdef __AVX2__
+        __m256i data = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(fname + len - 32));
+        __m256i slash = _mm256_set1_epi8('/');
+        __m256i backslash = _mm256_set1_epi8('\\');
+        
+        __m256i result = _mm256_or_si256(
+            _mm256_cmpeq_epi8(data, slash),
+            _mm256_cmpeq_epi8(data, backslash)
+        );
+        
+        _mm256_store_si256(reinterpret_cast<__m256i*>(separators), result);
+    #endif
+    
+    int32_t lastSeparatorIndex = -1;
+    
+    // Fast path using SIMD results
+    #ifdef __AVX2__
+        for (int32_t i = 31; i >= 0; --i) {
+            if (separators[i]) {
+                lastSeparatorIndex = len - 32 + i;
+                break;
+            }
+        }
+    #endif
+    
+    // Fallback path for remaining chars or non-AVX2
+    if (lastSeparatorIndex == -1) {
+        const char* ptr = fname + len - 1;
+        while (ptr >= fname) {
+            if (*ptr == '/' || *ptr == '\\') {
+                lastSeparatorIndex = ptr - fname;
+                break;
+            }
+            --ptr;
         }
     }
 
-    if(lastSeparatorIndex != -1){
-        this->origin.fileName = fileName.substr(lastSeparatorIndex+1);
-        this->relativePath = fileName.substr(0, lastSeparatorIndex + 1);
-        return;
+    if (lastSeparatorIndex != -1) {
+        char* temp = static_cast<char*>(__builtin_alloca(len + 1));
+        
+        // Optimize memory copies using intrinsics
+        #ifdef __AVX2__
+            size_t blocks = (lastSeparatorIndex + 1) / 32;
+            char* dst = temp;
+            const char* src = fname;
+            
+            for (size_t i = 0; i < blocks; ++i) {
+                _mm256_store_si256(
+                    reinterpret_cast<__m256i*>(dst),
+                    _mm256_load_si256(reinterpret_cast<const __m256i*>(src))
+                );
+                dst += 32;
+                src += 32;
+            }
+            
+            memcpy(dst, src, (lastSeparatorIndex + 1) % 32);
+        #else
+            memcpy(temp, fname, lastSeparatorIndex + 1);
+        #endif
+        
+        temp[lastSeparatorIndex + 1] = '\0';
+        this->relativePath.assign(temp, lastSeparatorIndex + 1);
+        this->origin.fileName.assign(fname + lastSeparatorIndex + 1);
     }
-
 }
 
 /*
@@ -121,36 +177,32 @@ void Preprocessor::getRelativePath(){
  * de Umbra, esto facilita el manejo de rutas
 */
 
-void Preprocessor::getWorkingPath(){
-
-    char buffer[PATH_MAX];
-
-    if(getcwd(buffer, sizeof(buffer)) != 0){
-        this->workingPath = std::string(buffer);
-        return;
-    }
-
-    int errorCode = errno;
-
-    switch(errorCode){
-
-        //EINVAL no puede suceder ya que arg size > 0
-        //PATH_MAX contiene la terminacion en nulo,
-        //por lo que ERANGE no debe ser retornado
-
-        case EACCES:
-            throw std::runtime_error("Acces denied.");
-
-        case ENOMEM:
-            //Muy poco probable que ocurra, pero por si acaso
-            throw std::runtime_error("Insuficcient storage.");
-
-        default: {
-            std::ostringstream str;
-            str << "Unrecognised error " << errorCode;
-            throw std::runtime_error(str.str());
+void Preprocessor::getWorkingPath() {
+    alignas(16) char buffer[PATH_MAX];
+    
+    #ifdef __x86_64__
+        char* result;
+        __asm__ volatile(
+            "syscall"
+            : "=a" (result)
+            : "0" (79), // getcwd syscall number
+              "D" (buffer),
+              "S" (PATH_MAX)
+            : "rcx", "r11", "memory"
+        );
+        
+        if (result != nullptr) {
+            this->workingPath = std::string(buffer);
+            return;
         }
-    }
+    #else
+        if (getcwd(buffer, sizeof(buffer)) != nullptr) {
+            this->workingPath = std::string(buffer);
+            return;
+        }
+    #endif
+    
+    throw std::runtime_error("Failed to get working directory");
 }
 
 void Preprocessor::markAsResolved(File inputFile) {
@@ -166,61 +218,19 @@ void Preprocessor::markAsResolved(File inputFile) {
     }
 }
 
-
-/*
-* Esta funcion detecta y advierte al programador de que el codigo que esta ingresando
-* soporta caracteres unicode, el uso de caracteres raros o iconos puede
-* generar un comportamiento inesperado pero no es motivo para prohibir la lectura de
-* un archivo de este tipo ya que es ineficiente validar la existencia de estos
-* y es muy poco probable que sean usados por los usuarios objetivo
-*/
-
-void Preprocessor::detectByteOrderMark(std::ifstream &f){
-    unsigned char byteOrderMark[4];
-    f.read(reinterpret_cast<char*>(byteOrderMark), 4);
-
-    //UTF-8 ok
-
-    if(byteOrderMark[0] == 0xEF && byteOrderMark[1] == 0xBB && byteOrderMark[2] == 0xBF){
-
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFE && byteOrderMark[1] == 0xFF){
-        std::cout << "Warning__________________>>>> UTF-16 Little endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE){
-        std::cout << "Warning__________________>>>> UTF-16 Big endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0x00 && byteOrderMark[1] == 0x00 && byteOrderMark[2] == 0xFE && byteOrderMark[3] == 0xFF){
-        std::cout << "Warning__________________>>>> UTF-32 Little endian file detected" << std::endl;
-        return;
-    }
-
-    if(byteOrderMark[0] == 0xFF && byteOrderMark[1] == 0xFE && byteOrderMark[2] == 0x00 && byteOrderMark[3] == 0x00){
-        std::cout << "Warning_________________>>>> UTF-32 Big endiand file detected" << std::endl;
-        return;
-    }
-    f.seekg(0);
-}
-
 std::string Preprocessor::includeFiles(File inputFile, int level){
 
     std::string fileNameWithRelativePath = this->relativePath + this->origin.fileName;
 
     std::string fileName = inputFile.fileName == fileNameWithRelativePath ? fileNameWithRelativePath : this->relativePath+inputFile.fileName;
-
+    std::cout << "Including file: " << fileName << std::endl;
     File f;
     std::ifstream file(fileName, std::ios::binary);
     if(!fileExist(file)){
         throw std::runtime_error("El archivo especificado no se pudo localizar");
     }
-
-    detectByteOrderMark(file);
+   
+    //detectByteOrderMark(file);
 
     if(contains(inputFile)){
         return "";
@@ -238,13 +248,11 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
         std::size_t col = 0;
         std::string word;
         std::tie(word, col) = getWord(line, col);
-
+        std::cout << "Word: " << word << std::endl;
         if(word != INCLUDE_KEYWORD){
-
-            std::cout << line << std::endl;
-
+            result += line + "\n"; 
         } else {
-
+            std::cout << "Merging..." << std::endl;
             std::string included_file;
             std::tie(included_file, col) = getWord(line, col);
             SourceLocation location = {inputFile.fileName, col - included_file.length(), row};
@@ -252,11 +260,9 @@ std::string Preprocessor::includeFiles(File inputFile, int level){
             result += includeFiles(f, level + 1);
         }
     }
-
     markAsResolved(inputFile);
     file.close();
     return result;
 }
 
 };
-

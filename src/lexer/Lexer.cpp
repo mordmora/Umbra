@@ -15,8 +15,12 @@ Lexer::Lexer(const std::string &source)
 Lexer::Lexer(const std::string &source, ErrorManager &externalErrorManager)
     : source(source), errorManager(&externalErrorManager), current(0), line(1), column(1) {}
 
+
+std::string Lexer::getSource() { return source; }
+
 std::vector<Lexer::Token> Lexer::tokenize() {
     tokens.clear();
+    std::cout << "Lexer: Comenzando tokenización..." << std::endl;
     bool lastWasReturn = false;
 
     while (!isAtEnd()) {
@@ -134,6 +138,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
         }
     }
     tokens.emplace_back(TokenType::TOK_EOF, "", line, column);
+    std::cout << "Lexer: Tokenización completada. Tokens generados: " << tokens.size() << std::endl;
     return tokens;
 }
 
@@ -368,4 +373,14 @@ bool Lexer::isBinary(char c) {
     addToken(TokenType::TOK_BINARY, binaryValue);
     return true;
 }
+
+Lexer::Token Lexer::peekToken() { return tokens[current]; }
+
+Lexer::Token Lexer::getNextToken() {
+    if (current < tokens.size()) {
+        return tokens[current++];
+    }
+    return tokens.back();
+}
+
 } // namespace umbra

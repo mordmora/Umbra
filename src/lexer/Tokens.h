@@ -19,11 +19,14 @@ enum class TokenType {
     TOK_CHAR,
     TOK_STRING,
     TOK_BINARY,
+    TOK_ARRAY,
+    TOK_VOID,
     // TOK_ARRAY, wait for array definition
 
     // Keyword tokens for control structures
     TOK_IF,
     TOK_ELSE,
+    TOK_ELSEIF,
     TOK_REPEAT,
     TOK_TIMES,
 
@@ -41,11 +44,14 @@ enum class TokenType {
 
     // Tokens for comparison operators
     TOK_EQUAL,      // 'equal'
+    TOK_NOT,        // 'not'
     TOK_DIFFERENT,  // 'different'
     TOK_LESS,       // 'less_than'
     TOK_GREATER,    // 'greater_than'
     TOK_LESS_EQ,    // 'less_or_equal'
     TOK_GREATER_EQ, // 'greater_or_equal'
+    TOK_TRUE,
+    TOK_FALSE,
 
     // Assignment token
     TOK_ASSIGN, // '='
@@ -55,6 +61,12 @@ enum class TokenType {
     TOK_ADD,   // '+' (addition)
     TOK_MULT,  // '*' (multiplication)
     TOK_DIV,   // '/' (division)
+    TOK_MOD,   // '%' (modulo)
+
+    // Token for memory managment
+    TOK_PTR,
+    TOK_ACCESS,
+    TOK_REF,
 
     // Token for arrow operator (function definition)
     TOK_ARROW, // '->'
@@ -91,6 +103,8 @@ class TokenManager {
             {"bool", TokenType::TOK_BOOL},
             {"char", TokenType::TOK_CHAR},
             {"string", TokenType::TOK_STRING},
+            {"array", TokenType::TOK_ARRAY},
+            {"void", TokenType::TOK_VOID},
             {"if", TokenType::TOK_IF},
             {"else", TokenType::TOK_ELSE},
             {"repeat", TokenType::TOK_REPEAT},
@@ -102,6 +116,9 @@ class TokenManager {
             {"and", TokenType::TOK_AND},
             {"or", TokenType::TOK_OR},
             {"equal", TokenType::TOK_EQUAL},
+        {"not", TokenType::TOK_NOT},
+        {"true", TokenType::TOK_TRUE},
+        {"false", TokenType::TOK_FALSE},
             {"different", TokenType::TOK_DIFFERENT},
             {"less_than", TokenType::TOK_LESS},
             {"greater_than", TokenType::TOK_GREATER},

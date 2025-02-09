@@ -62,7 +62,6 @@ class Preprocessor {
         File origin;
         bool fileExist(const std::ifstream &file);
         void getRelativePath();
-        void detectByteOrderMark(std::ifstream& f);
 
         void getWorkingPath();
         std::unordered_map<std::string, File> included;
