@@ -1,95 +1,12 @@
 #include "Parser.h"
 #include "../error/ErrorManager.h"
+#include <algorithm>
 #include<vector>
 #include <iostream>
 #include <sstream>
+#include <cctype>
 
 #define UMBRA_PRINT(x) std::cout << x << std::endl;
-
-
-/*
-<program> ::= { <function_definition> }
-
-<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
-
-<parameter_list> ::= <param> { "," <param> }
-
-<param> ::= <type> <identifier>
-
-<type> ::= <simple_type> { "[]" }
-<simple_type> ::= "int" | "float" | "bool" | "char" | "string"
-
-<statement_list> ::= { <statement> <newline> }
-
-<statement> ::= <variable_declaration> 
-              | <assignment_statement> 
-              | <conditional> 
-              | <loop> 
-              | <memory_management> 
-              | <return_statement> 
-              | <expression> 
-
-<variable_declaration> ::= <type> <identifier> [ "=" <expression> ] 
-
-<assignment_statement> ::= <identifier> [ "[" <expression> "]" ] "=" <expression> 
-
-<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] "\n"
-
-<loop> ::= "repeat" ( <integer_literal> "times" | "if" <expression> ) "{" <statement_list> "}" 
-
-<memory_management> ::= "new" <type> "[" <expression> "]" 
-                      | "delete" <identifier> 
-
-<return_statement> ::= "return" <expression> 
-
-<expression> ::= <logical_or_expression>
-
-<logical_or_expression> ::= <logical_and_expression> { "or" <logical_and_expression> }
-
-<logical_and_expression> ::= <equality_expression> { "and" <equality_expression> }
-
-<equality_expression> ::= <relational_expression> [ "equal" <relational_expression> ]
-
-<relational_expression> ::= <additive_expression> [ ( ">" | "<" | ">=" | "<=" ) <additive_expression> ]
-
-<additive_expression> ::= <multiplicative_expression> { ( "+" | "-" ) <multiplicative_expression> }
-
-<multiplicative_expression> ::= <unary_expression> { ( "*" | "/" | "%" ) <unary_expression> }
-
-<unary_expression> ::= [ ( "ptr" | "ref" | "access" ) ] <primary_expression>
-
-<primary_expression> ::= <identifier> 
-                       | <literal>
-                       | <function_call>
-                       | "(" <expression> ")"
-
-<function_call> ::= <identifier> "(" [ <argument_list> ] ")"
-
-<argument_list> ::= <expression> { "," <expression> }
-
-<literal> ::= <numeric_literal> | <bool_literal> | <char_literal> | <string_literal>
-
-<numeric_literal> ::= <integer_literal> [ "." <integer_literal> ]
-
-<integer_literal> ::= <digit> { <digit> }
-
-<bool_literal> ::= "true" | "false"
-
-<char_literal> ::= "'" <any_char> "'"
-
-<string_literal> ::= '"' { <any_char> } '"'
-
-<identifier> ::= <letter> { <letter> | <digit> }
-
-<newline> ::= "\\n"
-
-<letter> ::= "A" | ... | "Z" | "a" | ... | "z"
-
-<digit> ::= "0" | ... | "9"
-
-<any_char> ::= cualquier carácter válido excepto comillas no escapadas
-
-*/
 
 namespace umbra {
 
@@ -133,6 +50,13 @@ namespace umbra {
             default:
                 return "";
         }
+    }
+
+    Lexer::Token Parser::lookAhead(int distance) {
+        if (current + distance < tokens.end()) {
+            return *(current + distance);
+        }
+        return tokens.back();
     }
 
     bool Parser::check(TokenType type) const {
@@ -182,6 +106,10 @@ namespace umbra {
         UMBRA_PRINT(ss.str());
         #endif
         return previousToken; 
+    }
+
+    bool isNumber(const std::string &str) {
+        return !str.empty() && std::all_of(str.begin(), str.end(), ::isdigit);
     }
 
     void Parser::skipNewLines(){
@@ -339,7 +267,13 @@ namespace umbra {
         UMBRA_PRINT(peek().lexeme);
         if(match(TokenType::TOK_ASSIGN)){
             UMBRA_PRINT("Parsing initializer");
+            
             auto initializer = parseExpression();
+            if(!initializer){
+                error("Expected expression after '='", peek().line, peek().column);
+                synchronize();
+                return nullptr;
+            }
             UMBRA_PRINT("Parsed variable declaration with initializer");
             return std::make_unique<VariableDeclaration>(std::move(type), 
             std::make_unique<Identifier>(name.lexeme), std::move(initializer));
@@ -429,10 +363,44 @@ namespace umbra {
     }
 
     std::unique_ptr<Expression> Parser::parsePrimary(){
+        std::cout << "PARSE PRIMARY NODE WITH CURRENT TOKEN: " << static_cast<int>(peek().type) << std::endl;
         if(check(TokenType::TOK_IDENTIFIER)){
             return parseIdentifier();
+        }if(check(TokenType::TOK_NUMBER) 
+        || check(TokenType::TOK_CHAR) 
+        || check(TokenType::TOK_STRING)
+        || check(TokenType::TOK_TRUE)
+        || check(TokenType::TOK_FALSE)){
+            return parseLiteral();
+        }if(check(TokenType::TOK_LEFT_PAREN)){
+            advance();
+            auto expr = parseExpression();
+            consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after expression");
+            return std::make_unique<PrimaryExpression>(std::move(expr));
         }
         return nullptr;
+    }
+
+    std::unique_ptr<Literal> Parser::parseLiteral(){
+        UMBRA_PRINT("PARSE LITERAL NODE WITH CURRENT TOKEN: "+ peek().lexeme);
+        auto literal = peek();
+        advance();
+        switch (literal.type){
+            case TokenType::TOK_NUMBER:
+                return std::make_unique<Literal>(literal.lexeme);
+            case TokenType::TOK_CHAR:
+                return std::make_unique<CharLiteral>(literal.lexeme[0]);
+            case TokenType::TOK_STRING:
+                return std::make_unique<StringLiteral>(literal.lexeme);
+            default:
+                if(literal.type == TokenType::TOK_TRUE || literal.type == TokenType::TOK_FALSE){
+                    return std::make_unique<BooleanLiteral>(literal.type == TokenType::TOK_TRUE);
+                }
+                else{
+                    error("Expected literal", literal.line, literal.column);
+                    return nullptr;
+                }
+        }
     }
 
     std::unique_ptr<Expression> Parser::parseIdentifier(){

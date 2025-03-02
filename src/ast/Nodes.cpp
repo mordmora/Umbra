@@ -137,7 +137,7 @@ namespace umbra {
      * @param value Numeric value of the literal
      */
 
-    NumericLiteral::NumericLiteral(double value) : Literal(std::to_string(value)), value(value) {}
+    NumericLiteral::NumericLiteral(double value, Type numericType) : Literal(std::to_string(value)), numericType(numericType), value(value) {}
 
     /**
      * @brief Constructs a boolean literal node

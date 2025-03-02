@@ -187,7 +187,7 @@ namespace umbra {
     };
 
     // Literal node
-    class Literal : public ASTNode {
+    class Literal : public Expression {
     public:
 
         void accept(ASTVisitor& visitor) override {}
@@ -210,7 +210,8 @@ namespace umbra {
     // Numeric literal node
     class NumericLiteral : public Literal {
     public:
-        NumericLiteral(double value);
+        enum Type { INTEGER, FLOAT } numericType;
+        NumericLiteral(double value, Type numericType);
         void accept(ASTVisitor& visitor) override {}
         double value;
     };

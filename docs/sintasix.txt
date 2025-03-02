@@ -1,56 +1,84 @@
-	Sintaxis BNF de Umbra
-<program> ::= <function_definition>+
-<function_definition> ::= "func" <identifier> "(" <parameter_list> ")" "->" <type> "{" <statement>+ "}"
-<parameter_list> ::= [<parameter> ("," <parameter>)*]
-<parameter> ::= <type> <identifier>
-<type> ::= "int" | "float" | "bool" | "char" | "string" | <type> "[]"
 
+/*
+<program> ::= { <function_definition> }
 
-<statement> ::= <variable_declaration>
-| <function_call>
-| <conditional>
-| <loop>
-| <memory_management>
-| <return_statement>
-<variable_declaration> ::= <type> [ "[" <array_size> "]" ] <identifier> ["=" <expression>] <newline>
-<array_size> ::= <const> | <identifier>
+<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
 
+<parameter_list> ::= <param> { "," <param> }
 
-<function_call> ::= <identifier> "(" [<argument_list>] ")"
-<argument_list> ::= <expression> ("," <expression>)*
+<param> ::= <type> <identifier>
 
-<conditional> ::= "if" <expression> "{" <statement>+ "}" ["elseif" <expression> "{" <statement>+ "}"]* ["else" "{" <statement>+ "}"]
+<type> ::= <simple_type> { "[]" }
+<simple_type> ::= "int" | "float" | "bool" | "char" | "string"
 
+<statement_list> ::= { <statement> <newline> }
 
+<statement> ::= <variable_declaration> 
+              | <assignment_statement> 
+              | <conditional> 
+              | <loop> 
+              | <memory_management> 
+              | <return_statement> 
+              | <expression> 
 
+<variable_declaration> ::= <type> <identifier> [ "=" <expression> ] 
 
-<loop> ::= "repeat" <integer> "times" "{" <statement>+ "}"
-| "repeat" "if" <expression> "{" <statement>+ "}"
-<memory_management> ::= "new" <type> "[" <expression> "]"
-| "delete" <identifier>
-<return_statement> ::= "return" <expression>
-<expression> ::= <identifier>
-| <literal>
-| <function_call>
-| <unary_operation>
-| <binary_operation>
-| "(" <expression> ")"
-<unary_operation> ::= ("ptr" | "ref" | "access") <identifier>
-<binary_operation> ::= <expression> <operator> <expression>
-<operator> ::= "+" | "-" | "*" | "/"
-| "equal" | "different" | "and" | "or"
-| ">" | "<" | ">=" | "<="
-<identifier> ::= <letter> (<letter> | <digit>)*
-<literal> ::= <integer_literal>
-| <float_literal>
-| <bool_literal>
-| <char_literal>
-| <string_literal>
-<integer_literal> ::= <digit>+
-<float_literal> ::= <digit>+ "." <digit>+
+<assignment_statement> ::= <identifier> [ "[" <expression> "]" ] "=" <expression> 
+
+<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] "\n"
+
+<loop> ::= "repeat" ( <integer_literal> "times" | "if" <expression> ) "{" <statement_list> "}" 
+
+<memory_management> ::= "new" <type> "[" <expression> "]" 
+                      | "delete" <identifier> 
+
+<return_statement> ::= "return" <expression> 
+
+<expression> ::= <logical_or_expression>
+
+<logical_or_expression> ::= <logical_and_expression> { "or" <logical_and_expression> }
+
+<logical_and_expression> ::= <equality_expression> { "and" <equality_expression> }
+
+<equality_expression> ::= <relational_expression> [ "equal" <relational_expression> ]
+
+<relational_expression> ::= <additive_expression> [ ( ">" | "<" | ">=" | "<=" ) <additive_expression> ]
+
+<additive_expression> ::= <multiplicative_expression> { ( "+" | "-" ) <multiplicative_expression> }
+
+<multiplicative_expression> ::= <unary_expression> { ( "*" | "/" | "%" ) <unary_expression> }
+
+<unary_expression> ::= [ ( "ptr" | "ref" | "access" ) ] <primary_expression>
+
+<primary_expression> ::= <identifier> 
+                       | <literal>
+                       | <function_call>
+                       | "(" <expression> ")"
+
+<function_call> ::= <identifier> "(" [ <argument_list> ] ")"
+
+<argument_list> ::= <expression> { "," <expression> }
+
+<literal> ::= <numeric_literal> | <bool_literal> | <char_literal> | <string_literal>
+
+<numeric_literal> ::= <integer_literal> [ "." <integer_literal> ]
+
+<integer_literal> ::= <digit> { <digit> }
+
 <bool_literal> ::= "true" | "false"
+
 <char_literal> ::= "'" <any_char> "'"
-<string_literal> ::= '"' <any_char>* '"'
-<letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
-<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
-<any_char> ::= <letter> | <digit> | <special_char>
+
+<string_literal> ::= '"' { <any_char> } '"'
+
+<identifier> ::= <letter> { <letter> | <digit> }
+
+<newline> ::= "\\n"
+
+<letter> ::= "A" | ... | "Z" | "a" | ... | "z"
+
+<digit> ::= "0" | ... | "9"
+
+<any_char> ::= cualquier carácter válido excepto comillas no escapadas
+
+*/

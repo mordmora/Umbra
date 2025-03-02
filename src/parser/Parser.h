@@ -26,6 +26,8 @@ namespace umbra {
         ErrorManager* errorManager;
         Lexer::Token previousToken;
 
+
+        Lexer::Token lookAhead(int distance);
         bool isTypeToken(const Lexer::Token& token);
         bool match(TokenType type);
         bool check(TokenType type) const;
@@ -36,6 +38,7 @@ namespace umbra {
         Lexer::Token consume(TokenType type, const std::string& message);
         void synchronize(); // Error recovery
         void skipNewLines();
+        bool isNumber(const std::string &str) const;
        // void advanceToken();
 
         std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
@@ -54,6 +57,7 @@ namespace umbra {
         std::unique_ptr<Expression> parsePrimary();
         std::unique_ptr<Expression> parseIdentifier();
         std::unique_ptr<Statement> parseReturnStatement();
+        std::unique_ptr<Literal> parseLiteral();
         
 
         //void expectToken(TokenType expectedType);
