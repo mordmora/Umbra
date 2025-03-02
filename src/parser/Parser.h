@@ -55,7 +55,9 @@ namespace umbra {
         std::unique_ptr<Expression> parseMultiplicative();
         std::unique_ptr<Expression> parseUnary();
         std::unique_ptr<Expression> parsePrimary();
-        std::unique_ptr<Expression> parseIdentifier();
+        std::unique_ptr<Expression> parseFunctionCall();
+        std::unique_ptr<Identifier> parseIdentifier();
+        std::unique_ptr<Expression> parseParams();
         std::unique_ptr<Statement> parseReturnStatement();
         std::unique_ptr<Literal> parseLiteral();
         

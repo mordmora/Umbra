@@ -10,8 +10,6 @@
 #include "ASTNode.h"
 
 namespace umbra {
-
-
     // Forward declarations
     class FunctionDefinition;
     class ParameterList;
@@ -205,6 +203,12 @@ namespace umbra {
         void accept(ASTVisitor& visitor) override {}
         std::unique_ptr<Identifier> functionName;
         std::vector<std::unique_ptr<Expression>> arguments;
+    };
+
+    class ExpressionStatement : public Statement {
+        public:
+        ExpressionStatement(std::unique_ptr<Expression> exp);
+        std::unique_ptr<Expression> exp;
     };
 
     // Numeric literal node

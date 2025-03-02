@@ -212,5 +212,7 @@ namespace umbra {
 
     PrimaryExpression::PrimaryExpression(std::unique_ptr<FunctionCall> functionCall)
         : exprType(EXPRESSION_CALL), functionCall(std::move(functionCall)) {}
+
+    ExpressionStatement::ExpressionStatement(std::unique_ptr<Expression> exp) : exp(std::move(exp)) {}
     
 } // namespace umbra

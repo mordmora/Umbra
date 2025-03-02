@@ -228,6 +228,7 @@ namespace umbra {
 
     std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
         UMBRA_PRINT("Parsing statement list");
+
         std::vector<std::unique_ptr<Statement>> statements;
         while(!isAtEnd()){
             UMBRA_PRINT("STATEMENT LIST CURRENT TOKEN: "+peek().lexeme);
@@ -250,6 +251,8 @@ namespace umbra {
         if(isTypeToken(peek())){
             UMBRA_PRINT(peek().lexeme);
             return parseVariableDeclaration();
+        }if(check(TokenType::TOK_IDENTIFIER)){
+            return std::make_unique<ExpressionStatement>(parseFunctionCall());
         }
         return nullptr;
     }
@@ -365,7 +368,11 @@ namespace umbra {
     std::unique_ptr<Expression> Parser::parsePrimary(){
         std::cout << "PARSE PRIMARY NODE WITH CURRENT TOKEN: " << static_cast<int>(peek().type) << std::endl;
         if(check(TokenType::TOK_IDENTIFIER)){
+            if(lookAhead(1).type == TokenType::TOK_LEFT_PAREN){
+                return parseFunctionCall();
+            }
             return parseIdentifier();
+
         }if(check(TokenType::TOK_NUMBER) 
         || check(TokenType::TOK_CHAR) 
         || check(TokenType::TOK_STRING)
@@ -403,7 +410,20 @@ namespace umbra {
         }
     }
 
-    std::unique_ptr<Expression> Parser::parseIdentifier(){
+    //<function_call> ::= <identifier> "(" [ <argument_list> ] ")"
+    std::unique_ptr<Expression> Parser::parseFunctionCall(){
+        auto id = parseIdentifier();
+        consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
+        std::vector<std::unique_ptr<Expression>> args;
+        do{
+            auto arg = parseExpression();
+            args.push_back(std::move(arg));
+        }while(match(TokenType::TOK_COMMA));
+        consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
+        return std::make_unique<FunctionCall>( std::move(id), std::move(args));
+    }
+
+    std::unique_ptr<Identifier> Parser::parseIdentifier(){
         UMBRA_PRINT(static_cast<int>(peek().type));
         auto id = consume(TokenType::TOK_IDENTIFIER, "Expected identifier");
         return std::make_unique<Identifier>(id.lexeme);
