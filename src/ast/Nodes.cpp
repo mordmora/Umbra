@@ -213,6 +213,76 @@ namespace umbra {
     PrimaryExpression::PrimaryExpression(std::unique_ptr<FunctionCall> functionCall)
         : exprType(EXPRESSION_CALL), functionCall(std::move(functionCall)) {}
 
+<<<<<<< HEAD
     ExpressionStatement::ExpressionStatement(std::unique_ptr<Expression> exp) : exp(std::move(exp)) {}
+=======
+    /**
+     * @brief Constructs a primary expression node
+     * @param arrayAccess Array access expression
+    */
+    PrimaryExpression::PrimaryExpression(std::unique_ptr<ArrayAccessExpression> arrayAccess)
+        : exprType(ARRAY_ACCESS), arrayAccess(std::move(arrayAccess)) {}
+
+    /**
+     * @brief Constructs a primary expression node
+     * @param memberAccess Member access expression
+     */
+    PrimaryExpression::PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess)
+        : exprType(MEMBER_ACCESS), memberAccess(std::move(memberAccess)) {}
     
+    /**
+     * @brief Constructs a cast expression node
+     * @param castExpr Cast storage expression 
+     */
+    PrimaryExpression::PrimaryExpression(std::unique_ptr<CastExpression> castExpr)
+        : exprType(CAST_EXPRESSION), castExpression(std::move(castExpr)) {}
+
+    /**
+     * @brief Construcs a ternary expression node
+     * @param ternaryExpr Ternary storage expression
+     */
+    PrimaryExpression::PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr)
+        : exprType(TERNARY_EXPRESSION), ternaryExpression(std::move(ternaryExpr)) {}
+>>>>>>> dec4a079155977d3d06e661fc0fa5842f628cd55
+    
+    /**
+     * @brief Constructs an array access expression node
+     * @param array Expression evaluating to the array
+     * @param index Expression evaluating to the access index
+     */
+    ArrayAccessExpression::ArrayAccessExpression(std::unique_ptr<Expression> array,
+                                                std::unique_ptr<Expression> index)
+        : array(std::move(array)), index(std::move(index)) {}
+
+    /**
+     * @brief Constructs a ternary conditional expression node
+     * @param condition Conditional expression
+     * @param trueExpr Expression to evaluate if condition is true
+     * @param falseExpr Expression to evaluate if condition is false
+     */
+    TernaryExpression::TernaryExpression(std::unique_ptr<Expression> condition,
+                                        std::unique_ptr<Expression> trueExpr,
+                                        std::unique_ptr<Expression> falseExpr)
+        : condition(std::move(condition)),
+        trueExpr(std::move(trueExpr)),
+        falseExpr(std::move(falseExpr)) {}
+
+    /**
+     * @brief Constructs a type cast expression node
+     * @param targetType Type to cast to
+     * @param expression Expression to be cast
+     */
+    CastExpression::CastExpression(std::unique_ptr<Type> targetType,
+                                std::unique_ptr<Expression> expression)
+        : targetType(std::move(targetType)), expression(std::move(expression)) {}
+
+    /**
+     * @brief Constructs a member access expression node
+     * @param object Base object expression
+     * @param member Member identifier
+     */
+    MemberAccessExpression::MemberAccessExpression(std::unique_ptr<Expression> object,
+                                                std::unique_ptr<Identifier> member)
+        : object(std::move(object)), member(std::move(member)) {}
+
 } // namespace umbra

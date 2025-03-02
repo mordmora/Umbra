@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 
 /*
 <program> ::= { <function_definition> }
 
 <function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
+=======
+<program> ::= { <function_definition> }
+
+<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}"
+>>>>>>> dec4a079155977d3d06e661fc0fa5842f628cd55
 
 <parameter_list> ::= <param> { "," <param> }
 
@@ -25,7 +31,11 @@
 
 <assignment_statement> ::= <identifier> [ "[" <expression> "]" ] "=" <expression> 
 
+<<<<<<< HEAD
 <conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] "\n"
+=======
+<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] <newline>
+>>>>>>> dec4a079155977d3d06e661fc0fa5842f628cd55
 
 <loop> ::= "repeat" ( <integer_literal> "times" | "if" <expression> ) "{" <statement_list> "}" 
 
@@ -79,6 +89,10 @@
 
 <digit> ::= "0" | ... | "9"
 
+<<<<<<< HEAD
 <any_char> ::= cualquier carácter válido excepto comillas no escapadas
 
 */
+=======
+<any_char> ::= [a-ZA-Z]
+>>>>>>> dec4a079155977d3d06e661fc0fa5842f628cd55
