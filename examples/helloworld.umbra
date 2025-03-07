@@ -1,4 +1,11 @@
 func start() -> int {
-    int a = 1 + 2 + ( 2 + 3 )
-    print(a)
+    int a = 1
+    int b = 10
+    int c
+}
+
+func sum(a int) -> float {
+    int _a = 0
+    print( 3+3 )
+    int b = 12313
 }

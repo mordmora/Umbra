@@ -47,6 +47,8 @@ namespace umbra {
                 return tk.lexeme;
             case TokenType::TOK_STRING:
                 return tk.lexeme;
+            case TokenType::TOK_VOID:
+                return tk.lexeme;
             default:
                 return "";
         }
@@ -415,12 +417,23 @@ namespace umbra {
         auto id = parseIdentifier();
         consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
         std::vector<std::unique_ptr<Expression>> args;
-        do{
-            auto arg = parseExpression();
-            args.push_back(std::move(arg));
-        }while(match(TokenType::TOK_COMMA));
+        
+        if (!check(TokenType::TOK_RIGHT_PAREN)) {
+            do {
+                auto arg = parseExpression();
+                if (arg != nullptr) {
+                    args.push_back(std::move(arg));
+                } else {
+                    break;
+                }
+            } while(match(TokenType::TOK_COMMA));
+        }
+        
         consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
-        return std::make_unique<FunctionCall>( std::move(id), std::move(args));
+
+        auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));
+        
+        return std::make_unique<PrimaryExpression>(std::move(functionCall));
     }
 
     std::unique_ptr<Identifier> Parser::parseIdentifier(){

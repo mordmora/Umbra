@@ -136,6 +136,7 @@ class TokenManager {
             {TokenType::TOK_FLOAT, "TOK_FLOAT"},
             {TokenType::TOK_BOOL, "TOK_BOOL"},
             {TokenType::TOK_CHAR, "TOK_CHAR"},
+                {TokenType::TOK_VOID, "TOK_VOID"},
             {TokenType::TOK_STRING, "TOK_STRING"},
             {TokenType::TOK_IF, "TOK_IF"},
             {TokenType::TOK_ELSE, "TOK_ELSE"},

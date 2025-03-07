@@ -6,6 +6,7 @@
  */
 
 #include "Nodes.h"
+#include "ASTVisitor.h"
 
 namespace umbra {
 
@@ -15,6 +16,10 @@ namespace umbra {
      */
     ProgramNode::ProgramNode(std::vector<std::unique_ptr<FunctionDefinition>> functions) 
         : functions(std::move(functions)) {}
+
+    void ProgramNode::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a function definition node
@@ -30,6 +35,9 @@ namespace umbra {
         : name(std::move(name)), parameters(std::move(parameters)), 
           returnType(std::move(returnType)), body(std::move(body)) {}
 
+    void FunctionDefinition::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
     /**
      * @brief Constructs a parameter list node
      * @param parameters Vector of parameter pairs (type and identifier)
@@ -37,6 +45,10 @@ namespace umbra {
     ParameterList::ParameterList(
         std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters) 
         : parameters(std::move(parameters)) {}
+
+    void ParameterList::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a type node
@@ -46,11 +58,19 @@ namespace umbra {
     Type::Type(std::string baseType, int arrayDimensions) 
         : baseType(std::move(baseType)), arrayDimensions(arrayDimensions) {}
 
+    void Type::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     /**
      * @brief Constructs an identifier node
      * @param name Identifier name
      */
     Identifier::Identifier(std::string name) : name(std::move(name)) {}
+
+    void Identifier::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a variable declaration node
@@ -64,6 +84,10 @@ namespace umbra {
         : type(std::move(type)), name(std::move(name)), 
           initializer(std::move(initializer)) {}
 
+    void VariableDeclaration::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     /**
      * @brief Constructs an assignment statement node
      * @param target Target identifier
@@ -72,6 +96,10 @@ namespace umbra {
     AssignmentStatement::AssignmentStatement(std::unique_ptr<Identifier> target, 
         std::unique_ptr<Expression> value)
         : target(std::move(target)), value(std::move(value)) {}
+
+    void AssignmentStatement::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a conditional statement node
@@ -125,12 +153,20 @@ namespace umbra {
         std::vector<std::unique_ptr<Expression>> arguments) 
         : functionName(std::move(functionName)), arguments(std::move(arguments)) {}
 
+    void FunctionCall::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     /**
      * @brief Constructs a literal node
      * @param value String representation of the literal value
      */
     Literal::Literal(std::string value) 
         : value(std::move(value)) {}
+
+    void Literal::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a numeric literal node
@@ -171,6 +207,10 @@ namespace umbra {
         op(std::move(op)), left(std::move(left)), right(std::move(right)) {
     }
 
+    void BinaryExpression::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     /**
      * @brief Constructs a unary expression node
      * @param op Operator string
@@ -179,6 +219,10 @@ namespace umbra {
 
     UnaryExpression::UnaryExpression(std::string op, std::unique_ptr<Expression> operand) :
         op(std::move(op)), operand(std::move(operand)) {
+    }
+
+    void UnaryExpression::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
     }
 
     /**
@@ -213,38 +257,16 @@ namespace umbra {
     PrimaryExpression::PrimaryExpression(std::unique_ptr<FunctionCall> functionCall)
         : exprType(EXPRESSION_CALL), functionCall(std::move(functionCall)) {}
 
-<<<<<<< HEAD
+    void PrimaryExpression::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     ExpressionStatement::ExpressionStatement(std::unique_ptr<Expression> exp) : exp(std::move(exp)) {}
-=======
-    /**
-     * @brief Constructs a primary expression node
-     * @param arrayAccess Array access expression
-    */
-    PrimaryExpression::PrimaryExpression(std::unique_ptr<ArrayAccessExpression> arrayAccess)
-        : exprType(ARRAY_ACCESS), arrayAccess(std::move(arrayAccess)) {}
-
-    /**
-     * @brief Constructs a primary expression node
-     * @param memberAccess Member access expression
-     */
-    PrimaryExpression::PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess)
-        : exprType(MEMBER_ACCESS), memberAccess(std::move(memberAccess)) {}
     
-    /**
-     * @brief Constructs a cast expression node
-     * @param castExpr Cast storage expression 
-     */
-    PrimaryExpression::PrimaryExpression(std::unique_ptr<CastExpression> castExpr)
-        : exprType(CAST_EXPRESSION), castExpression(std::move(castExpr)) {}
+    void ExpressionStatement::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
-    /**
-     * @brief Construcs a ternary expression node
-     * @param ternaryExpr Ternary storage expression
-     */
-    PrimaryExpression::PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr)
-        : exprType(TERNARY_EXPRESSION), ternaryExpression(std::move(ternaryExpr)) {}
->>>>>>> dec4a079155977d3d06e661fc0fa5842f628cd55
-    
     /**
      * @brief Constructs an array access expression node
      * @param array Expression evaluating to the array

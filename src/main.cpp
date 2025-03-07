@@ -2,6 +2,7 @@
 #include "error/ErrorManager.h"
 #include "lexer/Lexer.h"
 #include "parser/Parser.h"
+#include "ast/ASTVisitor.h"
 #include "preprocessor/Preprocessor.h"
 #include "lexer/Tokens.h"
 #include<optional>
@@ -10,10 +11,11 @@
 namespace umbra {
 
 
-//void printAST(ASTNode *node) {
- //   PrintVisitor visitor;
-//    node->accept(visitor);
-//}
+void printAST(ASTNode* node) {
+    PrintASTVisitor visitor;
+    node->accept(visitor);
+}
+    
 
 } // namespace umbra
 
@@ -54,8 +56,8 @@ int main(int argc, char *argv[]) {
             std::cout << "\nParsing completed successfully.\n";
             
             // Descomenta esto cuando implementes el PrintVisitor
-            // std::cout << "Abstract Syntax Tree:" << std::endl;
-            // umbra::printAST(ast.get());
+            std::cout << "Abstract Syntax Tree:" << std::endl;
+            umbra::printAST(ast.get());
             
         } catch (const std::exception& e) {
             std::cerr << "Parser error: " << e.what() << std::endl;

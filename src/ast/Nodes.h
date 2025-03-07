@@ -18,6 +18,11 @@ namespace umbra {
     class Identifier;
     class Literal;
     class FunctionCall;
+    class ArrayAccessExpression;
+    class TernaryExpression;
+    class CastExpression;
+    class MemberAccessExpression;
+    
 
     // Expression base class
     class Expression : public ASTNode {
@@ -29,7 +34,7 @@ namespace umbra {
     class ProgramNode : public ASTNode {
     public:
         ProgramNode(std::vector<std::unique_ptr<FunctionDefinition>> functions);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::vector<std::unique_ptr<FunctionDefinition>> functions;
     };
 
@@ -38,7 +43,7 @@ namespace umbra {
     public:
         FunctionDefinition(std::unique_ptr<Identifier> name, std::unique_ptr<ParameterList> parameters,
             std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
         std::unique_ptr<Type> returnType;
@@ -49,7 +54,7 @@ namespace umbra {
     class ParameterList : public ASTNode {
     public:
         ParameterList(std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters;
     };
 
@@ -57,16 +62,17 @@ namespace umbra {
     class Type : public ASTNode {
     public:
         Type(std::string baseType, int arrayDimensions = 0);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::string baseType; // e.g., int, float, etc.
         int arrayDimensions = 0; // Number of dimensions if it's an array
+        
     };
 
     // Identifier node
     class Identifier : public Expression {
     public:
         Identifier(std::string name);
-
+        void accept(ASTVisitor &visitor) override;
         std::string name;
     };
 
@@ -81,7 +87,7 @@ namespace umbra {
     public:
         VariableDeclaration(std::unique_ptr<Type> type, std::unique_ptr<Identifier> name,
             std::unique_ptr<Expression> initializer);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Type> type;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<Expression> initializer;
@@ -91,7 +97,7 @@ namespace umbra {
     class AssignmentStatement : public Statement {
     public:
         AssignmentStatement(std::unique_ptr<Identifier> target, std::unique_ptr<Expression> value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Identifier> target;
         std::unique_ptr<Expression> index; // For array assignment
         std::unique_ptr<Expression> value;
@@ -147,7 +153,7 @@ namespace umbra {
     class BinaryExpression : public Expression {
     public:
         BinaryExpression(std::string op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::string op; // Operator (e.g., +, -, *, etc.)
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
@@ -157,7 +163,7 @@ namespace umbra {
     class UnaryExpression : public Expression {
     public:
         UnaryExpression(std::string op, std::unique_ptr<Expression> operand);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::string op; // Operator (e.g., ptr, ref, access)
         std::unique_ptr<Expression> operand;
     };
@@ -165,7 +171,7 @@ namespace umbra {
     // Primary expression node
     class PrimaryExpression : public Expression {
     public:
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
 
         enum Type { 
             IDENTIFIER, 
@@ -175,7 +181,8 @@ namespace umbra {
             ARRAY_ACCESS, 
             MEMBER_ACCESS, 
             CAST_EXPRESSION, 
-            TERNARY_EXPRESSION 
+            TERNARY_EXPRESSION,
+            
         } exprType;
 
         // Builder
@@ -203,7 +210,7 @@ namespace umbra {
     class Literal : public Expression {
     public:
 
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         enum Type { INTEGER, FLOAT, BOOLEAN, CHAR, STRING } literalType;
 
         Literal(std::string value);
@@ -215,7 +222,7 @@ namespace umbra {
     class FunctionCall : public Expression {
     public:
         FunctionCall(std::unique_ptr<Identifier> functionName, std::vector<std::unique_ptr<Expression>> arguments);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Identifier> functionName;
         std::vector<std::unique_ptr<Expression>> arguments;
     };
@@ -223,6 +230,7 @@ namespace umbra {
     class ExpressionStatement : public Statement {
         public:
         ExpressionStatement(std::unique_ptr<Expression> exp);
+        void accept(ASTVisitor &visitor) override;
         std::unique_ptr<Expression> exp;
     };
 
