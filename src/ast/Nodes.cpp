@@ -6,6 +6,7 @@
  */
 
 #include "Nodes.h"
+#include <iostream>
 #include "ASTVisitor.h"
 
 namespace umbra {
@@ -194,8 +195,11 @@ namespace umbra {
      * @param value String value of the literal
      */
 
-    StringLiteral::StringLiteral(std::string value) : Literal(std::move(value)) {}
+    StringLiteral::StringLiteral(const std::string& value) : Literal(std::move(value)), value(std::move(value)) {}
 
+    void StringLiteral::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
     /**
      * @brief Constructs a binary expression node
      * @param op Operator string

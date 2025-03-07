@@ -262,8 +262,8 @@ namespace umbra {
     // String literal node
     class StringLiteral : public Literal {
     public:
-        StringLiteral(std::string value);
-        void accept(ASTVisitor& visitor) override {}
+        StringLiteral(const std::string& value);
+        void accept(ASTVisitor& visitor) override;
         std::string value;
     };
 

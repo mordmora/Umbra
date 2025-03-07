@@ -376,8 +376,8 @@ namespace umbra {
             return parseIdentifier();
 
         }if(check(TokenType::TOK_NUMBER) 
-        || check(TokenType::TOK_CHAR) 
-        || check(TokenType::TOK_STRING)
+        || check(TokenType::TOK_CHAR)   
+        || check(TokenType::TOK_STRING_LITERAL)
         || check(TokenType::TOK_TRUE)
         || check(TokenType::TOK_FALSE)){
             return parseLiteral();
@@ -392,15 +392,15 @@ namespace umbra {
 
     std::unique_ptr<Literal> Parser::parseLiteral(){
         UMBRA_PRINT("PARSE LITERAL NODE WITH CURRENT TOKEN: "+ peek().lexeme);
-        auto literal = peek();
-        advance();
+        auto literal = advance();
         switch (literal.type){
             case TokenType::TOK_NUMBER:
                 return std::make_unique<Literal>(literal.lexeme);
             case TokenType::TOK_CHAR:
                 return std::make_unique<CharLiteral>(literal.lexeme[0]);
-            case TokenType::TOK_STRING:
-                return std::make_unique<StringLiteral>(literal.lexeme);
+            case TokenType::TOK_STRING_LITERAL:
+                std:: cout << "Inserting string literal value ----> " << literal.lexeme << std::endl;
+                return std::make_unique<StringLiteral>(std::move(literal.lexeme));
             default:
                 if(literal.type == TokenType::TOK_TRUE || literal.type == TokenType::TOK_FALSE){
                     return std::make_unique<BooleanLiteral>(literal.type == TokenType::TOK_TRUE);
