@@ -196,9 +196,9 @@ namespace umbra {
         auto returnType = parseType();
 
         consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before function body");
-        if(check(TokenType::TOK_NEWLINE)){
-            advance();
-        }
+        
+        skipNewLines();
+
         auto body = parseStatementList();
         auto returnVal = returnType->baseType == "void" ? nullptr : parseReturnExpression();
         match(TokenType::TOK_RETURN);
@@ -342,8 +342,9 @@ namespace umbra {
     }
 
     std::unique_ptr<Expression> Parser::parseMultiplicative(){
-        UMBRA_PRINT("PARSE MULTIPLICATIVE NODE WITH CURRENT TOKEN: "+ peek().lexeme);
+        std::cout << "PARSE MULTIPLICATIVE NODE WITH CURRENT " << peek().lexeme << std::endl;
         auto expr = parseUnary();
+        std::cout << "operator: " << peek().lexeme << std::endl;
         while(match(TokenType::TOK_MULT) || match(TokenType::TOK_DIV) || match(TokenType::TOK_MOD)){
             auto op = previous();
             auto right = parseUnary();
@@ -413,6 +414,8 @@ namespace umbra {
         consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
         std::vector<std::unique_ptr<Expression>> args;
         
+        skipNewLines();
+        
         if (!check(TokenType::TOK_RIGHT_PAREN)) {
             do {
                 auto arg = parseExpression();
@@ -421,9 +424,14 @@ namespace umbra {
                 } else {
                     break;
                 }
-            } while(match(TokenType::TOK_COMMA));
+
+                if (match(TokenType::TOK_COMMA)) {
+                    skipNewLines();
+                }
+            } while(!check(TokenType::TOK_RIGHT_PAREN) && !isAtEnd());
         }
-        
+
+        skipNewLines();
         consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
 
         auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));

@@ -96,6 +96,15 @@ std::vector<Lexer::Token> Lexer::tokenize() {
         case '*':
             addToken(TokenType::TOK_MULT);
             break;
+        case '/':
+            if (match('/')) {
+                std::cout << "comment found" << std::endl;
+                while (peek() != '\n' && !isAtEnd())
+                    advance();
+            } else {
+                addToken(TokenType::TOK_DIV);
+            }
+            break;
         case '(':
             addToken(TokenType::TOK_LEFT_PAREN);
             break;

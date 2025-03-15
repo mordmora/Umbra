@@ -1,4 +1,10 @@
-func sum() -> int {
-	int result = a + b
-	return function(a, b)
+func start() -> void {
+	int a = 10
+	int b = 15
+	int c = sum(a, b)
+	print()
+}
+
+func sum(int: a, int: a) -> int {
+	return a + b
 }
