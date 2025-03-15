@@ -1,3 +1,4 @@
-func print(str string) -> void {
-	print( "hola mundo" )
+func sum() -> int {
+	int result = a + b
+	return function(a, b)
 }

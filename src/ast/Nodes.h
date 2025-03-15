@@ -22,6 +22,7 @@ namespace umbra {
     class TernaryExpression;
     class CastExpression;
     class MemberAccessExpression;
+    class ReturnExpression;
     
 
     // Expression base class
@@ -42,11 +43,13 @@ namespace umbra {
     class FunctionDefinition : public ASTNode {
     public:
         FunctionDefinition(std::unique_ptr<Identifier> name, std::unique_ptr<ParameterList> parameters,
-            std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body);
+            std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body, 
+            std::unique_ptr<ReturnExpression> returnValue);
         void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
         std::unique_ptr<Type> returnType;
+        std::unique_ptr<ReturnExpression> returnValue;
         std::vector<std::unique_ptr<Statement>> body;
     };
 
@@ -142,10 +145,10 @@ namespace umbra {
     };
 
     // Return statement node
-    class ReturnStatement : public Statement {
+    class ReturnExpression : public Expression{
     public:
-        ReturnStatement(std::unique_ptr<Expression> returnValue);
-        void accept(ASTVisitor& visitor) override {}
+        ReturnExpression(std::unique_ptr<Expression> returnValue);
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Expression> returnValue;
     };
 

@@ -6,7 +6,6 @@
  */
 
 #include "Nodes.h"
-#include <iostream>
 #include "ASTVisitor.h"
 
 namespace umbra {
@@ -29,12 +28,11 @@ namespace umbra {
      * @param returnType Function return type
      * @param body Vector of function statements
      */
-    FunctionDefinition::FunctionDefinition(std::unique_ptr<Identifier> name, 
-        std::unique_ptr<ParameterList> parameters,
-        std::unique_ptr<Type> returnType, 
-        std::vector<std::unique_ptr<Statement>> body)
-        : name(std::move(name)), parameters(std::move(parameters)), 
-          returnType(std::move(returnType)), body(std::move(body)) {}
+
+    FunctionDefinition::FunctionDefinition(std::unique_ptr<Identifier> name, std::unique_ptr<ParameterList> parameters, std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body, std::unique_ptr<ReturnExpression> returnValue)
+    : name(std::move(name)), parameters(std::move(parameters)), returnType(std::move(returnType)), returnValue(std::move(returnValue)), body(std::move(body))
+    {
+    }
 
     void FunctionDefinition::accept(ASTVisitor& visitor){
         visitor.visit(*this);
@@ -142,8 +140,12 @@ namespace umbra {
      * @brief Constructs a return statement node
      * @param returnValue Expression to return
      */
-    ReturnStatement::ReturnStatement(std::unique_ptr<Expression> returnValue) 
+    ReturnExpression::ReturnExpression(std::unique_ptr<Expression> returnValue) 
         : returnValue(std::move(returnValue)) {}
+
+    void ReturnExpression::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a function call node

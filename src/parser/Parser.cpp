@@ -163,9 +163,9 @@ namespace umbra {
         }
         return std::make_shared<ProgramNode>(std::move(functionDefinitions));
     }
-    //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
+    //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}"
     std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
-        UMBRA_PRINT("Parsing function definition");
+
         if(!match(TokenType::TOK_FUNC)){
             throw std::runtime_error("Expected 'func' keyword");
         }
@@ -200,22 +200,20 @@ namespace umbra {
             advance();
         }
         auto body = parseStatementList();
-        UMBRA_PRINT("FUNC CURRENT TOKEN: "+current->lexeme);
+        auto returnVal = returnType->baseType == "void" ? nullptr : parseReturnExpression();
+        match(TokenType::TOK_RETURN);
+        skipNewLines();
         consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
 
-        if(match(TokenType::TOK_NEWLINE)) {
-            return std::make_unique<FunctionDefinition>(
-                std::make_unique<Identifier>(name.lexeme
-                ), 
-                std::make_unique<ParameterList>(
-                    std::move(parameters)
-                ), std::move(returnType), 
-                std::move(body));
-        }
-        else {
-            error("Expected newline after function body", name.line, name.column);
-            return nullptr;
-        }
+        return std::make_unique<FunctionDefinition>(
+            std::make_unique<Identifier>(name.lexeme
+            ), 
+            std::make_unique<ParameterList>(
+                std::move(parameters)
+            ), std::move(returnType), 
+            std::move(body),
+            std::move(returnVal));
+
     }
 
     std::unique_ptr<Type> Parser::parseType(){
@@ -229,8 +227,6 @@ namespace umbra {
     }
 
     std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
-        UMBRA_PRINT("Parsing statement list");
-
         std::vector<std::unique_ptr<Statement>> statements;
         while(!isAtEnd()){
             UMBRA_PRINT("STATEMENT LIST CURRENT TOKEN: "+peek().lexeme);
@@ -259,11 +255,10 @@ namespace umbra {
         return nullptr;
     }
 
-    std::unique_ptr<Statement> Parser::parseReturnStatement(){
-        UMBRA_PRINT(peek().lexeme);
+    std::unique_ptr<ReturnExpression> Parser::parseReturnExpression(){
         consume(TokenType::TOK_RETURN, "Expected 'return' keyword");
         auto returnValue = parseExpression();
-        return std::make_unique<ReturnStatement>(std::move(returnValue));
+        return std::make_unique<ReturnExpression>(std::move(returnValue));
     }
 
     std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){

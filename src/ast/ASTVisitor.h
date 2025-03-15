@@ -110,6 +110,12 @@ public:
      * @param node The string literal node to visit
      */
     virtual void visit(StringLiteral& node) = 0;
+
+    /**
+     * @brief Visit method for ReturnExpression
+     * @param node The return expression node to visit
+     */
+    virtual void visit(ReturnExpression& node) = 0;
 };
 
 /**
@@ -220,6 +226,12 @@ public:
      * @param node The string literal node to process
      */
     void visit(StringLiteral& node) override;
+
+    /**
+     * @brief Visit implementation for ReturnExpression
+     * @param node The return expression node to process
+     */
+    void visit(ReturnExpression& node) override;
 };
 
 } // namespace umbra

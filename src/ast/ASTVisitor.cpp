@@ -98,6 +98,13 @@ namespace umbra {
         for (const auto& statement : node.body) {
             statement->accept(*this);
         }
+        if (node.returnValue) {
+            indent();
+            std::cout << "Return Value:" << std::endl;
+            deep++;
+            node.returnValue->accept(*this);
+            deep--;
+        }
         deep--;
         
         deep--;
@@ -394,5 +401,26 @@ namespace umbra {
     void PrintASTVisitor::visit(StringLiteral& node) {
         indent();
         std::cout << "String Literal: \"" << node.value << "\"" << std::endl;
+    }
+
+    /**
+     * @brief Process a return expression node
+     * @param node The return expression node to visit
+     * @details Prints the return keyword and recursively visits the contained
+     * expression if present. The structure is properly indented to show the
+     * relationship between the return statement and its value.
+     */
+    void PrintASTVisitor::visit(ReturnExpression& node) {
+        indent();
+        std::cout << "Return Expression:" << std::endl;
+        
+        deep++;
+        if (node.returnValue) {
+            node.returnValue->accept(*this);
+        } else {
+            indent();
+            std::cout << "(no return value)" << std::endl;
+        }
+        deep--;
     }
 }
