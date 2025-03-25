@@ -232,6 +232,32 @@ TEST(LexerTest, TokenizeFunctionWithComparison) {
     EXPECT_EQ(tokens[18].type, TokenType::TOK_LESS);      // 'less_than'
 }
 
+// Prueba de expresiones sin espacios
+TEST(LexerTest, TokenizeExpressionsWithoutSpaces) {
+    std::string source = "int result = (1+2)*3";
+    Lexer lexer(source);
+    std::vector<Lexer::Token> tokens = lexer.tokenize();
+
+    std::cout << "\nTokens generados:" << std::endl;
+    for (size_t i = 0; i < tokens.size(); ++i) {
+        std::cout << i << ": " << tokens[i].lexeme << std::endl;
+    }
+
+    ASSERT_EQ(tokens.size(), 11); // 10 tokens + EOF
+
+    EXPECT_EQ(tokens[0].type, TokenType::TOK_INT);           // 'int'
+    EXPECT_EQ(tokens[1].type, TokenType::TOK_IDENTIFIER);    // 'result'
+    EXPECT_EQ(tokens[2].type, TokenType::TOK_ASSIGN);        // '='
+    EXPECT_EQ(tokens[3].type, TokenType::TOK_LEFT_PAREN);    // '('
+    EXPECT_EQ(tokens[4].type, TokenType::TOK_NUMBER);        // '1'
+    EXPECT_EQ(tokens[5].type, TokenType::TOK_ADD);           // '+'
+    EXPECT_EQ(tokens[6].type, TokenType::TOK_NUMBER);        // '2'
+    EXPECT_EQ(tokens[7].type, TokenType::TOK_RIGHT_PAREN);   // ')'
+    EXPECT_EQ(tokens[8].type, TokenType::TOK_MULT);          // '*'
+    EXPECT_EQ(tokens[9].type, TokenType::TOK_NUMBER);        // '3'
+    EXPECT_EQ(tokens[10].type, TokenType::TOK_EOF);          // EOF
+}
+
 } // namespace umbra
 
 } // namespace umbra
