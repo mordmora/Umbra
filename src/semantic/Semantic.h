@@ -3,6 +3,7 @@
 #include <memory>
 #include "../ast/Nodes.h"
 #include <string>
+#include <unordered_map>
 namespace umbra{
 
 class Symbol {
@@ -20,7 +21,7 @@ public:
     SymbolKind kind;
     std::unique_ptr<Type> type;
 };
-
+ 
 class ScopeManager {
 public:
     ScopeManager();
@@ -34,7 +35,7 @@ class SymbolTable {
         void addSymbol(std::unique_ptr<Symbol> symbol);
         std::unique_ptr<Symbol> getSymbol(std::string name);
     private:
-        std::vector<std::unique_ptr<Symbol>> symbols;
+        std::unordered_map<std::string, std::unique_ptr<Symbol>> symbols;
     };
 
 }
