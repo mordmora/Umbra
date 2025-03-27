@@ -1,23 +1,45 @@
+/**
+ * @file Lexer.h
+ * @brief Implementación del analizador léxico para el lenguaje Umbra
+ */
 #include "Lexer.h"
 #include "Tokens.h"
-#include <bitset>
 #include <cctype>
 #include <iostream>
-#include <stdexcept>
 #include <unordered_map>
 
+/**
+ * @namespace umbra
+ * @brief Espacio de nombres principal para el compilador Umbra
+ */
 namespace umbra {
 
+/**
+ * @brief Constructor con manejo de errores interno
+ * @param source Código fuente a analizar
+ */
 Lexer::Lexer(const std::string &source)
     : source(source), internalErrorManager(std::make_unique<ErrorManager>()),
       errorManager(internalErrorManager.get()), current(0), line(1), column(1) {}
 
+/**
+ * @brief Constructor con manejo de errores externo
+ * @param source Código fuente a analizar
+ * @param externalErrorManager Manejador de errores externo
+ */
 Lexer::Lexer(const std::string &source, ErrorManager &externalErrorManager)
     : source(source), errorManager(&externalErrorManager), current(0), line(1), column(1) {}
 
-
+/**
+ * @brief Obtiene el código fuente actual
+ * @return Cadena con el código fuente
+ */
 std::string Lexer::getSource() { return source; }
 
+/**
+ * @brief Realiza el análisis léxico del código fuente
+ * @return Vector de tokens generados
+ */
 std::vector<Lexer::Token> Lexer::tokenize() {
     tokens.clear();
     std::cout << "Lexer: Comenzando tokenización..." << std::endl;
@@ -151,26 +173,48 @@ std::vector<Lexer::Token> Lexer::tokenize() {
     return tokens;
 }
 
+/**
+ * @brief Avanza al siguiente caracter en el código fuente
+ * @return El caracter actual
+ */
 char Lexer::advance() {
     column++;
     return source[current++];
 }
+
+/**
+ * @brief Verifica si se ha llegado al final del código fuente
+ * @return true si se llegó al final, false en caso contrario
+ */
 bool Lexer::isAtEnd() const {
     return static_cast<std::string::size_type>(current) >= source.length();
 }
 
+/**
+ * @brief Obtiene el caracter actual sin avanzar
+ * @return El caracter actual
+ */
 char Lexer::peek() const {
     if (isAtEnd())
         return '\0';
     return source[current];
 }
 
+/**
+ * @brief Obtiene el siguiente caracter sin avanzar
+ * @return El siguiente caracter
+ */
 char Lexer::peekNext() const {
     if (static_cast<std::string::size_type>(current + 1) >= source.length())
         return '\0';
     return source[current + 1];
 }
 
+/**
+ * @brief Verifica y consume un caracter esperado
+ * @param expected Caracter esperado
+ * @return true si coincide, false en caso contrario
+ */
 bool Lexer::match(char expected) {
     if (isAtEnd())
         return false;
@@ -181,12 +225,24 @@ bool Lexer::match(char expected) {
     return true;
 }
 
+/**
+ * @brief Añade un nuevo token a la lista
+ * @param type Tipo de token
+ */
 void Lexer::addToken(TokenType type) { addToken(type, source.substr(start, current - start)); }
 
+/**
+ * @brief Añade un nuevo token con lexema específico
+ * @param type Tipo de token
+ * @param lexeme Lexema del token
+ */
 void Lexer::addToken(TokenType type, const std::string &lexeme) {
     tokens.emplace_back(type, lexeme, line, column - lexeme.length());
 }
 
+/**
+ * @brief Procesa un literal de caracter
+ */
 void Lexer::charliteral() {
     while (peek() != '\'' && !isAtEnd()) {
         advance();
@@ -206,6 +262,9 @@ void Lexer::charliteral() {
     addToken(TokenType::TOK_CHAR_LITERAL, value);
 }
 
+/**
+ * @brief Procesa un literal de cadena
+ */
 void Lexer::string() {
     while (peek() != '"' && !isAtEnd()) {
         if (peek() == '\n')
@@ -228,14 +287,17 @@ void Lexer::string() {
     addToken(TokenType::TOK_STRING_LITERAL, value);
 }
 
+/**
+ * @brief Procesa un número
+ */
 void Lexer::number() {
     while (state != State::Acceptance) {
 
-        switch (state) { // 5555 5555h 555.5 555. 555e 555e 55.555
+        switch (state) {
         case State::Integer:
             while (isDigit(peek()))
                 advance();
-            if (isWhitespace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
                 state = State::Acceptance;
             } else if (peek() == '.') {
                 state = State::Decimal;
@@ -258,7 +320,7 @@ void Lexer::number() {
             } else {
                 while (isDigit(peek()))
                     advance();
-                if (isWhitespace(peek()) || isSing(peek())) {
+                if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
                     state = State::Acceptance;
                 } else if (peek() == '.') {
                     std::string errorMsg = "Malformed number at line " + std::to_string(line) +
@@ -291,7 +353,7 @@ void Lexer::number() {
             while (isDigit(peek()))
                 advance();
 
-            if (isWhitespace(peek()) || isSing(peek())) {
+            if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
                 state = State::Acceptance;
             } else {
                 state = State::Rejection;
@@ -315,6 +377,9 @@ void Lexer::number() {
     addToken(TokenType::TOK_NUMBER, source.substr(start, current - start));
 }
 
+/**
+ * @brief Procesa un identificador o palabra reservada
+ */
 void Lexer::identifier() {
     while (isAlphaNumeric(peek()))
         advance();
@@ -325,23 +390,56 @@ void Lexer::identifier() {
     addToken(type, text);
 }
 
+/**
+ * @brief Verifica si un caracter es alfabético
+ * @param c Caracter a verificar
+ * @return true si es alfabético, false en caso contrario
+ */
 bool Lexer::isAlpha(char c) const {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
+/**
+ * @brief Verifica si un caracter es alfanumérico
+ * @param c Caracter a verificar
+ * @return true si es alfanumérico, false en caso contrario
+ */
 bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
 
+/**
+ * @brief Verifica si un caracter es un dígito
+ * @param c Caracter a verificar
+ * @return true si es un dígito, false en caso contrario
+ */
 bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
+/**
+ * @brief Verifica si un caracter es un signo de operación
+ * @param c Caracter a verificar
+ * @return true si es un signo, false en caso contrario
+ */
 bool Lexer::isSing(char c) const {
     return c == '+' || c == '-' || c == '/' || c == '*' || c == '<' || c == '>' || c == '=' ||
            c == '%' || c == '!';
 }
 
+/**
+ * @brief Verifica si un caracter es espacio en blanco
+ * @param c Caracter a verificar
+ * @return true si es espacio en blanco, false en caso contrario
+ */
 bool Lexer::isWhitespace(char c) const { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 
+/**
+ * @brief Verifica si un caracter es espacio en blanco (excluyendo nueva línea)
+ * @param c Caracter a verificar
+ * @return true si es espacio en blanco, false en caso contrario
+ */
 bool Lexer::isBlankSpace(char c) const { return c == ' ' || c == '\t' || c == '\r'; }
 
+/**
+ * @brief Reinicia el estado del lexer
+ */
 void Lexer::reset() {
     current = 0;
     start = 0;
@@ -349,11 +447,22 @@ void Lexer::reset() {
     column = 1;
 }
 
+/**
+ * @brief Maneja un caracter inesperado
+ * @param lastChar Caracter inesperado
+ */
+
 void Lexer::errorMessage(char lastChar) { // unexpected character error
     std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
     errorManager->addError(
         std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
 }
+
+/**
+ * @brief Procesa un número binario
+ * @param c Primer caracter del número binario
+ * @return true si se procesó correctamente, false en caso contrario
+ */
 bool Lexer::isBinary(char c) {
     // int binario = 0b010010
     c = advance();
@@ -383,8 +492,16 @@ bool Lexer::isBinary(char c) {
     return true;
 }
 
+/**
+ * @brief Obtiene el siguiente token sin consumirlo
+ * @return El siguiente token
+ */
 Lexer::Token Lexer::peekToken() { return tokens[current]; }
 
+/**
+ * @brief Obtiene y consume el siguiente token
+ * @return El siguiente token
+ */
 Lexer::Token Lexer::getNextToken() {
     if (current < tokens.size()) {
         return tokens[current++];
