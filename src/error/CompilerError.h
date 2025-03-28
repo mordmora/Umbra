@@ -39,6 +39,17 @@ class LexicalError : public CompilerError {
     char problematic_char;
 };
 
+class SemanticError : CompilerError {
+    public:
+        enum class Action {WARNING, ERROR};
+        SemanticError(const std::string &message, int line, int column, Action action);
+    
+        std::string toString() const override;
+
+    private:
+        Action action;
+};
+
 } // namespace umbra
 
 #endif // UMBRA_COMPILER_ERROR_H

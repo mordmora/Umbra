@@ -7,6 +7,7 @@
 
 #include "Nodes.h"
 #include "ASTVisitor.h"
+#include "../semantic/SemanticVisitor.h"
 
 namespace umbra {
 
@@ -18,6 +19,10 @@ namespace umbra {
         : functions(std::move(functions)) {}
 
     void ProgramNode::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
+    void ProgramNode::accept(SemanticVisitor& visitor){
         visitor.visit(*this);
     }
 
@@ -37,6 +42,11 @@ namespace umbra {
     void FunctionDefinition::accept(ASTVisitor& visitor){
         visitor.visit(*this);
     }
+
+    void FunctionDefinition::accept(SemanticVisitor& visitor){
+        visitor.visit(*this);
+    }
+
     /**
      * @brief Constructs a parameter list node
      * @param parameters Vector of parameter pairs (type and identifier)
@@ -46,6 +56,10 @@ namespace umbra {
         : parameters(std::move(parameters)) {}
 
     void ParameterList::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
+    void ParameterList::accept(SemanticVisitor& visitor){
         visitor.visit(*this);
     }
 
@@ -84,6 +98,10 @@ namespace umbra {
           initializer(std::move(initializer)) {}
 
     void VariableDeclaration::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
+
+    void VariableDeclaration::accept(SemanticVisitor& visitor){
         visitor.visit(*this);
     }
 

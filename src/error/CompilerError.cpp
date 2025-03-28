@@ -31,4 +31,14 @@ std::string LexicalError::toString() const {
     return oss.str();
 }
 
+
+SemanticError::SemanticError(const std::string &message, int line, int column, Action action)
+    : CompilerError(ErrorType::SEMANTIC, message, line, column), action(action) {}
+
+std::string SemanticError::toString() const {
+    std::ostringstream oss;
+    oss << CompilerError::toString() << " (" << (action == Action::ERROR ? "error" : "warning") << ")";
+    return oss.str();
+}
+
 } // namespace umbra
