@@ -119,6 +119,38 @@ public:
 };
 
 /**
+ * @class BaseVisitor
+ * @brief Base class for AST visitors with default implementations
+ *
+ * This class provides default implementations for all visit methods in the ASTVisitor interface.
+ * Derived classes can override only the methods they are interested in.
+ */
+
+class BaseVisitor : public ASTVisitor {
+    public:
+        virtual ~BaseVisitor() = default;
+        
+        // Default implementations for all methods
+        void visit(ProgramNode& node) override {}
+        void visit(FunctionDefinition& node) override {}
+        void visit(ParameterList& node) override {}
+        void visit(Type& node) override {}
+        void visit(Identifier& node) override {}
+        void visit(VariableDeclaration& node) override {}
+        void visit(AssignmentStatement& node) override {}
+        void visit(FunctionCall& node) override {}
+        void visit(Expression& node) override {}
+        void visit(Literal& node) override {}
+        void visit(ExpressionStatement& node) override {}
+        void visit(BinaryExpression& node) override {}
+        void visit(PrimaryExpression& node) override {}
+        void visit(StringLiteral& node) override {}
+        void visit(ReturnExpression& node) override {}
+        // Add any other visit methods required by ASTVisitor
+};
+
+
+/**
  * @class PrintASTVisitor
  * @brief Concrete visitor implementation that prints the AST structure
  *

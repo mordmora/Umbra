@@ -1,9 +1,3 @@
 func start() -> void {
 	int a = 10
-	int b = 15
-	int c = (1+2)
-}
-
-func sum() -> void {
-
 }

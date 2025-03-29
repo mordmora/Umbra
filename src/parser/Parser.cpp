@@ -6,7 +6,7 @@
 #include <sstream>
 #include <cctype>
 
-#define UMBRA_PRINT(x) std::cout << x << std::endl;
+#define UMBRA_PRINT(x);
 
 namespace umbra {
 
@@ -332,19 +332,19 @@ namespace umbra {
 
     std::unique_ptr<Expression> Parser::parseAditive(){
         UMBRA_PRINT("PARSE ADITIVE NODE WITH CURRENT TOKEN: "+ peek().lexeme);
-        auto expr = parseMultiplicative();
+        auto left = parseMultiplicative();
         while(check(TokenType::TOK_ADD) || check(TokenType::TOK_MINUS)){
             auto op = advance();
             auto right = parseMultiplicative();
-            expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+            left = std::make_unique<BinaryExpression>(op.lexeme, std::move(left), std::move(right));
         }
-        return expr;
+        return left;
     }
 
     std::unique_ptr<Expression> Parser::parseMultiplicative(){
-        std::cout << "PARSE MULTIPLICATIVE NODE WITH CURRENT " << peek().lexeme << std::endl;
+
         auto expr = parseUnary();
-        std::cout << "operator: " << peek().lexeme << std::endl;
+
         while(match(TokenType::TOK_MULT) || match(TokenType::TOK_DIV) || match(TokenType::TOK_MOD)){
             auto op = previous();
             auto right = parseUnary();
@@ -364,7 +364,7 @@ namespace umbra {
     }
 
     std::unique_ptr<Expression> Parser::parsePrimary(){
-        std::cout << "PARSE PRIMARY NODE WITH CURRENT TOKEN: " << static_cast<int>(peek().type) << std::endl;
+
         if(check(TokenType::TOK_IDENTIFIER)){
             if(lookAhead(1).type == TokenType::TOK_LEFT_PAREN){
                 return parseFunctionCall();
@@ -395,7 +395,7 @@ namespace umbra {
             case TokenType::TOK_CHAR:
                 return std::make_unique<CharLiteral>(literal.lexeme[0]);
             case TokenType::TOK_STRING_LITERAL:
-                std:: cout << "Inserting string literal value ----> " << literal.lexeme << std::endl;
+
                 return std::make_unique<StringLiteral>(std::move(literal.lexeme));
             default:
                 if(literal.type == TokenType::TOK_TRUE || literal.type == TokenType::TOK_FALSE){

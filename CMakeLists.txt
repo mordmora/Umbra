@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_definitions(-DUMBRA_DEBUG)
+ # add_definitions(-DUMBRA_DEBUG)
 endif()
 
 # Establecer el tipo de compilación predeterminado a Debug si no se especifica
@@ -65,6 +65,7 @@ file(GLOB_RECURSE SOURCES
   "src/ast/expressionnodes/*.cpp"
   "src/ast/visitor/*.cpp"
   "src/error/*.cpp"
+  "src/semantic/*.cpp"
   "src/preprocessor/*.cpp")
 add_executable(umbra_compiler ${SOURCES})
 #llvm_map_components_to_libnames(llvm_libs support core irreader)

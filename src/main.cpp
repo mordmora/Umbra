@@ -5,6 +5,8 @@
 #include "ast/ASTVisitor.h"
 #include "preprocessor/Preprocessor.h"
 #include "lexer/Tokens.h"
+#include "semantic/Semantic.h"
+#include "semantic/SemanticVisitor.h"
 #include<optional>
 #include <iostream>
 
@@ -15,7 +17,14 @@ void printAST(ASTNode* node) {
     PrintASTVisitor visitor;
     node->accept(visitor);
 }
-    
+
+void semanticAnalize(ASTNode* node, ErrorManager& errorManager) {
+    StringInterner interner;
+    ScopeManager scopeManager;
+    ProgramChecker programChecker(interner, scopeManager, errorManager);
+    node->accept(programChecker);
+
+}
 
 } // namespace umbra
 
@@ -29,12 +38,11 @@ int main(int argc, char *argv[]) {
         umbra::File file = {argv[1], location, false, std::nullopt};
         umbra::Preprocessor preprocessor(file);
         std::string sourceCode = preprocessor.out;
-        std::cout << sourceCode;
         umbra::ErrorManager errorManager;
         umbra::Lexer lexer(sourceCode, errorManager);
 
         auto tokens = lexer.tokenize();
-        #define DEBUG
+        //#define DEBUG
         #ifdef DEBUG
         std::cout << "Tokens:" << std::endl;
         for (const auto &token : tokens) {
@@ -47,22 +55,25 @@ int main(int argc, char *argv[]) {
         try {
             auto ast = parser.parseProgram();
             
-            if (errorManager.hasErrors()) {
-                std::cerr << "\nCompilation failed with errors:\n";
-                std::cerr << errorManager.getErrorReport();
-                return 1;
-            }
-            
+
             std::cout << "\nParsing completed successfully.\n";
             
             // Descomenta esto cuando implementes el PrintVisitor
-            std::cout << "Abstract Syntax Tree:" << std::endl;
-            umbra::printAST(ast.get());
-            
+            //std::cout << "Abstract Syntax Tree:" << std::endl;
+            //umbra::printAST(ast.get());
+            umbra::semanticAnalize(ast.get(), errorManager);
+        
         } catch (const std::exception& e) {
             std::cerr << "Parser error: " << e.what() << std::endl;
             return 1;
         }
+
+        if (errorManager.hasErrors()) {
+            std::cerr << "\nCompilation failed with errors:\n";
+            std::cerr << errorManager.getErrorReport();
+            return 1;
+        }
+        
 
         // TODO: Add further stages of compilation here
 

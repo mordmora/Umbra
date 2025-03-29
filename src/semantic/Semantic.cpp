@@ -45,15 +45,12 @@ namespace umbra{
     ScopeManager::ScopeManager() {}
 
     void ScopeManager::enterScope(_SymbolMap sym){
-        scopes.push_back(sym);
+        scopes.push_back(std::move(sym));
     }
 
     void ScopeManager::exitScope(){
         scopes.pop_back();
     }
-
-    
-
 
 
 }

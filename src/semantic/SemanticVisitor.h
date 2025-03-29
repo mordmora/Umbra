@@ -2,24 +2,22 @@
 
 #include "../ast/Nodes.h"
 #include "Semantic.h"
+#include "../error/ErrorManager.h"
+#include "../ast/ASTVisitor.h"
 
 namespace umbra{
 
-    class SemanticVisitor {
+    class SemanticVisitor : public BaseVisitor {
         public:
         StringInterner& interner;
         SymbolTable symbolTable;
         ScopeManager& scopeManager;
         virtual ~SemanticVisitor() = default;
-        virtual void visit(ProgramNode& node) = 0;
-        virtual void visit(FunctionDefinition& node) = 0;
-        virtual void visit(ParameterList& node) = 0;
+        explicit SemanticVisitor(StringInterner& interner, ScopeManager& scopeManager, ErrorManager& errorManager);
 
-        //Statement section
+        protected:
+        ErrorManager& errorManager;
 
-        virtual void visit(Statement& node) = 0;
-        virtual void visit(VariableDeclaration& node) = 0;
-        explicit SemanticVisitor(StringInterner& interner, ScopeManager& scopeManager);
     };
 
     class ProgramChecker : public SemanticVisitor {
@@ -27,10 +25,29 @@ namespace umbra{
         using SemanticVisitor::SemanticVisitor;
         void visit(ProgramNode& node) override;
         void visit(FunctionDefinition& node) override;
-        void visit(Statement& node) override;
+        //void visit(Statement& node) override;
         void visit(ParameterList& node) override;
         void visit(VariableDeclaration& node) override;
+
+
     };
 
+    
+    class ExpressionTypeChecker : public SemanticVisitor {
+        public:
+        ExpressionTypeChecker(StringInterner& interner, ScopeManager& scopeManager, SymbolTable& symbolTable, ErrorManager& errorManager);
+
+        RvalExpressionType resultType;
+
+        void visit(Literal& node) override;
+        void visit(Identifier& node) override;
+        void visit(FunctionCall& node) override;
+        void visit(PrimaryExpression& node) override;
+        void visit(BinaryExpression& node) override;
+        
+        private:
+
+        SymbolTable& symbolTable;
+    };
 
 }

@@ -1,4 +1,5 @@
 #include "CompilerError.h"
+#include <iostream>
 #include <sstream>
 
 namespace umbra {
@@ -36,6 +37,7 @@ SemanticError::SemanticError(const std::string &message, int line, int column, A
     : CompilerError(ErrorType::SEMANTIC, message, line, column), action(action) {}
 
 std::string SemanticError::toString() const {
+    std::cout << "Error" << std::endl;
     std::ostringstream oss;
     oss << CompilerError::toString() << " (" << (action == Action::ERROR ? "error" : "warning") << ")";
     return oss.str();

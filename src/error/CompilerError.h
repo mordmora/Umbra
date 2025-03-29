@@ -39,7 +39,7 @@ class LexicalError : public CompilerError {
     char problematic_char;
 };
 
-class SemanticError : CompilerError {
+class SemanticError : public CompilerError {
     public:
         enum class Action {WARNING, ERROR};
         SemanticError(const std::string &message, int line, int column, Action action);
