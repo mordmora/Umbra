@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
             
             // Descomenta esto cuando implementes el PrintVisitor
             //std::cout << "Abstract Syntax Tree:" << std::endl;
-            //umbra::printAST(ast.get());
+            umbra::printAST(ast.get());
             umbra::semanticAnalize(ast.get(), errorManager);
         
         } catch (const std::exception& e) {

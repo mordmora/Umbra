@@ -279,7 +279,7 @@ namespace umbra {
      */
     void PrintASTVisitor::visit(Literal& node) {
         indent();
-        std::cout << "Literal: " << node.value << std::endl;
+        std::cout << "Literal: " << node.value << "\n       Type: " << node.literalType << std::endl;
     }
 
     /**

@@ -1,3 +1,19 @@
-func start() -> void {
+func sum(int a, int b) -> void {
+	int c = a + b
+}
+
+func main(int argc, int argv) -> void {
 	int a = 10
+	int b = 10
+	int c = a + b
+}
+
+func sum(int a, int b) -> void {
+	int c = a + b
+}
+
+func main(int argc, int argv) -> void {
+	int a = 10
+	int b = 10
+	int c = a + b
 }

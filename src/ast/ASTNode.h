@@ -5,12 +5,13 @@ namespace umbra {
 
 class ASTVisitor;
 class SemanticVisitor;
+class ExpressionTypeChecker;
 
 class ASTNode {
   public:
     virtual ~ASTNode() = default;
     virtual void accept(ASTVisitor &visitor) = 0;
-    virtual void accept(SemanticVisitor &visitor) = 0;
+
 };
 
 } // namespace umbra

@@ -18,6 +18,7 @@ enum class RvalExpressionType {
 };
 
 class Symbol;
+class SymbolTable;
 
 typedef std::unordered_map<const std::string*, std::unique_ptr<Symbol>> _SymbolMap;
 
@@ -53,24 +54,36 @@ public:
 
     ScopeManager();
     void enterScope(_SymbolMap sym);
-    void exitScope();
+    void exitScope(SymbolTable &symbolTable);
+    _SymbolMap& currentScope() {
+        return scopes.back();
+    }
 
 private:
     std::vector<_SymbolMap> scopes;
 };
 
 class SymbolTable {
+public:
+    SymbolTable(StringInterner &interner);
+    bool addSymbol(std::unique_ptr<Symbol> symbol);
+    Symbol* getSymbol(const std::string& name) const;
 
-    public:
-        SymbolTable(StringInterner &interner);
-        bool addSymbol(std::unique_ptr<Symbol> symbol);
-        std::unique_ptr<Symbol> getSymbol(std::string name);
-    private:
+    // Agrega removeSymbol para eliminar un símbolo por su key
+    bool removeSymbol(const std::string* key);
+
+    void printAllSymbols() const {
+        std::cout << "All symbols in the symbol table:" << std::endl;
+        for (const auto& pair : symbols) {
+            std::cout << "Symbol: " << *pair.first << ", Type: " << pair.second->type->baseType << std::endl;
+        }
+    }
+
+private:
     StringInterner &stringInterner;
     _SymbolMap symbols;
+};
 
-    };
-    
 class TypeCompatibility {
     public:
         // Verificar si el tipo de expresión es compatible con el tipo declarado

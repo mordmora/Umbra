@@ -1,5 +1,6 @@
 #include "Semantic.h"
 #include "../ast/Nodes.h"
+#include <iostream>
 
 namespace umbra{
 
@@ -36,10 +37,14 @@ namespace umbra{
         return inserted;
     }
 
-    std::unique_ptr<Symbol>
-    SymbolTable::getSymbol(std::string name){
-        auto it = symbols.find(stringInterner.get(name));
-        return (it != symbols.end()) ? std::move(it->second) : nullptr;
+    bool SymbolTable::removeSymbol(const std::string* key) {
+        return symbols.erase(key) > 0;
+    }
+
+    Symbol* SymbolTable::getSymbol(const std::string& name) const {
+        auto key = stringInterner.get(name);
+        auto it = symbols.find(key);
+        return (it != symbols.end()) ? it->second.get() : nullptr;
     }
 
     ScopeManager::ScopeManager() {}
@@ -48,9 +53,14 @@ namespace umbra{
         scopes.push_back(std::move(sym));
     }
 
-    void ScopeManager::exitScope(){
+    void ScopeManager::exitScope(SymbolTable &symbolTable){
+        std::cout << "Exiting scope" << std::endl;
+        _SymbolMap scopeSymbols = std::move(scopes.back());
         scopes.pop_back();
+        
+        for (auto &entry : scopeSymbols) {
+            symbolTable.removeSymbol(entry.first);
+        }
     }
-
 
 }

@@ -22,9 +22,9 @@ namespace umbra {
         visitor.visit(*this);
     }
 
-    void ProgramNode::accept(SemanticVisitor& visitor){
-        visitor.visit(*this);
-    }
+   // void ProgramNode::accept(SemanticVisitor& visitor){
+   //    visitor.visit(*this);
+   // }
 
     /**
      * @brief Constructs a function definition node
@@ -43,9 +43,9 @@ namespace umbra {
         visitor.visit(*this);
     }
 
-    void FunctionDefinition::accept(SemanticVisitor& visitor){
-        visitor.visit(*this);
-    }
+    //void FunctionDefinition::accept(SemanticVisitor& visitor){
+    //    visitor.visit(*this);
+    //}
 
     /**
      * @brief Constructs a parameter list node
@@ -59,9 +59,9 @@ namespace umbra {
         visitor.visit(*this);
     }
 
-    void ParameterList::accept(SemanticVisitor& visitor){
-        visitor.visit(*this);
-    }
+   // void ParameterList::accept(SemanticVisitor& visitor){
+   //     visitor.visit(*this);
+   // }
 
     /**
      * @brief Constructs a type node
@@ -101,9 +101,10 @@ namespace umbra {
         visitor.visit(*this);
     }
 
-    void VariableDeclaration::accept(SemanticVisitor& visitor){
-        visitor.visit(*this);
-    }
+    //void VariableDeclaration::accept(SemanticVisitor& visitor){
+    //    std:: cout << "--Visiting variable declaration node with " + name->name << std::endl;
+    //    visitor.visit(*this);
+    //}
 
     /**
      * @brief Constructs an assignment statement node
@@ -196,26 +197,40 @@ namespace umbra {
 
     NumericLiteral::NumericLiteral(double value, Type numericType) : Literal(std::to_string(value)), numericType(numericType), value(value) {}
 
+   void NumericLiteral::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+   }
+
     /**
      * @brief Constructs a boolean literal node
      * @param value Boolean value of the literal
      */
 
-    BooleanLiteral::BooleanLiteral(bool value) : Literal(value ? "true" : "false"), value(value) {}
+    BooleanLiteral::BooleanLiteral(bool value) : Literal(value ? "true" : "false"), value(value) {
+        literalType = BOOLEAN;
+    }
+
+    void BooleanLiteral::accept(ASTVisitor& visitor){
+        visitor.visit(*this);
+    }
 
     /**
      * @brief Constructs a character literal node
      * @param value Character value of the literal
      */
 
-    CharLiteral::CharLiteral(char value) : Literal(std::string(1, value)), value(value) {}
+    CharLiteral::CharLiteral(char value) : Literal(std::string(1, value)), value(value) {
+        literalType = CHAR;
+    }
 
     /**
      * @brief Constructs a string literal node
      * @param value String value of the literal
      */
 
-    StringLiteral::StringLiteral(const std::string& value) : Literal(std::move(value)), value(std::move(value)) {}
+    StringLiteral::StringLiteral(const std::string& value) : Literal(std::move(value)), value(std::move(value)) {
+        literalType = STRING;
+    }
 
     void StringLiteral::accept(ASTVisitor& visitor){
         visitor.visit(*this);

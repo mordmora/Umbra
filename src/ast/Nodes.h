@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include "ASTNode.h"
+#include<iostream>
 
 namespace umbra {
     class SemanticVisitor;  // Forward declaration
@@ -30,7 +31,6 @@ namespace umbra {
     class Expression : public ASTNode {
     public:
         void accept(ASTVisitor& visitor) override {}
-        void accept(SemanticVisitor& visitor) override {}
     };
 
     // Program node
@@ -38,7 +38,6 @@ namespace umbra {
     public:
         ProgramNode(std::vector<std::unique_ptr<FunctionDefinition>> functions);
         void accept(ASTVisitor& visitor) override;
-        void accept(SemanticVisitor& visitor) override;
         std::vector<std::unique_ptr<FunctionDefinition>> functions;
     };
 
@@ -49,7 +48,6 @@ namespace umbra {
             std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body, 
             std::unique_ptr<ReturnExpression> returnValue);
         void accept(ASTVisitor& visitor) override;
-        void accept(SemanticVisitor& visitor) override;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
         std::unique_ptr<Type> returnType;
@@ -60,7 +58,6 @@ namespace umbra {
     // Parameter list node
     class ParameterList : public ASTNode {
     public:
-        void accept(SemanticVisitor &visitor) override;
         ParameterList(std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters);
         void accept(ASTVisitor& visitor) override;
         std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters;
@@ -69,7 +66,6 @@ namespace umbra {
     // Type node
     class Type : public ASTNode {
     public:
-        void accept(SemanticVisitor& visitor) override {}
         Type(std::string baseType, int arrayDimensions = 0);
         void accept(ASTVisitor& visitor) override;
         std::string baseType; // e.g., int, float, etc.
@@ -88,7 +84,7 @@ namespace umbra {
     // Statement base class
     class Statement : public ASTNode {
     public:
-        void accept(SemanticVisitor& visitor) override {}
+
         void accept(ASTVisitor& visitor) override {}
     };
 
@@ -98,7 +94,7 @@ namespace umbra {
         VariableDeclaration(std::unique_ptr<Type> type, std::unique_ptr<Identifier> name,
             std::unique_ptr<Expression> initializer);
         void accept(ASTVisitor& visitor) override;
-        void accept(SemanticVisitor& visitor) override;
+
         std::unique_ptr<Type> type;
         std::unique_ptr<Identifier> name;
         std::unique_ptr<Expression> initializer;
@@ -250,7 +246,7 @@ namespace umbra {
     public:
         enum Type { INTEGER, FLOAT } numericType;
         NumericLiteral(double value, Type numericType);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         double value;
     };
 
@@ -258,7 +254,7 @@ namespace umbra {
     class BooleanLiteral : public Literal {
     public:
         BooleanLiteral(bool value);
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         bool value;
     };
 

@@ -112,6 +112,24 @@ public:
     virtual void visit(StringLiteral& node) = 0;
 
     /**
+     * @brief Visit method for CharLiteral
+     * @param node The char literal node to visit
+     */
+    virtual void visit(CharLiteral& node) = 0;
+
+    /**
+     * @brief Visit method for BooleanLiteral
+     * @param node The boolean literal node to visit
+     */
+    virtual void visit(BooleanLiteral& node) = 0;
+
+    /**
+     * @brief Visit method for NumericLiteral
+     * @param node The numeric literal node to visit
+     */
+    virtual void visit(NumericLiteral& node) = 0;
+
+    /**
      * @brief Visit method for ReturnExpression
      * @param node The return expression node to visit
      */
@@ -145,6 +163,9 @@ class BaseVisitor : public ASTVisitor {
         void visit(BinaryExpression& node) override {}
         void visit(PrimaryExpression& node) override {}
         void visit(StringLiteral& node) override {}
+        void visit(CharLiteral &node) override {}
+        void visit(BooleanLiteral &node) override {}
+        void visit(NumericLiteral &node) override {}
         void visit(ReturnExpression& node) override {}
         // Add any other visit methods required by ASTVisitor
 };
@@ -157,7 +178,7 @@ class BaseVisitor : public ASTVisitor {
  * This visitor traverses the AST and produces a hierarchical text representation
  * with proper indentation to visualize the tree structure.
  */
-class PrintASTVisitor : public ASTVisitor {
+class PrintASTVisitor : public BaseVisitor {
 private:
     /**
      * @brief Current indentation depth in the tree

@@ -180,10 +180,11 @@ namespace umbra {
 
         if(!check(TokenType::TOK_RIGHT_PAREN)){ //Parse params
             do{
+
                 UMBRA_PRINT("Parsing parameter");
-                Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER,
-                "Expected parameter name");
                 auto paramType = parseType();
+                Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER,
+                    "Expected parameter name");
                 auto paramId = std::make_unique<Identifier>(paramName.lexeme);
                 parameters.push_back(std::make_pair(std::move(paramType), 
                 std::move(paramId)));
@@ -389,9 +390,12 @@ namespace umbra {
     std::unique_ptr<Literal> Parser::parseLiteral(){
         UMBRA_PRINT("PARSE LITERAL NODE WITH CURRENT TOKEN: "+ peek().lexeme);
         auto literal = advance();
+        std::cout << "Literal type " << static_cast<int>(literal.type) << std::endl;
         switch (literal.type){
             case TokenType::TOK_NUMBER:
-                return std::make_unique<Literal>(literal.lexeme);
+                return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme), NumericLiteral::Type::INTEGER);
+            case TokenType::TOK_FLOAT:
+                return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), NumericLiteral::Type::FLOAT);
             case TokenType::TOK_CHAR:
                 return std::make_unique<CharLiteral>(literal.lexeme[0]);
             case TokenType::TOK_STRING_LITERAL:
