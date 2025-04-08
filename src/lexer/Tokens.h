@@ -127,60 +127,6 @@ class TokenManager {
         return keywords;
     }
 
-    // Convierte un TokenType a su cadena de representación
-    static std::string tokenTypeToString(TokenType type) {
-        static const std::unordered_map<TokenType, std::string> tokenTypeToStringMap = {
-            {TokenType::TOK_EOF, "TOK_EOF"},
-            {TokenType::TOK_NEWLINE, "TOK_NEWLINE"},
-            {TokenType::TOK_INT, "TOK_INT"},
-            {TokenType::TOK_FLOAT, "TOK_FLOAT"},
-            {TokenType::TOK_BOOL, "TOK_BOOL"},
-            {TokenType::TOK_CHAR, "TOK_CHAR"},
-                {TokenType::TOK_VOID, "TOK_VOID"},
-            {TokenType::TOK_STRING, "TOK_STRING"},
-            {TokenType::TOK_IF, "TOK_IF"},
-            {TokenType::TOK_ELSE, "TOK_ELSE"},
-            {TokenType::TOK_REPEAT, "TOK_REPEAT"},
-            {TokenType::TOK_TIMES, "TOK_TIMES"},
-            {TokenType::TOK_FUNC, "TOK_FUNC"},
-            {TokenType::TOK_RETURN, "TOK_RETURN"},
-            {TokenType::TOK_NEW, "TOK_NEW"},
-            {TokenType::TOK_DELETE, "TOK_DELETE"},
-            {TokenType::TOK_AND, "TOK_AND"},
-            {TokenType::TOK_OR, "TOK_OR"},
-            {TokenType::TOK_EQUAL, "TOK_EQUAL"},
-            {TokenType::TOK_DIFFERENT, "TOK_DIFFERENT"},
-            {TokenType::TOK_LESS, "TOK_LESS"},
-            {TokenType::TOK_GREATER, "TOK_GREATER"},
-            {TokenType::TOK_LESS_EQ, "TOK_LESS_EQ"},
-            {TokenType::TOK_GREATER_EQ, "TOK_GREATER_EQ"},
-            {TokenType::TOK_ASSIGN, "TOK_ASSIGN"},
-            {TokenType::TOK_MINUS, "TOK_MINUS"},
-            {TokenType::TOK_ADD, "TOK_ADD"},
-            {TokenType::TOK_MULT, "TOK_MULT"},
-            {TokenType::TOK_DIV, "TOK_DIV"},
-            {TokenType::TOK_ARROW, "TOK_ARROW"},
-            {TokenType::TOK_IDENTIFIER, "TOK_IDENTIFIER"},
-            {TokenType::TOK_NUMBER, "TOK_NUMBER"},
-            {TokenType::TOK_STRING_LITERAL, "TOK_STRING_LITERAL"},
-            {TokenType::TOK_CHAR_LITERAL, "TOK_CHAR_LITERAL"},
-            {TokenType::TOK_LEFT_BRACE, "TOK_LEFT_BRACE"},
-            {TokenType::TOK_RIGHT_BRACE, "TOK_RIGHT_BRACE"},
-            {TokenType::TOK_LEFT_BRACKET, "TOK_LEFT_BRACKET"},
-            {TokenType::TOK_RIGHT_BRACKET, "TOK_RIGHT_BRACKET"},
-            {TokenType::TOK_LEFT_PAREN, "TOK_LEFT_PAREN"},
-            {TokenType::TOK_RIGHT_PAREN, "TOK_RIGHT_PAREN"},
-            {TokenType::TOK_COMMA, "TOK_COMMA"},
-            {TokenType::TOK_DOT, "TOK_DOT"},
-            {TokenType::TOK_LEFT_SHIFT, "TOK_RIGHT_SHIFT"},
-            {TokenType::TOK_BINARY, "TOK_BINARY"},
-            {TokenType::TOK_RIGHT_SHIFT, "TOK_LEFT_SHIFT"}};
-        auto it = tokenTypeToStringMap.find(type);
-        if (it != tokenTypeToStringMap.end()) {
-            return it->second;
-        }
-        return "UNKNOWN_TOKEN";
-    }
 };
 
 } // namespace umbra
