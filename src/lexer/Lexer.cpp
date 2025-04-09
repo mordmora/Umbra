@@ -6,7 +6,8 @@
 #include "Tokens.h"
 #include <cctype>
 #include <iostream>
-#include <unordered_map>
+#include <sstream>
+#include "LookUpKeyword.h"
 
 /**
  * @namespace umbra
@@ -42,7 +43,7 @@ std::string Lexer::getSource() { return source; }
  */
 std::vector<Lexer::Token> Lexer::tokenize() {
     tokens.clear();
-    std::cout << "Lexer: Comenzando tokenización..." << std::endl;
+
     bool lastWasReturn = false;
 
     while (!isAtEnd()) {
@@ -74,44 +75,6 @@ std::vector<Lexer::Token> Lexer::tokenize() {
         case '"':
             string();
             break;
-        case '=':
-            if (match('=')) {
-                addToken(TokenType::TOK_EQUAL);
-            } else {
-                addToken(TokenType::TOK_ASSIGN);
-            }
-            break;
-        case '!':
-            if (match('=')) {
-                addToken(TokenType::TOK_DIFFERENT);
-            } else {
-                errorMessage(lastChar); // esto puede cambiar en un futuro para if(!true)
-            }
-            break;
-        case '<':
-            if (match('<')) {
-                addToken(TokenType::TOK_LEFT_SHIFT);
-            } else if (match('=')) {
-                addToken(TokenType::TOK_LESS_EQ);
-            } else {
-                addToken(TokenType::TOK_LESS);
-            }
-            break;
-        case '>':
-            if (match('>')) {
-                addToken(TokenType::TOK_RIGHT_SHIFT);
-            } else if (match('=')) {
-                addToken(TokenType::TOK_GREATER_EQ);
-            } else {
-                addToken(TokenType::TOK_GREATER);
-            }
-            break;
-        case '-':
-            if (match('>'))
-                addToken(TokenType::TOK_ARROW);
-            else
-                addToken(TokenType::TOK_MINUS); // Usar como operador de resta
-            break;
         case '+':
             addToken(TokenType::TOK_ADD);
             break;
@@ -120,7 +83,6 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             break;
         case '/':
             if (match('/')) {
-                std::cout << "comment found" << std::endl;
                 while (peek() != '\n' && !isAtEnd())
                     advance();
             } else {
@@ -157,19 +119,21 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             }
             break;
         default:
+            if(matchOperatorFromTable(lastChar)) {
+                break;
+            }
             if (isDigit(lastChar)) {
                 state = State::Integer;
                 number();
             } else if (isAlpha(lastChar)) {
                 identifier();
             } else {
-                errorMessage(lastChar);
+                reportLexicalError("Unexpected character: " + std::string(1, lastChar));
             }
             break;
         }
     }
     tokens.emplace_back(TokenType::TOK_EOF, "", line, column);
-    std::cout << "Lexer: Tokenización completada. Tokens generados: " << tokens.size() << std::endl;
     return tokens;
 }
 
@@ -232,6 +196,41 @@ bool Lexer::match(char expected) {
 void Lexer::addToken(TokenType type) { addToken(type, source.substr(start, current - start)); }
 
 /**
+ * @brief Añade un nuevo token a la lista con un lexema específico
+ * @param type Tipo de token
+ * @param lexeme Lexema del token
+ * @param line Línea donde se encontró el token
+ * @param column Columna donde se encontró el token
+ */
+
+ void Lexer::addToken(TokenType type, const char* lexeme, size_t length) {
+    tokens.emplace_back(type, std::string(lexeme, length), line, column - length);
+}
+
+/**
+ * @brief Verifica si un caracter es un operador
+ * @param currentChar Caracter a verificar
+ * @return true si es un operador, false en caso contrario
+ */
+
+bool Lexer::matchOperatorFromTable(const char currentChar) {
+    for (const auto& rule : operatorRules) {
+        if (rule.first == currentChar) {
+            if (match(rule.second)) {
+                addToken(rule.combined, &source[start], 2);
+                return true;
+            } else if (rule.single != TokenType::TOK_INVALID) {
+                addToken(rule.single, &source[start], 1);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+
+/**
  * @brief Añade un nuevo token con lexema específico
  * @param type Tipo de token
  * @param lexeme Lexema del token
@@ -244,46 +243,95 @@ void Lexer::addToken(TokenType type, const std::string &lexeme) {
  * @brief Procesa un literal de caracter
  */
 void Lexer::charliteral() {
-    while (peek() != '\'' && !isAtEnd()) {
-        advance();
-    }
     if (isAtEnd()) {
-        std::string errorMsg = "Unterminated char starting at line " + std::to_string(line) +
-                               ", column " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+        reportLexicalError("Unterminated character literal.");
         return;
     }
-    // get closing \'
-    advance();
-    std::string value = source.substr(start + 1, current - start - 2); // clear \""
-    std::cout << "----->" << value << "<--";
 
-    addToken(TokenType::TOK_CHAR_LITERAL, value);
+    char c = advance();
+    char value;
+
+    if (c == '\\') {
+        if (isAtEnd()) {
+            reportLexicalError("Unterminated escape sequence in character literal.");
+            return;
+        }
+
+        char esc = advance();
+        switch (esc) {
+            case 'n': value = '\n'; break;
+            case 't': value = '\t'; break;
+            case 'r': value = '\r'; break;
+            case '\\': value = '\\'; break;
+            case '\'': value = '\''; break;
+            default:
+                reportLexicalError(std::string("Invalid escape character in character literal: \\") + esc);
+                return;
+        }
+    } else {
+        value = c;
+
+        if (peek() == '\'' && isAlphaNumeric(value)) {
+            reportLexicalError("Character literal may contain only one character.");
+            return;
+        }
+    }
+
+    if (isAtEnd() || advance() != '\'') {
+        reportLexicalError("Unterminated character literal. Expected closing '\''.");
+        return;
+    }
+
+    std::string result(1, value);
+    addToken(TokenType::TOK_CHAR_LITERAL, result);
 }
+
 
 /**
  * @brief Procesa un literal de cadena
  */
 void Lexer::string() {
-    while (peek() != '"' && !isAtEnd()) {
-        if (peek() == '\n')
-            line++;
-        advance();
+    std::cout << "Processing string literal" << std::endl;
+
+    std::string value;
+    bool unterminated = true;
+
+    while (!isAtEnd()) {
+        char c = advance();
+
+        if (c == '"') {
+            unterminated = false;
+            break;
+        }
+
+        if (c == '\\') {
+            if (isAtEnd()) break;
+            char next = advance();
+
+            switch (next) {
+                case 'n': value += '\n'; break;
+                case 't': value += '\t'; break;
+                case 'r': value += '\r'; break;
+                case '\\': value += '\\'; break;
+                case '"': value += '"'; break;
+                default:
+                    reportLexicalError("Invalid escape sequence in string literal");
+                    value += next; // opcional: incluirlo de todos modos
+                    break;
+            }
+        } else {
+            value += c;
+        }
     }
 
-    if (isAtEnd()) {
-        std::string errorMsg = "Unterminated string starting at line " + std::to_string(line) +
-                               ", column " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+    std::cout << "Terminated? " << (unterminated ? "No" : "Yes") << std::endl;
+
+    if (unterminated) {
+        std::cout << "Reporting error" << std::endl;
+        reportLexicalError("Unterminated string literal. Did you forget a closing '\"'?");
         return;
     }
 
-    // get the closing ".
-    advance();
-
-    std::string value = source.substr(start + 1, current - start - 2); // clear \""
     addToken(TokenType::TOK_STRING_LITERAL, value);
 }
 
@@ -311,11 +359,7 @@ void Lexer::number() {
             break;
         case State::Decimal:
             if (!isDigit(peek())) {
-                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                       ", column " + std::to_string(column) +
-                                       ": expected digits after decimal point.";
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+                reportLexicalError("Malformed number: expected digits after decimal point");
                 state = State::Acceptance; // como se encontro error especifico acepta muestra error
             } else {
                 while (isDigit(peek()))
@@ -323,10 +367,7 @@ void Lexer::number() {
                 if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
                     state = State::Acceptance;
                 } else if (peek() == '.') {
-                    std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                           ", column " + std::to_string(column);
-                    errorManager->addError(std::make_unique<CompilerError>(ErrorType::LEXICAL,
-                                                                           errorMsg, line, column));
+                    reportLexicalError("Malformed number: multiple decimal points");
                     state = State::Acceptance;
                     advance();
                 } else if (peek() == 'e' || peek() == 'E') {
@@ -364,17 +405,16 @@ void Lexer::number() {
         default:
             if (state == State::Rejection) {
                 state = State::Acceptance;
-                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                       ", column " + std::to_string(column);
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-            }
+                reportLexicalError("Malformed number");
             state = State::Acceptance;
             break;
+            }
         }
     }
 
-    addToken(TokenType::TOK_NUMBER, source.substr(start, current - start));
+    addToken(TokenType::TOK_NUMBER, &source[start], current - start);
+
+
 }
 
 /**
@@ -384,10 +424,11 @@ void Lexer::identifier() {
     while (isAlphaNumeric(peek()))
         advance();
 
-    std::string text = source.substr(start, current - start);
-    TokenType type = tokenManager.getKeywords().count(text) ? tokenManager.getKeywords().at(text)
-                                                            : TokenType::TOK_IDENTIFIER;
-    addToken(type, text);
+    const char* identStart = &source[start];
+    size_t identLen = current - start;
+
+    TokenType type = lookupKeyword(identStart, identLen);
+    addToken(type, identStart, identLen);
 }
 
 /**
@@ -447,16 +488,6 @@ void Lexer::reset() {
     column = 1;
 }
 
-/**
- * @brief Maneja un caracter inesperado
- * @param lastChar Caracter inesperado
- */
-
-void Lexer::errorMessage(char lastChar) { // unexpected character error
-    std::string errorMsg = "Unexpected character: " + std::string(1, lastChar);
-    errorManager->addError(
-        std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-}
 
 /**
  * @brief Procesa un número binario
@@ -476,16 +507,10 @@ bool Lexer::isBinary(char c) {
         advance();
     }
     if (!isWhitespace(c)) {
-        std::string errorMsg = "Malformed binary number at line: " + std::to_string(line) +
-                               ", column: " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+        reportLexicalError("Malformed binary number");
         return false;
     }else if(binaryValue.empty()) {
-        std::string errorMsg = "Empty binary number at line: " + std::to_string(line) +
-                               ", column: " + std::to_string(column);
-        errorManager->addError(
-            std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
+        reportLexicalError("Malformed binary number");
         return false;
     }
     addToken(TokenType::TOK_BINARY, binaryValue);
@@ -503,10 +528,58 @@ Lexer::Token Lexer::peekToken() { return tokens[current]; }
  * @return El siguiente token
  */
 Lexer::Token Lexer::getNextToken() {
-    if (current < tokens.size()) {
+    if (static_cast<std::size_t>(current) < tokens.size()) {
         return tokens[current++];
     }
     return tokens.back();
 }
+
+/**
+ * @brief Obtiene el contenido de una línea específica
+ * @param lineNumber Número de línea
+ * @return Contenido de la línea
+ */
+
+std::string Lexer::getLineContent(int lineNumber) const {
+    std::istringstream iss(source);
+    std::string line;
+    int currentLine = 1;
+    while (std::getline(iss, line)) {
+        if (currentLine == lineNumber) {
+            return line;
+        }
+        ++currentLine;
+    }
+    return "";
+}
+
+/**
+ * @brief Genera un mensaje de error léxico
+ * @param msg Mensaje de error
+ * @param offset Desplazamiento para el subrayado
+ */
+
+void Lexer::reportLexicalError(const std::string& msg, int offset) {
+
+    int tokenStartColumn = column - (current - start);
+    int errorColumn = tokenStartColumn + offset;
+    
+    std::string lineContent = getLineContent(line);
+
+    std::string underline(errorColumn + 2, ' ');
+    underline += "^";
+    
+    std::string fullMessage = "\n" + lineContent + "\n" +
+                              underline + "\n" +
+                              msg;
+    
+    errorManager->addError(std::make_unique<CompilerError>(
+        ErrorType::LEXICAL,
+        fullMessage,
+        line,
+        errorColumn
+    ));
+}
+
 
 } // namespace umbra

@@ -4,7 +4,6 @@
 #include "../error/ErrorManager.h"
 #include "Tokens.h"
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace umbra {
@@ -37,7 +36,6 @@ class Lexer {
         Token(TokenType t, std::string l, int ln, int col)
             : type(t), lexeme(std::move(l)), line(ln), column(col) {}
     };
-    TokenManager tokenManager;  ///< Gestor de tokens
 
     /**
      * @brief Constructor que inicializa el Lexer con texto fuente
@@ -130,6 +128,23 @@ class Lexer {
     char peek() const;
 
     /**
+     * @brief Verifica si un carácter es un operador
+     * @param c Carácter a verificar
+     * @return true si es un operador
+     */
+
+    bool matchOperatorFromTable(const char c);
+
+    /**
+     * @brief Genera un mensaje de error léxico
+     * @param msg Mensaje de error
+     */
+
+    void reportLexicalError(const std::string& msg, int offset=0);
+
+    std::string  getLineContent(int line) const;
+
+    /**
      * @brief Observa el carácter después del siguiente sin consumirlo
      * @return Carácter después del siguiente o '\0' si es fin de archivo
      */
@@ -147,6 +162,15 @@ class Lexer {
      * @param type Tipo del token
      */
     void addToken(TokenType type);
+
+    /**
+     * @brief Agrega un nuevo token a la lista con un lexema específico
+     * @param type Tipo del token
+     * @param lexeme Lexema del token
+     * @param line Línea donde se encontró el token
+     * @param column Columna donde se encontró el token
+     */
+    void addToken(TokenType type, const char* lexeme, size_t length);
 
     /**
      * @brief Agrega un nuevo token a la lista con un lexema específico
@@ -224,11 +248,6 @@ class Lexer {
      */
     bool isBinary(char c);
 
-    /**
-     * @brief Genera un mensaje de error para un carácter inesperado
-     * @param c Carácter que causó el error
-     */
-    void errorMessage(char c);
 };
 
 } // namespace umbra

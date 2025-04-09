@@ -7,9 +7,12 @@
 
 namespace umbra {
 
+    
+
 enum class TokenType {
     // End of file token
     TOK_EOF,
+    TOK_INVALID,
     TOK_NEWLINE,
 
     // Keyword tokens for data types
@@ -93,41 +96,23 @@ enum class TokenType {
 
 };
 
-class TokenManager {
-  public:
-    // Devuelve el mapa de palabras clave
-    const std::unordered_map<std::string, TokenType> &getKeywords() const {
-        static const std::unordered_map<std::string, TokenType> keywords = {
-            {"int", TokenType::TOK_INT},
-            {"float", TokenType::TOK_FLOAT},
-            {"bool", TokenType::TOK_BOOL},
-            {"char", TokenType::TOK_CHAR},
-            {"string", TokenType::TOK_STRING},
-            {"array", TokenType::TOK_ARRAY},
-            {"void", TokenType::TOK_VOID},
-            {"if", TokenType::TOK_IF},
-            {"else", TokenType::TOK_ELSE},
-            {"repeat", TokenType::TOK_REPEAT},
-            {"times", TokenType::TOK_TIMES},
-            {"func", TokenType::TOK_FUNC},
-            {"return", TokenType::TOK_RETURN},
-            {"new", TokenType::TOK_NEW},
-            {"delete", TokenType::TOK_DELETE},
-            {"and", TokenType::TOK_AND},
-            {"or", TokenType::TOK_OR},
-            {"equal", TokenType::TOK_EQUAL},
-        {"not", TokenType::TOK_NOT},
-        {"true", TokenType::TOK_TRUE},
-        {"false", TokenType::TOK_FALSE},
-            {"different", TokenType::TOK_DIFFERENT},
-            {"less_than", TokenType::TOK_LESS},
-            {"greater_than", TokenType::TOK_GREATER},
-            {"less_or_equal", TokenType::TOK_LESS_EQ},
-            {"greater_or_equal", TokenType::TOK_GREATER_EQ}};
-        return keywords;
-    }
-
+struct OperatorRule {
+    char first;
+    char second;
+    TokenType combined;
+    TokenType single;
 };
+
+static const OperatorRule operatorRules[] = {
+    {'=', '=', TokenType::TOK_EQUAL, TokenType::TOK_ASSIGN},
+    {'!', '=', TokenType::TOK_DIFFERENT, TokenType::TOK_NOT},
+    {'<', '=', TokenType::TOK_LESS_EQ, TokenType::TOK_LESS},
+    {'>', '=', TokenType::TOK_GREATER_EQ, TokenType::TOK_GREATER},
+    {'&', '&', TokenType::TOK_AND, TokenType::TOK_INVALID},
+    {'|', '|', TokenType::TOK_OR, TokenType::TOK_INVALID},
+    {'-', '>', TokenType::TOK_ARROW, TokenType::TOK_INVALID}
+};
+
 
 } // namespace umbra
 

@@ -42,13 +42,11 @@ int main(int argc, char *argv[]) {
         umbra::Lexer lexer(sourceCode, errorManager);
 
         auto tokens = lexer.tokenize();
-        //#define DEBUG
-        #ifdef DEBUG
-        std::cout << "Tokens:" << std::endl;
-        for (const auto &token : tokens) {
-            std::cout << "Token: "<< lexer.tokenManager.tokenTypeToString(token.type) << " " << (token.lexeme == "\n" ? "New Line" : token.lexeme) << std::endl;
+        if(errorManager.hasErrors()) {
+            std::cerr << "\nCompilation failed with errors:\n";
+            std::cerr << errorManager.getErrorReport();
+            return 1;
         }
-        #endif
 
         umbra::Parser parser(tokens, errorManager);
 
@@ -56,10 +54,6 @@ int main(int argc, char *argv[]) {
             auto ast = parser.parseProgram();
             
 
-            std::cout << "\nParsing completed successfully.\n";
-            
-            // Descomenta esto cuando implementes el PrintVisitor
-            //std::cout << "Abstract Syntax Tree:" << std::endl;
             umbra::printAST(ast.get());
             umbra::semanticAnalize(ast.get(), errorManager);
         

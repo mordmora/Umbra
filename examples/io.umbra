@@ -1,4 +1,3 @@
 func sum(int a, int b) -> void {
-	int c = true
-	int c = 10
+	int this_variable = "Aadwad
 }
