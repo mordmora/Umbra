@@ -22,7 +22,8 @@ class Lexer {
      */
     struct Token {
         TokenType type;      ///< Tipo del token
-        std::string lexeme;  ///< Texto literal del token
+        const char* start;  ///< Texto literal del token
+        std::size_t length; ///< Longitud del token
         int line;           ///< Línea donde se encontró el token
         int column;         ///< Columna donde se encontró el token
 
@@ -33,8 +34,12 @@ class Lexer {
          * @param ln Línea donde se encontró
          * @param col Columna donde se encontró
          */
-        Token(TokenType t, std::string l, int ln, int col)
-            : type(t), lexeme(std::move(l)), line(ln), column(col) {}
+        Token(TokenType type, const char* start, size_t length, int line, int column)
+        : type(type), start(start), length(length), line(line), column(column) {}
+
+        std::string lexeme() const {
+            return std::string(start, length);
+        }
     };
 
     /**
@@ -177,7 +182,6 @@ class Lexer {
      * @param type Tipo del token
      * @param lexeme Lexema del token
      */
-    void addToken(TokenType type, const std::string &lexeme);
 
     /**
      * @brief Procesa una cadena de texto

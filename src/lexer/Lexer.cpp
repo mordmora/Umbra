@@ -133,7 +133,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
             break;
         }
     }
-    tokens.emplace_back(TokenType::TOK_EOF, "", line, column);
+    addToken(TokenType::TOK_EOF);
     return tokens;
 }
 
@@ -193,7 +193,9 @@ bool Lexer::match(char expected) {
  * @brief Añade un nuevo token a la lista
  * @param type Tipo de token
  */
-void Lexer::addToken(TokenType type) { addToken(type, source.substr(start, current - start)); }
+void Lexer::addToken(TokenType type) { 
+    addToken(type,&source[start], current - start - 1); 
+}
 
 /**
  * @brief Añade un nuevo token a la lista con un lexema específico
@@ -203,8 +205,8 @@ void Lexer::addToken(TokenType type) { addToken(type, source.substr(start, curre
  * @param column Columna donde se encontró el token
  */
 
- void Lexer::addToken(TokenType type, const char* lexeme, size_t length) {
-    tokens.emplace_back(type, std::string(lexeme, length), line, column - length);
+void Lexer::addToken(TokenType type, const char* lexeme, size_t length) {
+    tokens.emplace_back(type, lexeme, length, line, column - length);
 }
 
 /**
@@ -235,9 +237,7 @@ bool Lexer::matchOperatorFromTable(const char currentChar) {
  * @param type Tipo de token
  * @param lexeme Lexema del token
  */
-void Lexer::addToken(TokenType type, const std::string &lexeme) {
-    tokens.emplace_back(type, lexeme, line, column - lexeme.length());
-}
+
 
 /**
  * @brief Procesa un literal de caracter
@@ -283,7 +283,7 @@ void Lexer::charliteral() {
     }
 
     std::string result(1, value);
-    addToken(TokenType::TOK_CHAR_LITERAL, result);
+    addToken(TokenType::TOK_CHAR_LITERAL, result.c_str(), 1);
 }
 
 
@@ -332,7 +332,7 @@ void Lexer::string() {
         return;
     }
 
-    addToken(TokenType::TOK_STRING_LITERAL, value);
+    addToken(TokenType::TOK_STRING_LITERAL, value.c_str(), value.length());
 }
 
 /**
@@ -513,7 +513,7 @@ bool Lexer::isBinary(char c) {
         reportLexicalError("Malformed binary number");
         return false;
     }
-    addToken(TokenType::TOK_BINARY, binaryValue);
+    addToken(TokenType::TOK_BINARY, binaryValue.c_str(), binaryValue.length());
     return true;
 }
 

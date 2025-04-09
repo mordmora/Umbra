@@ -72,17 +72,17 @@ bool Parser::match(TokenType type) {
 std::string getTypeToString(Lexer::Token tk){
     switch(tk.type){
         case TokenType::TOK_INT:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         case TokenType::TOK_FLOAT:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         case TokenType::TOK_BOOL:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         case TokenType::TOK_CHAR:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         case TokenType::TOK_STRING:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         case TokenType::TOK_VOID:
-            return tk.lexeme;
+            return std::string(tk.start, tk.length);
         default:
             return "";
     }
@@ -288,7 +288,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
             auto paramType = parseType();
             Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER,
                 "Expected parameter name");
-            auto paramId = std::make_unique<Identifier>(paramName.lexeme);
+            auto paramId = std::make_unique<Identifier>(std::string(paramName.start, paramName.length));
             parameters.push_back(std::make_pair(std::move(paramType), 
             std::move(paramId)));
         } while(match(TokenType::TOK_COMMA));
@@ -310,7 +310,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
 
     return std::make_unique<FunctionDefinition>(
-        std::make_unique<Identifier>(name.lexeme
+        std::make_unique<Identifier>(std::string(name.start, name.length)
         ), 
         std::make_unique<ParameterList>(
             std::move(parameters)
@@ -380,10 +380,10 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
         }
         UMBRA_PRINT("Parsed variable declaration with initializer");
         return std::make_unique<VariableDeclaration>(std::move(type), 
-        std::make_unique<Identifier>(name.lexeme), std::move(initializer));
+        std::make_unique<Identifier>(name.lexeme()), std::move(initializer));
     }
     return std::make_unique<VariableDeclaration>(std::move(type), 
-    std::make_unique<Identifier>(name.lexeme), nullptr);
+    std::make_unique<Identifier>(name.lexeme()), nullptr);
 }
 
 /**
@@ -412,7 +412,7 @@ std::unique_ptr<Expression> Parser::parseLogicalOr(){
     while(match(TokenType::TOK_OR)){
         auto op = previous();
         auto right = parseLogicalAnd();
-        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -431,7 +431,7 @@ std::unique_ptr<Expression> Parser::parseLogicalAnd(){
     while(match(TokenType::TOK_AND)){
         auto op = previous();
         auto right = parseEquality();
-        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -450,7 +450,7 @@ std::unique_ptr<Expression> Parser::parseEquality(){
     while(match(TokenType::TOK_EQUAL)){
         auto op = previous();
         auto right = parseRelational();
-        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -461,7 +461,7 @@ std::unique_ptr<Expression> Parser::parseRelational(){
     while(check(TokenType::TOK_LESS) || check(TokenType::TOK_GREATER) || check(TokenType::TOK_LESS_EQ) || check(TokenType::TOK_GREATER_EQ)){
         auto op = advance();
         auto right = parseAditive();
-        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -472,7 +472,7 @@ std::unique_ptr<Expression> Parser::parseAditive(){
     while(check(TokenType::TOK_ADD) || check(TokenType::TOK_MINUS)){
         auto op = advance();
         auto right = parseMultiplicative();
-        left = std::make_unique<BinaryExpression>(op.lexeme, std::move(left), std::move(right));
+        left = std::make_unique<BinaryExpression>(op.lexeme(), std::move(left), std::move(right));
     }
     return left;
 }
@@ -484,7 +484,7 @@ std::unique_ptr<Expression> Parser::parseMultiplicative(){
     while(match(TokenType::TOK_MULT) || match(TokenType::TOK_DIV) || match(TokenType::TOK_MOD)){
         auto op = previous();
         auto right = parseUnary();
-        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -494,7 +494,7 @@ std::unique_ptr<Expression> Parser::parseUnary(){
     if(check(TokenType::TOK_PTR) || check(TokenType::TOK_REF) || check(TokenType::TOK_ACCESS)){
         auto op = advance();
         auto operand = parsePrimary();
-        return std::make_unique<UnaryExpression>(op.lexeme, std::move(operand));
+        return std::make_unique<UnaryExpression>(op.lexeme(), std::move(operand));
     }
     return parsePrimary();
 }
@@ -528,14 +528,14 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
     std::cout << "Literal type " << static_cast<int>(literal.type) << std::endl;
     switch (literal.type){
         case TokenType::TOK_NUMBER:
-            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme), NumericLiteral::Type::INTEGER);
+            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme()), NumericLiteral::Type::INTEGER);
         case TokenType::TOK_FLOAT:
-            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), NumericLiteral::Type::FLOAT);
+            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme()), NumericLiteral::Type::FLOAT);
         case TokenType::TOK_CHAR:
-            return std::make_unique<CharLiteral>(literal.lexeme[0]);
+            return std::make_unique<CharLiteral>(literal.lexeme()[0]);
         case TokenType::TOK_STRING_LITERAL:
 
-            return std::make_unique<StringLiteral>(std::move(literal.lexeme));
+            return std::make_unique<StringLiteral>(literal.lexeme());
         default:
             if(literal.type == TokenType::TOK_TRUE || literal.type == TokenType::TOK_FALSE){
                 return std::make_unique<BooleanLiteral>(literal.type == TokenType::TOK_TRUE);
@@ -589,7 +589,7 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
 std::unique_ptr<Identifier> Parser::parseIdentifier(){
     UMBRA_PRINT(static_cast<int>(peek().type));
     auto id = consume(TokenType::TOK_IDENTIFIER, "Expected identifier");
-    return std::make_unique<Identifier>(id.lexeme);
+    return std::make_unique<Identifier>(id.lexeme());
 }
 
 /**
