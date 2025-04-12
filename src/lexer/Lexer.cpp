@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include "LookUpKeyword.h"
+#include "charTables.h"
 
 /**
  * @namespace umbra
@@ -21,7 +22,9 @@ namespace umbra {
  */
 Lexer::Lexer(const std::string &source)
     : source(source), internalErrorManager(std::make_unique<ErrorManager>()),
-      errorManager(internalErrorManager.get()), current(0), line(1), column(1) {}
+      errorManager(internalErrorManager.get()), current(0), line(1), column(1) {
+        setupDispatch();
+      }
 
 /**
  * @brief Constructor con manejo de errores externo
@@ -29,13 +32,241 @@ Lexer::Lexer(const std::string &source)
  * @param externalErrorManager Manejador de errores externo
  */
 Lexer::Lexer(const std::string &source, ErrorManager &externalErrorManager)
-    : source(source), errorManager(&externalErrorManager), current(0), line(1), column(1) {}
+    : source(source), errorManager(&externalErrorManager), current(0), line(1), column(1) {
+        setupDispatch();
+    }
 
 /**
  * @brief Obtiene el código fuente actual
  * @return Cadena con el código fuente
  */
 std::string Lexer::getSource() { return source; }
+
+/**
+ * @brief Inicializa la tabla de despachadores
+ * 
+ * Esta función asigna funciones de manejo a cada carácter en la tabla de despachadores.
+ * Cada función maneja un tipo específico de token o símbolo.
+ * 
+ * Ejemplo de asignación:
+ * dispatchTable['+'] = &Lexer::handlePlus;
+ * dispatchTable['-'] = &Lexer::handleMinus;
+ */
+void Lexer::setupDispatch(){
+    dispatchTable[(unsigned char)'+'] = &Lexer::handlePlus;
+    dispatchTable[(unsigned char)'-'] = &Lexer::handleMinus;
+    dispatchTable[(unsigned char)'*'] = &Lexer::handleMultiply;
+    dispatchTable[(unsigned char)'/'] = &Lexer::handleDivide;
+    dispatchTable[(unsigned char)'='] = &Lexer::handleEqual;
+    dispatchTable[(unsigned char)'('] = &Lexer::handleLeftParen;
+    dispatchTable[(unsigned char)')'] = &Lexer::handleRightParen;
+    dispatchTable[(unsigned char)'{'] = &Lexer::handleLeftBrace;
+    dispatchTable[(unsigned char)'}'] = &Lexer::handleRightBrace;
+    dispatchTable[(unsigned char)'['] = &Lexer::handleLeftBracket;
+    dispatchTable[(unsigned char)']'] = &Lexer::handleRightBracket;
+    dispatchTable[(unsigned char)','] = &Lexer::handleComma;
+    dispatchTable[(unsigned char)'.'] = &Lexer::handleDot;
+    dispatchTable[(unsigned char)'"'] = &Lexer::handleDoubleQuote;
+    dispatchTable[(unsigned char)'\''] = &Lexer::handleSingleQuote;
+    dispatchTable[(unsigned char)':'] = &Lexer::handleColon;
+
+}
+
+/**
+ * @brief Maneja el token de suma o incremento
+ * 
+ * Esta función verifica si el carácter actual es un signo de suma
+ * y determina si es un operador de incremento o una suma normal.
+ * 
+ */
+
+void Lexer::handlePlus() {
+    if (match('+')) {
+        addToken(TokenType::TOK_INCREMENT);
+    } else {
+        addToken(TokenType::TOK_ADD);
+    }
+}
+
+/**
+ * @brief Maneja el token de resta o decremento
+ * 
+ * Esta función verifica si el carácter actual es un signo de resta
+ * y determina si es un operador de decremento, un operador de flecha o una resta normal.
+ */
+
+void Lexer::handleMinus() {
+    if (match('-')) {
+        addToken(TokenType::TOK_DECREMENT);
+    } else if ( match('>')) {
+        addToken(TokenType::TOK_ARROW);
+    } else{
+        addToken(TokenType::TOK_MINUS);
+    }
+}
+
+/**
+ * @brief Maneja el token de división
+ * 
+ * Esta función verifica si el carácter actual es un signo de división
+ * y determina si es un comentario o una división normal.
+ */
+
+void Lexer::handleDivide() {
+    if (match('/')) {
+        while (peek() != '\n' && !isAtEnd())
+            advance();
+    } else {
+        addToken(TokenType::TOK_DIV);
+    }
+}
+
+/**
+ * @brief Maneja el token de igualdad o asignación
+ * 
+ * Esta función verifica si el carácter actual es un signo de igualdad
+ * y determina si es un operador de igualdad o una asignación.
+ */
+
+void Lexer::handleEqual() {
+
+    if (match('=')) {
+        addToken(TokenType::TOK_EQUAL);
+    } else {
+        addToken(TokenType::TOK_ASSIGN);
+    }
+}
+/**
+ * @brief Maneja el token de paréntesis izquierdo
+ * 
+ * Esta función maneja el token de paréntesis izquierdo.
+ */
+void Lexer::handleLeftParen() {
+    addToken(TokenType::TOK_LEFT_PAREN);
+}
+/**
+ * @brief Maneja el token de paréntesis derecho
+ * 
+ * Esta función maneja el token de paréntesis derecho.
+ */
+void Lexer::handleRightParen() {
+    addToken(TokenType::TOK_RIGHT_PAREN);
+}
+/**
+ * @brief Maneja el token de llave izquierda
+ * 
+ * Esta función maneja el token de llave izquierda.
+ */
+void Lexer::handleLeftBrace() {
+    addToken(TokenType::TOK_LEFT_BRACE);
+}
+/**
+ * @brief Maneja el token de llave derecha
+ * 
+ * Esta función maneja el token de llave derecha.
+ */
+void Lexer::handleRightBrace() {
+    addToken(TokenType::TOK_RIGHT_BRACE);
+}
+/**
+ * @brief Maneja el token de corchete izquierdo
+ * 
+ * Esta función maneja el token de corchete izquierdo.
+ */
+void Lexer::handleLeftBracket() {
+    addToken(TokenType::TOK_LEFT_BRACKET);
+}
+/**
+ * @brief Maneja el token de corchete derecho
+ * 
+ * Esta función maneja el token de corchete derecho.
+ */
+void Lexer::handleRightBracket() {
+    addToken(TokenType::TOK_RIGHT_BRACKET);
+}
+/**
+ * @brief Maneja el token de coma
+ * 
+ * Esta función maneja el token de coma.
+ */
+void Lexer::handleComma() {
+    addToken(TokenType::TOK_COMMA);
+}
+/**
+ * @brief Maneja el token de punto
+ * 
+ * Esta función verifica si el carácter actual es un punto seguido de un dígito
+ * y determina si es un número decimal o un token de punto.
+ */
+void Lexer::handleDot() {
+    if (IS_DIGIT(peek())) {
+        state = State::Decimal;
+        number();
+    } else {
+        addToken(TokenType::TOK_DOT);
+    }
+}
+/**
+ * @brief Maneja el token de comillas dobles
+ * 
+ * Esta función maneja el token de comillas dobles.
+ */
+void Lexer::handleDoubleQuote() {
+    string();
+}
+/**
+ * @brief Maneja el token de comillas simples
+ * 
+ * Esta función maneja el token de comillas simples.
+ */
+void Lexer::handleSingleQuote() {
+    charliteral();
+}
+/**
+ * @brief Maneja el token de dos puntos
+ * 
+ * Esta función maneja el token de dos puntos.
+ */
+void Lexer::handleColon() {
+    addToken(TokenType::TOK_COLON);
+}
+
+/**
+ * @brief Maneja el token de multiplicación
+ * 
+ * Esta función maneja el token de multiplicación.
+ */
+void Lexer::handleMultiply() {
+    addToken(TokenType::TOK_MULT);
+}
+
+/**
+ * @brief Maneja tokens por defecto
+ * @param c Carácter actual
+ * 
+ * Esta función maneja tokens que no son operadores ni delimitadores.
+ * Se encarga de identificar literales, números y caracteres no válidos.
+ * 
+ */
+
+void Lexer::handleDefault(char c) {
+
+    if (IS_ALPHA(c)) {
+
+        identifier(); 
+    } else if (IS_DIGIT(c)) {
+        number(); 
+    } else if (c == '"') {
+        string(); 
+    } else if (c == '\'') {
+        charliteral(); 
+    } else {
+
+        std::string desc = isprint(c) ? std::string(1, c) : "<non-printable>";
+        reportLexicalError("Unexpected character: '" + desc + "'");
+    }
+}
+
 
 /**
  * @brief Realiza el análisis léxico del código fuente
@@ -49,7 +280,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
     while (!isAtEnd()) {
         start = current;
         lastChar = advance();
-        if (isBlankSpace(lastChar)) {
+        if (IS_WHITESPACE(lastChar)) {
             column++;
             continue;
         }
@@ -64,74 +295,14 @@ std::vector<Lexer::Token> Lexer::tokenize() {
         }
 
         lastWasReturn = false;
-        if (lastChar == '0' && peek() == 'b') {
-            if(isBinary(lastChar))
-                continue;
+
+        void (Lexer::*handler)() = dispatchTable[(unsigned char)lastChar];
+        if(handler){
+            (this->*handler)();
+        }else{
+            handleDefault(lastChar);
         }
-        switch (lastChar) {
-        case '\'':
-            charliteral();
-            break;
-        case '"':
-            string();
-            break;
-        case '+':
-            addToken(TokenType::TOK_ADD);
-            break;
-        case '*':
-            addToken(TokenType::TOK_MULT);
-            break;
-        case '/':
-            if (match('/')) {
-                while (peek() != '\n' && !isAtEnd())
-                    advance();
-            } else {
-                addToken(TokenType::TOK_DIV);
-            }
-            break;
-        case '(':
-            addToken(TokenType::TOK_LEFT_PAREN);
-            break;
-        case ')':
-            addToken(TokenType::TOK_RIGHT_PAREN);
-            break;
-        case '{':
-            addToken(TokenType::TOK_LEFT_BRACE);
-            break;
-        case '}':
-            addToken(TokenType::TOK_RIGHT_BRACE);
-            break;
-        case '[':
-            addToken(TokenType::TOK_LEFT_BRACKET);
-            break;
-        case ']':
-            addToken(TokenType::TOK_RIGHT_BRACKET);
-            break;
-        case ',':
-            addToken(TokenType::TOK_COMMA);
-            break;
-        case '.':
-            if (isDigit(peek())) {
-                state = State::Decimal;
-                number();
-            } else {
-                addToken(TokenType::TOK_DOT);
-            }
-            break;
-        default:
-            if(matchOperatorFromTable(lastChar)) {
-                break;
-            }
-            if (isDigit(lastChar)) {
-                state = State::Integer;
-                number();
-            } else if (isAlpha(lastChar)) {
-                identifier();
-            } else {
-                reportLexicalError("Unexpected character: " + std::string(1, lastChar));
-            }
-            break;
-        }
+
     }
     addToken(TokenType::TOK_EOF);
     return tokens;
@@ -194,7 +365,7 @@ bool Lexer::match(char expected) {
  * @param type Tipo de token
  */
 void Lexer::addToken(TokenType type) { 
-    addToken(type,&source[start], current - start - 1); 
+    addToken(type,&source[start], current - start); 
 }
 
 /**
@@ -271,7 +442,7 @@ void Lexer::charliteral() {
     } else {
         value = c;
 
-        if (peek() == '\'' && isAlphaNumeric(value)) {
+        if (peek() == '\'' && IS_ALPHA(c)) {
             reportLexicalError("Character literal may contain only one character.");
             return;
         }
@@ -324,8 +495,6 @@ void Lexer::string() {
         }
     }
 
-    std::cout << "Terminated? " << (unterminated ? "No" : "Yes") << std::endl;
-
     if (unterminated) {
         std::cout << "Reporting error" << std::endl;
         reportLexicalError("Unterminated string literal. Did you forget a closing '\"'?");
@@ -338,90 +507,46 @@ void Lexer::string() {
 /**
  * @brief Procesa un número
  */
-void Lexer::number() {
-    while (state != State::Acceptance) {
 
-        switch (state) {
-        case State::Integer:
-            while (isDigit(peek()))
-                advance();
-            if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
-                state = State::Acceptance;
-            } else if (peek() == '.') {
-                state = State::Decimal;
-                advance();
-            } else if (peek() == 'e' || peek() == 'E') {
-                state = State::NotationNumber;
-                advance();
-            } else {
-                state = State::Rejection;
-            }
-            break;
-        case State::Decimal:
-            if (!isDigit(peek())) {
-                reportLexicalError("Malformed number: expected digits after decimal point");
-                state = State::Acceptance; // como se encontro error especifico acepta muestra error
-            } else {
-                while (isDigit(peek()))
-                    advance();
-                if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
-                    state = State::Acceptance;
-                } else if (peek() == '.') {
-                    reportLexicalError("Malformed number: multiple decimal points");
-                    state = State::Acceptance;
-                    advance();
-                } else if (peek() == 'e' || peek() == 'E') {
-                    state = State::NotationNumber;
-                    advance();
-                } else {
-                    state = State::Rejection;
-                }
-            }
+ void Lexer::number() {
+    bool hasDot = false;
+    bool hasExp = false;
 
-            break;
-        case State::NotationNumber:
-            if (peek() == '-') {
+    while (IS_DIGIT(peek()))
+        advance();
+
+    if (peek() == '.' && IS_DIGIT(peekNext())) {
+        hasDot = true;
+        advance(); // consume '.'
+        while (IS_DIGIT(peek()))
+            advance();
+    }
+
+    if (peek() == 'e' || peek() == 'E') {
+        char next = peekNext();
+        if (IS_DIGIT(next) || next == '+' || next == '-') {
+            hasExp = true;
+            advance(); // consume 'e'
+            if (peek() == '+' || peek() == '-') advance();
+            if (!IS_DIGIT(peek())) {
+                reportLexicalError("Malformed number literal: expected digit after exponent.");
+                return;
+            }
+            while (IS_DIGIT(peek()))
                 advance();
-            }
-            if (!isDigit(peek())) {
-                std::string errorMsg = "Malformed number at line " + std::to_string(line) +
-                                       ", column " + std::to_string(column) +
-                                       ": expected digits after - or E";
-                errorManager->addError(
-                    std::make_unique<CompilerError>(ErrorType::LEXICAL, errorMsg, line, column));
-                state = State::Acceptance;
-            }
-            while (isDigit(peek()))
-                advance();
-
-            if (isWhitespace(peek()) || isSing(peek()) || peek() == ')' || isAtEnd()) {
-                state = State::Acceptance;
-            } else {
-                state = State::Rejection;
-            }
-
-            break;
-
-        default:
-            if (state == State::Rejection) {
-                state = State::Acceptance;
-                reportLexicalError("Malformed number");
-            state = State::Acceptance;
-            break;
-            }
         }
     }
 
-    addToken(TokenType::TOK_NUMBER, &source[start], current - start);
-
-
+    size_t len = current - start;
+    addToken(TokenType::TOK_NUMBER, &source[start], len);
 }
+
 
 /**
  * @brief Procesa un identificador o palabra reservada
  */
 void Lexer::identifier() {
-    while (isAlphaNumeric(peek()))
+    while (IS_ALNUM(peek()))
         advance();
 
     const char* identStart = &source[start];

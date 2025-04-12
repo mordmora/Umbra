@@ -33,7 +33,7 @@ namespace umbra {
             case fnv1a_hash("bool", const_strlen("bool")):         return TokenType::TOK_BOOL;
             case fnv1a_hash("int", const_strlen("int")):           return TokenType::TOK_INT;
             case fnv1a_hash("float", const_strlen("float")):       return TokenType::TOK_FLOAT;
-            case fnv1a_hash("string", const_strlen("string")):     return TokenType::TOK_STRING;
+            case fnv1a_hash("string", const_strlen("string")):              return TokenType::TOK_STRING;
             case fnv1a_hash("char", const_strlen("char")):         return TokenType::TOK_CHAR;
             case fnv1a_hash("array", const_strlen("array")):       return TokenType::TOK_ARRAY;
             case fnv1a_hash("void", const_strlen("void")):         return TokenType::TOK_VOID;
@@ -44,7 +44,7 @@ namespace umbra {
             case fnv1a_hash("or", const_strlen("or")):             return TokenType::TOK_OR;
             case fnv1a_hash("equal", const_strlen("equal")):       return TokenType::TOK_EQUAL;
             case fnv1a_hash("not", const_strlen("not")):           return TokenType::TOK_NOT;
-            default:                                                             return TokenType::TOK_IDENTIFIER;
+            default:                                                                      return TokenType::TOK_IDENTIFIER;
         }
     }
 

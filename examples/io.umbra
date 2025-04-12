@@ -1,3 +1,0 @@
-func sum(int a, int b) -> void {
-	int this_variable = 10
-}

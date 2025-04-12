@@ -37,7 +37,7 @@ class Lexer {
         Token(TokenType type, const char* start, size_t length, int line, int column)
         : type(type), start(start), length(length), line(line), column(column) {}
 
-        std::string lexeme() const {
+        inline std::string lexeme() const {
             return std::string(start, length);
         }
     };
@@ -90,12 +90,51 @@ class Lexer {
      */
     std::string getSource();
   private:
-    std::string source;                              ///< Texto fuente a analizar
-    std::unique_ptr<ErrorManager> internalErrorManager;  ///< Gestor de errores interno
-    ErrorManager *errorManager;                      ///< Puntero al gestor de errores actual
-    std::vector<Token> tokens;                       ///< Lista de tokens generados
-    char lastChar = ' ';                            ///< Último carácter leído
-    
+    std::string source;                                     ///< Texto fuente a analizar
+    std::unique_ptr<ErrorManager> internalErrorManager;     ///< Gestor de errores interno
+    ErrorManager *errorManager;                             ///< Puntero al gestor de errores actual
+    std::vector<Token> tokens;                              ///< Lista de tokens generados
+  char lastChar = ' ';                                      ///< Último carácter leído
+  
+  void (Lexer::*dispatchTable[256])() = {};                 ///< Tabla de despachadores para cada carácter
+
+    /**
+     * @brief Inicializa la tabla de despachadores
+     * 
+     * La tabla de despachadores asigna funciones a cada carácter
+     * para procesar diferentes tipos de tokens.
+     * 
+     * Cada función en la tabla se encarga de un tipo específico
+     * de token, como números, identificadores, operadores, etc.
+     * 
+     * La función setupDispatch() se encarga de llenar la tabla
+     * con las funciones correspondientes a cada carácter.
+     * 
+     * @note Esta función debe ser llamada antes de comenzar
+     * el análisis léxico para asegurar que la tabla esté
+     * correctamente configurada.
+     */
+
+    void setupDispatch();
+
+    void handlePlus();
+    void handleMinus();
+    void handleMultiply();
+    void handleDivide();
+    void handleEqual();
+    void handleLeftParen();
+    void handleRightParen();
+    void handleLeftBrace();
+    void handleRightBrace();
+    void handleLeftBracket();
+    void handleRightBracket();
+    void handleComma();
+    void handleDot();
+    void handleDoubleQuote();
+    void handleSingleQuote();
+    void handleColon();
+    void handleDefault(char c);
+
     /**
      * @brief Estados del autómata para el reconocimiento de números
      */
@@ -147,8 +186,15 @@ class Lexer {
 
     void reportLexicalError(const std::string& msg, int offset=0);
 
+    /**
+     * @brief Obtiene el contenido de una línea específica
+     * @param line Número de línea
+     * @return Contenido de la línea
+     */
+
     std::string  getLineContent(int line) const;
 
+    
     /**
      * @brief Observa el carácter después del siguiente sin consumirlo
      * @return Carácter después del siguiente o '\0' si es fin de archivo

@@ -55,6 +55,9 @@ enum class TokenType {
     TOK_GREATER_EQ, // 'greater_or_equal'
     TOK_TRUE,
     TOK_FALSE,
+    TOK_INCREMENT, // '++'
+    TOK_DECREMENT, // '--'
+    TOK_COLON,
 
     // Assignment token
     TOK_ASSIGN, // '='

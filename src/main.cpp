@@ -9,6 +9,7 @@
 #include "semantic/SemanticVisitor.h"
 #include<optional>
 #include <iostream>
+#include <chrono>
 
 namespace umbra {
 
@@ -41,12 +42,22 @@ int main(int argc, char *argv[]) {
         umbra::ErrorManager errorManager;
         umbra::Lexer lexer(sourceCode, errorManager);
 
+
+        auto start = std::chrono::high_resolution_clock::now();
         auto tokens = lexer.tokenize();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Tokenization took: " << elapsed.count() << " seconds" << std::endl;
         if(errorManager.hasErrors()) {
             std::cerr << "\nCompilation failed with errors:\n";
             std::cerr << errorManager.getErrorReport();
             return 1;
         }
+
+
+      //  for(auto tok : tokens){
+      //      std::cout << "Token: " << static_cast<int>(tok.type) << " - " << tok.lexeme() << std::endl;
+       // }
 
         umbra::Parser parser(tokens, errorManager);
 

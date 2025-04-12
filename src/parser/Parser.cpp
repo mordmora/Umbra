@@ -307,6 +307,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     auto returnVal = returnType->baseType == "void" ? nullptr : parseReturnExpression();
     match(TokenType::TOK_RETURN);
     skipNewLines();
+    std::cout << "Finishing function definition with "<< peek().lexeme() << std::endl;
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
 
     return std::make_unique<FunctionDefinition>(
@@ -467,11 +468,14 @@ std::unique_ptr<Expression> Parser::parseRelational(){
 }
 
 std::unique_ptr<Expression> Parser::parseAditive(){
-    UMBRA_PRINT("PARSE ADITIVE NODE WITH CURRENT TOKEN: "+ peek().lexeme);
+    std::cout << "Parsing adivite with " << peek().lexeme() << std::endl;
     auto left = parseMultiplicative();
     while(check(TokenType::TOK_ADD) || check(TokenType::TOK_MINUS)){
         auto op = advance();
         auto right = parseMultiplicative();
+
+        std::cout << "Aditive operator: " << op.lexeme() << std::endl;
+
         left = std::make_unique<BinaryExpression>(op.lexeme(), std::move(left), std::move(right));
     }
     return left;
