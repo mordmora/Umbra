@@ -226,10 +226,9 @@ namespace umbra {
     public:
 
         void accept(ASTVisitor& visitor) override;
+        BuiltinType builtinExpressionType;
         BuiltinType builtinType;
         Literal(std::string value);
-
-        Symbol* resolvedSymbol = nullptr; 
 
         std::string value;
     };

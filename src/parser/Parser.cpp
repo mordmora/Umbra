@@ -307,7 +307,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     auto returnVal = returnType->builtinType == BuiltinType::Void ? nullptr : parseReturnExpression();
     match(TokenType::TOK_RETURN);
     skipNewLines();
-    std::cout << "Finishing function definition with "<< peek().lexeme() << std::endl;
+
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
 
     return std::make_unique<FunctionDefinition>(
@@ -369,17 +369,16 @@ std::unique_ptr<ReturnExpression> Parser::parseReturnExpression(){
 std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
     auto type = parseType();
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
-    UMBRA_PRINT(peek().lexeme);
+
     if(match(TokenType::TOK_ASSIGN)){
-        UMBRA_PRINT("Parsing initializer");
-        
+
         auto initializer = parseExpression();
         if(!initializer){
             error("Expected expression after '='", peek().line, peek().column);
             synchronize();
             return nullptr;
         }
-        UMBRA_PRINT("Parsed variable declaration with initializer");
+
         return std::make_unique<VariableDeclaration>(std::move(type), 
         std::make_unique<Identifier>(name.lexeme()), std::move(initializer));
     }

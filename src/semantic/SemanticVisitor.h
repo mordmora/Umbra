@@ -27,8 +27,6 @@ class ProgramChecker : public SemanticVisitor {
 public:
     using SemanticVisitor::SemanticVisitor;
 
-    BuiltinType rvalExpressionTypeToBuiltin(RvalExpressionType type);
-
     void visit(ProgramNode& node) override;
     void visit(FunctionDefinition& node) override;
     void visit(ParameterList& node) override;

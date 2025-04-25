@@ -12,6 +12,7 @@ class TypeCompatibility {
     public:
         // Verifica si el tipo de expresión es compatible con el tipo declarado
         static bool areTypesCompatible(const Type& declType, RvalExpressionType exprType);
+        static bool areTypesCompatible(const Type& declType, const BuiltinType& exprType);
     };
     
 

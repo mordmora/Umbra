@@ -16,6 +16,8 @@ namespace umbra{
             FUNCTION,
             TYPE
         };
+
+        std::vector<std::unique_ptr<Type>> paramTypes;
     
         Symbol(std::string name, SymbolKind kind, std::unique_ptr<Type> type, StringInterner& interner);
         virtual ~Symbol() = default;

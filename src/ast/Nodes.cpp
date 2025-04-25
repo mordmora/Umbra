@@ -194,19 +194,30 @@ namespace umbra {
      * @param value Numeric value of the literal
      */
 
-    NumericLiteral::NumericLiteral(double value, BuiltinType builtinType) : Literal(std::to_string(value)), builtinType(builtinType), value(value) {}
+    NumericLiteral::NumericLiteral(double value, BuiltinType numericType)
+        : Literal(std::to_string(value)), 
+          value(value)
+    {
+        this->builtinType = numericType; 
+        builtinExpressionType = numericType;
+    }
 
-   void NumericLiteral::accept(ASTVisitor& visitor){
+    void NumericLiteral::accept(ASTVisitor& visitor){
         visitor.visit(*this);
-   }
+    }
 
     /**
      * @brief Constructs a boolean literal node
      * @param value Boolean value of the literal
      */
 
-    BooleanLiteral::BooleanLiteral(bool value) : Literal(value ? "true" : "false"), value(value) {
-        builtinType = BuiltinType::Bool;
+    BooleanLiteral::BooleanLiteral(bool value)
+        : Literal(value ? "true" : "false"), // Llama al constructor base
+          value(value)
+    {
+        this->builtinType = BuiltinType::Bool; 
+        builtinExpressionType = BuiltinType::Bool; 
+
     }
 
     void BooleanLiteral::accept(ASTVisitor& visitor){
@@ -220,6 +231,7 @@ namespace umbra {
 
     CharLiteral::CharLiteral(char value) : Literal(std::string(1, value)), value(value) {
         builtinType = BuiltinType::Char;
+        builtinExpressionType = BuiltinType::Char;
     }
 
     /**
@@ -227,8 +239,13 @@ namespace umbra {
      * @param value String value of the literal
      */
 
-    StringLiteral::StringLiteral(const std::string& value) : Literal(std::move(value)), value(std::move(value)) {
-        builtinType = BuiltinType::String;
+    StringLiteral::StringLiteral(const std::string& value)
+        : Literal(value), // Llama al constructor base
+          value(value)
+    {
+         this->builtinType = BuiltinType::String; 
+         builtinExpressionType = BuiltinType::String;
+
     }
 
     void StringLiteral::accept(ASTVisitor& visitor){

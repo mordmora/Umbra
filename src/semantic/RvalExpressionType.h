@@ -7,7 +7,8 @@ enum class RvalExpressionType {
     STRING,
     BOOLEAN,
     CHAR,
-    VAR_NAME
+    VAR_NAME,
+    ERROR
 };
 
 }

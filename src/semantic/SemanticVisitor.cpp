@@ -1,7 +1,9 @@
 #include "SemanticVisitor.h"
 #include "../error/CompilerError.h"
 #include <iostream>
+#include<memory.h>
 #include "TypeCompatibility.h"
+#include "../utils/utils.h"
 
 namespace umbra {
 
@@ -12,31 +14,14 @@ SemanticVisitor::SemanticVisitor(StringInterner& interner, ScopeManager& scopeMa
       errorManager(errorManager) {}
 
 void ProgramChecker::visit(ProgramNode& node) {
-    std::cout << "Visiting program node" << std::endl;
     for (auto& child : node.functions) {
         child->accept(*this);
     }
 }
 
-BuiltinType ProgramChecker::rvalExpressionTypeToBuiltin(RvalExpressionType type) {
-    switch (type) {
-        case RvalExpressionType::INTEGER:
-            return BuiltinType::Int;
-        case RvalExpressionType::FLOAT:
-            return BuiltinType::Float;
-        case RvalExpressionType::STRING:
-            return BuiltinType::String;
-        case RvalExpressionType::BOOLEAN:
-            return BuiltinType::Bool;
-        case RvalExpressionType::CHAR:
-            return BuiltinType::Char;
-        default:
-            return BuiltinType::Undef; // Default case
-    }
-}
 
 void ProgramChecker::visit(ParameterList& node) {
-    std::cout << "Visiting parameter list node" << std::endl;
+
     for (auto& param : node.parameters) {
         bool status = symbolTable.addSymbol(std::make_unique<Symbol>(
             param.second->name,
@@ -54,25 +39,44 @@ void ProgramChecker::visit(ParameterList& node) {
             return;
         }
 
-        // Registrar el parámetro en el scope local para su eliminación al salir del mismo
         scopeManager.currentScope()[&symbolTable.getSymbol(param.second->name)->name] = nullptr;
     }
 }
 
 void ProgramChecker::visit(FunctionDefinition& node) {
-    symbolTable.addSymbol(std::make_unique<Symbol>(
+
+    auto functionSymbol = std::make_unique<Symbol>(
         node.name->name,
         Symbol::SymbolKind::FUNCTION,
         std::move(node.returnType),
-        interner));
+        interner);
 
-    // Crear un nuevo scope para parámetros y variables locales
+    if(node.parameters){
+        for (auto& param : node.parameters->parameters) {
+               functionSymbol->paramTypes.push_back(
+                std::make_unique<Type>(param.first->builtinType, param.first->arrayDimensions)
+            );
+        }
+    }
+
+    if(!symbolTable.addSymbol(std::move(functionSymbol))) {
+        errorManager.addError(
+            std::make_unique<CompilerError>(
+                ErrorType::SEMANTIC,
+                "Function " + node.name->name + " already declared",
+                0,
+                0)
+        );
+        return;
+    }
+
     scopeManager.enterScope(_SymbolMap());
 
-    node.parameters->accept(*this);
+    if(node.parameters){
+        node.parameters->accept(*this);
+    }
 
     for (auto& child : node.body) {
-        std::cout << "Checking body of function " << node.name->name << std::endl;
         child->accept(*this);
     }
 
@@ -80,7 +84,6 @@ void ProgramChecker::visit(FunctionDefinition& node) {
         node.returnValue->accept(*this);
     }
 
-    // Al salir del scope, se eliminan los símbolos locales
     scopeManager.exitScope(symbolTable);
 }
 
@@ -141,12 +144,15 @@ void ExpressionTypeChecker::visit(Literal& node) {
 }
 
 void ExpressionTypeChecker::visit(NumericLiteral& node) {
-    std::cout << "Starting type checking for numeric literal" << std::endl;
+    
     if (node.builtinType == BuiltinType::Int) {
+        node.builtinExpressionType = BuiltinType::Int;
         resultType = RvalExpressionType::INTEGER;
     } else if (node.builtinType == BuiltinType::Float) {
+        node.builtinExpressionType = BuiltinType::Float;
         resultType = RvalExpressionType::FLOAT;
     } else {
+        node.builtinExpressionType = BuiltinType::Undef;
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
@@ -158,22 +164,20 @@ void ExpressionTypeChecker::visit(NumericLiteral& node) {
 }
 
 void ExpressionTypeChecker::visit(StringLiteral& node) {
-    std::cout << "Starting type checking for string literal" << std::endl;
+    node.builtinExpressionType = BuiltinType::String;
     resultType = RvalExpressionType::STRING;
 }
 
 void ExpressionTypeChecker::visit(BooleanLiteral& node) {
-    std::cout << "Starting type checking for boolean literal" << std::endl;
+    node.builtinExpressionType = BuiltinType::Bool;
     resultType = RvalExpressionType::BOOLEAN;
 }
 
 void ExpressionTypeChecker::visit(Identifier& node) {
-    std::cout << "Starting type checking for identifier for " << node.name << std::endl;
-    auto symbol = symbolTable.getSymbol(node.name);
-    std::cout << "Symbol is " << (symbol == nullptr ? "null" : "not null") << std::endl;
-    symbolTable.printAllSymbols();
 
+    auto symbol = symbolTable.getSymbol(node.name);
     if (!symbol) {
+        node.builtinExpressionType = BuiltinType::Undef;
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
@@ -183,6 +187,8 @@ void ExpressionTypeChecker::visit(Identifier& node) {
         );
         return;
     }
+    node.resolvedSymbol = symbol;
+    node.builtinExpressionType = symbol->type->builtinType;
     
     if (symbol->type->builtinType == BuiltinType::Int) {
         resultType = RvalExpressionType::INTEGER;
@@ -200,65 +206,139 @@ void ExpressionTypeChecker::visit(Identifier& node) {
 }
 
 void ExpressionTypeChecker::visit(BinaryExpression& node) {
-    std::cout << "Starting type checking for binary expression" << std::endl;
     node.left->accept(*this);
     auto leftType = resultType;
-    std::cout << "Left type is " << static_cast<int>(leftType) << std::endl;
-    
+    // NO asignes node.builtinExpressionType aquí todavía
+
     node.right->accept(*this);
     auto rightType = resultType;
-    std::cout << "Right type is " << static_cast<int>(rightType) << std::endl;
-    
-    std::cout << "Operator is " << node.op << std::endl;
+
     using _eType = RvalExpressionType;
+
+    _eType finalResultType = _eType::VAR_NAME; 
+
     if (node.op == "+" || node.op == "-" || node.op == "*" || node.op == "/") {
         if (leftType == _eType::INTEGER && rightType == _eType::INTEGER) {
-            resultType = _eType::INTEGER;
+            finalResultType = _eType::INTEGER;
         } else if (leftType == _eType::FLOAT && rightType == _eType::FLOAT) {
-            resultType = _eType::FLOAT;
+            finalResultType = _eType::FLOAT;
+        } // TODO: Añadir más casos (int/float, string concat, etc.)
+        else {
+  
+            errorManager.addError(
+                std::make_unique<CompilerError>(
+                    ErrorType::SEMANTIC,
+                    "Invalid types for operator " + node.op,
+                    0,
+                    0)
+            );
+            finalResultType = _eType::VAR_NAME; // O tipo error
         }
+    } else if (node.op == "==" || node.op == "!=" || node.op == "<" /* ... etc ... */) {
+         // TODO: Implementar chequeo para operadores de comparación/lógicos
+         // El resultado suele ser BOOLEAN si los tipos son comparables
+         if (TypeCompatibility::areTypesCompatible(rvalExpressionTypeToBuiltin(leftType), rightType)) { // Necesitarás una función de compatibilidad
+             finalResultType = _eType::BOOLEAN;
+         } else {
+                errorManager.addError(
+                    std::make_unique<CompilerError>(
+                        ErrorType::SEMANTIC,
+                        "Invalid types for operator " + node.op,
+                        0,
+                        0)
+                );
+            finalResultType = _eType::VAR_NAME;
+         }
     } else {
+
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
-                "Invalid types for binary operator " + node.op,
+                "Unknown operator " + node.op,
                 0,
                 0)
         );
+        finalResultType = _eType::VAR_NAME; 
     }
+
+    resultType = finalResultType;
+
+    node.builtinExpressionType = rvalExpressionTypeToBuiltin(finalResultType);
 }
 
 void ExpressionTypeChecker::visit(PrimaryExpression& node) {
-    std::cout << "Visiting primary expression node" << std::endl;
+    BuiltinType finalBuiltinType = BuiltinType::Undef; // Tipo por defecto o error
+
     switch (node.exprType) {
         case PrimaryExpression::IDENTIFIER:
             node.identifier->accept(*this);
+            // Propagar el tipo del identificador al nodo primario
+            finalBuiltinType = node.identifier->builtinExpressionType;
             break;
         case PrimaryExpression::LITERAL:
-            node.literal->accept(*this);
+            // Asumiendo que node.literal es un puntero a la clase base Literal
+            // y que los visit específicos (Numeric, String, etc.) ya fueron llamados
+            // Necesitamos una forma de obtener el tipo del literal específico.
+            // Podríamos necesitar visitar el literal específico aquí o
+            // asegurar que el nodo base Literal también tenga builtinExpressionType.
+            // Por ahora, asumamos que el accept ya lo decoró:
+            node.literal->accept(*this); // Esto debería llamar al visit específico
+            finalBuiltinType = node.literal->builtinExpressionType; // Asumiendo que Literal base lo tiene
             break;
         case PrimaryExpression::EXPRESSION_CALL:
             node.functionCall->accept(*this);
+            // Propagar el tipo de la llamada al nodo primario
+            finalBuiltinType = node.functionCall->builtinExpressionType;
             break;
         case PrimaryExpression::PARENTHESIZED:
             node.parenthesized->accept(*this);
+            // Propagar el tipo de la expresión entre paréntesis al nodo primario
+            finalBuiltinType = node.parenthesized->builtinExpressionType;
             break;
-        case PrimaryExpression::ARRAY_ACCESS:
-            node.arrayAccess->accept(*this);
-            break;
-        case PrimaryExpression::MEMBER_ACCESS:
-            node.memberAccess->accept(*this);
-            break;
-        case PrimaryExpression::CAST_EXPRESSION:
-            node.castExpression->accept(*this);
-            break;
-        case PrimaryExpression::TERNARY_EXPRESSION:
-            node.ternaryExpression->accept(*this);
-            break;
+        // --- Añadir casos para los otros tipos de PrimaryExpression ---
+        // case PrimaryExpression::ARRAY_ACCESS:
+        //     node.arrayAccess->accept(*this);
+        //     finalBuiltinType = node.arrayAccess->builtinExpressionType;
+        //     break;
+        // case PrimaryExpression::MEMBER_ACCESS:
+        //     node.memberAccess->accept(*this);
+        //     finalBuiltinType = node.memberAccess->builtinExpressionType;
+        //     break;
+        // case PrimaryExpression::CAST_EXPRESSION:
+        //     node.castExpression->accept(*this);
+        //     finalBuiltinType = node.castExpression->builtinExpressionType;
+        //     break;
+        // case PrimaryExpression::TERNARY_EXPRESSION:
+        //     node.ternaryExpression->accept(*this);
+        //     finalBuiltinType = node.ternaryExpression->builtinExpressionType;
+        //     break;
+        default:
+             errorManager.addError(
+                std::make_unique<CompilerError>(
+                    ErrorType::SEMANTIC, // O SEMANTIC si es un tipo no esperado
+                    "Unhandled primary expression type in type checker",
+                    0, 0 // TODO: Línea/Columna
+                )
+             );
+             finalBuiltinType = BuiltinType::Undef;
+             resultType = RvalExpressionType::ERROR; // Actualizar también resultType interno
+             break; // Salir del switch
     }
+
+    // Decorar el nodo PrimaryExpression con el tipo determinado
+    node.builtinExpressionType = finalBuiltinType;
+    // El resultType interno ya debería haber sido establecido por la llamada a accept del hijo.
+    // No necesitas reasignarlo aquí a menos que el default lo haya cambiado a ERROR.
 }
 
 void ExpressionTypeChecker::visit(FunctionCall& node) {
+    std::vector<BuiltinType> argTypes; 
+    for(auto& arg : node.arguments){
+        arg->accept(*this);
+
+        argTypes.push_back(arg->builtinExpressionType); 
+    }
+
     auto symbol = symbolTable.getSymbol(node.functionName->name);
     if (!symbol) {
         errorManager.addError(
@@ -271,7 +351,7 @@ void ExpressionTypeChecker::visit(FunctionCall& node) {
         return;
     }
 
-    if (symbol->kind != Symbol::SymbolKind::FUNCTION) {
+    if(symbol->kind != Symbol::SymbolKind::FUNCTION) {
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
@@ -282,24 +362,65 @@ void ExpressionTypeChecker::visit(FunctionCall& node) {
         return;
     }
 
-    if (symbol->type->builtinType == BuiltinType::Void) {
-        resultType = RvalExpressionType::INTEGER;
-    } else if (symbol->type->builtinType == BuiltinType::Int) {
-        resultType = RvalExpressionType::FLOAT;
-    } else if (symbol->type->builtinType == BuiltinType::Float) {
-        resultType = RvalExpressionType::BOOLEAN;
-    } else if (symbol->type->builtinType == BuiltinType::Bool) {
-        resultType = RvalExpressionType::CHAR;
-    } else if (symbol->type->builtinType == BuiltinType::Char) {
-        resultType = RvalExpressionType::STRING;
-    } else {
+    node.functionName->resolvedSymbol = symbol;
+
+
+    // --- VERIFICACIÓN DE ARGUMENTOS ---
+    // Comparar número de argumentos
+    if (argTypes.size() != symbol->paramTypes.size()) {
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
-                "Unknown function return type",
-                0,
-                0)
+                "Function '" + node.functionName->name + "' expects " +
+                std::to_string(symbol->paramTypes.size()) + " arguments, but " +
+                std::to_string(argTypes.size()) + " were provided.",
+                0, 0 // TODO: Línea/Columna
+            )
         );
+
+    } else {
+        // Comparar tipos de argumentos
+        for (size_t i = 0; i < argTypes.size(); ++i) {
+            // Necesitamos comparar BuiltinType de parameterTypes[i] con argTypes[i]
+            if (!TypeCompatibility::areTypesCompatible(symbol->paramTypes[i]->builtinType, argTypes[i])) {
+                 errorManager.addError(
+                    std::make_unique<CompilerError>(
+                        ErrorType::SEMANTIC,
+                        "Type mismatch for argument " + std::to_string(i+1) + " in call to function '" +
+                        node.functionName->name + "'. Expected compatible with type X, got type Y.", // TODO: Mejorar mensaje con nombres de tipos
+                        0, 0 // TODO: Línea/Columna del argumento i
+                    )
+                );
+            }
+            // TODO: Considerar dimensiones de array
+        }
+    }
+    // ---------------------------------
+
+
+    // Asignar tipo de retorno
+    node.builtinExpressionType = symbol->type->builtinType;
+
+    // Asignar resultType interno
+    switch(symbol->type->builtinType) {
+        case BuiltinType::Int:    resultType = RvalExpressionType::INTEGER; break;
+        case BuiltinType::Float:  resultType = RvalExpressionType::FLOAT;   break;
+        case BuiltinType::Bool:   resultType = RvalExpressionType::BOOLEAN; break;
+        case BuiltinType::Char:   resultType = RvalExpressionType::CHAR;    break;
+        case BuiltinType::String: resultType = RvalExpressionType::STRING;  break;
+        case BuiltinType::Void:
+             errorManager.addError(
+                std::make_unique<CompilerError>(
+                    ErrorType::SEMANTIC,
+                    "Function " + node.functionName->name + " returns void",
+                    0,
+                    0)
+            );
+             resultType = RvalExpressionType::ERROR; // O VOID
+             break;
+        default:
+             resultType = RvalExpressionType::VAR_NAME; // O ERROR
+             break;
     }
 }
 

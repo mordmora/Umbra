@@ -9,6 +9,8 @@ namespace umbra {
         type(std::move(type)), 
         name(interner.intern(name)), 
         kind(kind) 
-    {}
+    {
+        paramTypes = std::vector<std::unique_ptr<Type>>();
+    }
     
 }
