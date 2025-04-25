@@ -1,7 +1,7 @@
 #include "SemanticVisitor.h"
 #include "../error/CompilerError.h"
-#include "Semantic.h"
 #include <iostream>
+#include "TypeCompatibility.h"
 
 namespace umbra {
 
@@ -15,6 +15,23 @@ void ProgramChecker::visit(ProgramNode& node) {
     std::cout << "Visiting program node" << std::endl;
     for (auto& child : node.functions) {
         child->accept(*this);
+    }
+}
+
+BuiltinType ProgramChecker::rvalExpressionTypeToBuiltin(RvalExpressionType type) {
+    switch (type) {
+        case RvalExpressionType::INTEGER:
+            return BuiltinType::Int;
+        case RvalExpressionType::FLOAT:
+            return BuiltinType::Float;
+        case RvalExpressionType::STRING:
+            return BuiltinType::String;
+        case RvalExpressionType::BOOLEAN:
+            return BuiltinType::Bool;
+        case RvalExpressionType::CHAR:
+            return BuiltinType::Char;
+        default:
+            return BuiltinType::Undef; // Default case
     }
 }
 
@@ -82,17 +99,20 @@ void ProgramChecker::visit(VariableDeclaration& node) {
     }
 
     if (node.initializer != nullptr) {
-        std::cout << node.name->name << " initializer is not null, starting type analysis" << std::endl;
+
         ExpressionTypeChecker typeChecker(interner, scopeManager, symbolTable, errorManager);
+
         node.initializer->accept(typeChecker);
+
         auto initializerType = typeChecker.resultType;
-        std::cout << "Initializer type is " << static_cast<int>(initializerType) << std::endl;
-        
+
+        node.initializer->builtinExpressionType = rvalExpressionTypeToBuiltin(initializerType);
+
         if (!TypeCompatibility::areTypesCompatible(*node.type, initializerType)) {
             errorManager.addError(
                 std::make_unique<CompilerError>(
                     ErrorType::SEMANTIC,
-                    "Type mismatch in variable declaration: expected " + node.type->baseType,
+                    &"Type mismatch in variable declaration: expected " [ static_cast<int>(node.type->builtinType)],
                     0,
                     0)
             );
@@ -122,9 +142,9 @@ void ExpressionTypeChecker::visit(Literal& node) {
 
 void ExpressionTypeChecker::visit(NumericLiteral& node) {
     std::cout << "Starting type checking for numeric literal" << std::endl;
-    if (node.numericType == NumericLiteral::Type::INTEGER) {
+    if (node.builtinType == BuiltinType::Int) {
         resultType = RvalExpressionType::INTEGER;
-    } else if (node.numericType == NumericLiteral::Type::FLOAT) {
+    } else if (node.builtinType == BuiltinType::Float) {
         resultType = RvalExpressionType::FLOAT;
     } else {
         errorManager.addError(
@@ -164,15 +184,15 @@ void ExpressionTypeChecker::visit(Identifier& node) {
         return;
     }
     
-    if (symbol->type->baseType == "int") {
+    if (symbol->type->builtinType == BuiltinType::Int) {
         resultType = RvalExpressionType::INTEGER;
-    } else if (symbol->type->baseType == "float") {
+    } else if (symbol->type->builtinType == BuiltinType::Float) {
         resultType = RvalExpressionType::FLOAT;
-    } else if (symbol->type->baseType == "bool") {
+    } else if (symbol->type->builtinType == BuiltinType::Bool) {
         resultType = RvalExpressionType::BOOLEAN;
-    } else if (symbol->type->baseType == "char") {
+    } else if (symbol->type->builtinType == BuiltinType::Char) {
         resultType = RvalExpressionType::CHAR;
-    } else if (symbol->type->baseType == "string") {
+    } else if (symbol->type->builtinType == BuiltinType::String) {
         resultType = RvalExpressionType::STRING;
     } else {
         resultType = RvalExpressionType::VAR_NAME;
@@ -262,15 +282,15 @@ void ExpressionTypeChecker::visit(FunctionCall& node) {
         return;
     }
 
-    if (symbol->type->baseType == "int") {
+    if (symbol->type->builtinType == BuiltinType::Void) {
         resultType = RvalExpressionType::INTEGER;
-    } else if (symbol->type->baseType == "float") {
+    } else if (symbol->type->builtinType == BuiltinType::Int) {
         resultType = RvalExpressionType::FLOAT;
-    } else if (symbol->type->baseType == "bool") {
+    } else if (symbol->type->builtinType == BuiltinType::Float) {
         resultType = RvalExpressionType::BOOLEAN;
-    } else if (symbol->type->baseType == "char") {
+    } else if (symbol->type->builtinType == BuiltinType::Bool) {
         resultType = RvalExpressionType::CHAR;
-    } else if (symbol->type->baseType == "string") {
+    } else if (symbol->type->builtinType == BuiltinType::Char) {
         resultType = RvalExpressionType::STRING;
     } else {
         errorManager.addError(

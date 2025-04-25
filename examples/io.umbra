@@ -1,0 +1,4 @@
+func start(int a) -> int {
+    int b = 1 + 2
+    return b
+}

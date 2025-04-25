@@ -145,7 +145,7 @@ namespace umbra {
      * is performed as this is typically used inline within other node displays.
      */
     void PrintASTVisitor::visit(Type& node) {
-        std::cout << node.baseType;
+        std::cout << static_cast<int>(node.builtinType);
         for (int i = 0; i < node.arrayDimensions; ++i) {
             std::cout << "[]";
         }
@@ -279,7 +279,7 @@ namespace umbra {
      */
     void PrintASTVisitor::visit(Literal& node) {
         indent();
-        std::cout << "Literal: " << node.value << "\n       Type: " << node.literalType << std::endl;
+        std::cout << "Literal: " << node.value << "\n       Type: " << static_cast<int>(node.builtinType) << std::endl;
     }
 
     /**

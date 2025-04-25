@@ -69,22 +69,22 @@ bool Parser::match(TokenType type) {
  * @param tk Token del cual obtener la representación de su tipo.
  * @return Cadena que representa el tipo del token o una cadena vacía si no corresponde a un tipo.
  */
-std::string getTypeToString(Lexer::Token tk){
+BuiltinType tokenTypeToBuiltin(Lexer::Token tk){
     switch(tk.type){
         case TokenType::TOK_INT:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::Int;
         case TokenType::TOK_FLOAT:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::Float;
         case TokenType::TOK_BOOL:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::Bool;
         case TokenType::TOK_CHAR:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::Char;
         case TokenType::TOK_STRING:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::String;
         case TokenType::TOK_VOID:
-            return std::string(tk.start, tk.length);
+            return BuiltinType::Void;
         default:
-            return "";
+            return BuiltinType::Undef;
     }
 }
 
@@ -304,7 +304,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     skipNewLines();
 
     auto body = parseStatementList();
-    auto returnVal = returnType->baseType == "void" ? nullptr : parseReturnExpression();
+    auto returnVal = returnType->builtinType == BuiltinType::Void ? nullptr : parseReturnExpression();
     match(TokenType::TOK_RETURN);
     skipNewLines();
     std::cout << "Finishing function definition with "<< peek().lexeme() << std::endl;
@@ -326,7 +326,7 @@ std::unique_ptr<Type> Parser::parseType(){
     if(isTypeToken(peek()) == false){
         throw std::runtime_error("Expected type token");
     }
-    auto typeStr = getTypeToString(peek());
+    auto typeStr = tokenTypeToBuiltin(peek());
     advance();
     return std::make_unique<Type>(typeStr);
 }
@@ -532,9 +532,9 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
     std::cout << "Literal type " << static_cast<int>(literal.type) << std::endl;
     switch (literal.type){
         case TokenType::TOK_NUMBER:
-            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme()), NumericLiteral::Type::INTEGER);
+            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme()), BuiltinType::Int);
         case TokenType::TOK_FLOAT:
-            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme()), NumericLiteral::Type::FLOAT);
+            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme()), BuiltinType::Float);
         case TokenType::TOK_CHAR:
             return std::make_unique<CharLiteral>(literal.lexeme()[0]);
         case TokenType::TOK_STRING_LITERAL:

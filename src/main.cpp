@@ -5,7 +5,7 @@
 #include "ast/ASTVisitor.h"
 #include "preprocessor/Preprocessor.h"
 #include "lexer/Tokens.h"
-#include "semantic/Semantic.h"
+#include "semantic/SemanticVisitor.h"
 #include "semantic/SemanticVisitor.h"
 #include<optional>
 #include <iostream>

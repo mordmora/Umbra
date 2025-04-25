@@ -7,7 +7,6 @@
 
 #include "Nodes.h"
 #include "ASTVisitor.h"
-#include "../semantic/SemanticVisitor.h"
 
 namespace umbra {
 
@@ -68,8 +67,8 @@ namespace umbra {
      * @param baseType Base type name
      * @param arrayDimensions Number of array dimensions (0 for non-array types)
      */
-    Type::Type(std::string baseType, int arrayDimensions) 
-        : baseType(std::move(baseType)), arrayDimensions(arrayDimensions) {}
+    Type::Type(BuiltinType builtinType, int arrayDimensions) 
+        : builtinType(builtinType), arrayDimensions(arrayDimensions) {}
 
     void Type::accept(ASTVisitor& visitor){
         visitor.visit(*this);
@@ -195,7 +194,7 @@ namespace umbra {
      * @param value Numeric value of the literal
      */
 
-    NumericLiteral::NumericLiteral(double value, Type numericType) : Literal(std::to_string(value)), numericType(numericType), value(value) {}
+    NumericLiteral::NumericLiteral(double value, BuiltinType builtinType) : Literal(std::to_string(value)), builtinType(builtinType), value(value) {}
 
    void NumericLiteral::accept(ASTVisitor& visitor){
         visitor.visit(*this);
@@ -207,7 +206,7 @@ namespace umbra {
      */
 
     BooleanLiteral::BooleanLiteral(bool value) : Literal(value ? "true" : "false"), value(value) {
-        literalType = BOOLEAN;
+        builtinType = BuiltinType::Bool;
     }
 
     void BooleanLiteral::accept(ASTVisitor& visitor){
@@ -220,7 +219,7 @@ namespace umbra {
      */
 
     CharLiteral::CharLiteral(char value) : Literal(std::string(1, value)), value(value) {
-        literalType = CHAR;
+        builtinType = BuiltinType::Char;
     }
 
     /**
@@ -229,7 +228,7 @@ namespace umbra {
      */
 
     StringLiteral::StringLiteral(const std::string& value) : Literal(std::move(value)), value(std::move(value)) {
-        literalType = STRING;
+        builtinType = BuiltinType::String;
     }
 
     void StringLiteral::accept(ASTVisitor& visitor){

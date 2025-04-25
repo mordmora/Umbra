@@ -52,6 +52,7 @@ std::string Lexer::getSource() { return source; }
  * dispatchTable['+'] = &Lexer::handlePlus;
  * dispatchTable['-'] = &Lexer::handleMinus;
  */
+ 
 void Lexer::setupDispatch(){
     dispatchTable[(unsigned char)'+'] = &Lexer::handlePlus;
     dispatchTable[(unsigned char)'-'] = &Lexer::handleMinus;

@@ -1,9 +1,12 @@
 #pragma once
 
 #include "../ast/Nodes.h"
-#include "Semantic.h"
 #include "../error/ErrorManager.h"
 #include "../ast/ASTVisitor.h"
+#include "SymbolTable.h"
+#include "StringInterner.h"
+#include "ScopeManager.h"
+#include "RvalExpressionType.h"
 
 namespace umbra {
 
@@ -23,6 +26,8 @@ protected:
 class ProgramChecker : public SemanticVisitor {
 public:
     using SemanticVisitor::SemanticVisitor;
+
+    BuiltinType rvalExpressionTypeToBuiltin(RvalExpressionType type);
 
     void visit(ProgramNode& node) override;
     void visit(FunctionDefinition& node) override;

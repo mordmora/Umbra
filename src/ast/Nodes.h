@@ -8,6 +8,8 @@
 #include <vector>
 #include <memory>
 #include "ASTNode.h"
+#include "Types.h"
+
 #include<iostream>
 
 namespace umbra {
@@ -25,12 +27,18 @@ namespace umbra {
     class CastExpression;
     class MemberAccessExpression;
     class ReturnExpression;
+
+    class Symbol;
     
 
     // Expression base class
     class Expression : public ASTNode {
     public:
         void accept(ASTVisitor& visitor) override {}
+
+        //Se usa para agregar información
+        //semántica a la expresión
+         BuiltinType builtinExpressionType;
     };
 
     // Program node
@@ -66,9 +74,9 @@ namespace umbra {
     // Type node
     class Type : public ASTNode {
     public:
-        Type(std::string baseType, int arrayDimensions = 0);
+        Type(BuiltinType builtinType, int arrayDimensions = 0);
         void accept(ASTVisitor& visitor) override;
-        std::string baseType; // e.g., int, float, etc.
+        BuiltinType builtinType;
         int arrayDimensions = 0; // Number of dimensions if it's an array
         
     };
@@ -76,6 +84,7 @@ namespace umbra {
     // Identifier node
     class Identifier : public Expression {
     public:
+        Symbol* resolvedSymbol = nullptr; // Pointer to the resolved symbol
         Identifier(std::string name);
         void accept(ASTVisitor &visitor) override;
         std::string name;
@@ -84,7 +93,6 @@ namespace umbra {
     // Statement base class
     class Statement : public ASTNode {
     public:
-
         void accept(ASTVisitor& visitor) override {}
     };
 
@@ -218,9 +226,10 @@ namespace umbra {
     public:
 
         void accept(ASTVisitor& visitor) override;
-        enum Type { INTEGER, FLOAT, BOOLEAN, CHAR, STRING } literalType;
-
+        BuiltinType builtinType;
         Literal(std::string value);
+
+        Symbol* resolvedSymbol = nullptr; 
 
         std::string value;
     };
@@ -244,8 +253,8 @@ namespace umbra {
     // Numeric literal node
     class NumericLiteral : public Literal {
     public:
-        enum Type { INTEGER, FLOAT } numericType;
-        NumericLiteral(double value, Type numericType);
+        BuiltinType builtinType;
+        NumericLiteral(double value, BuiltinType numericType);
         void accept(ASTVisitor& visitor) override;
         double value;
     };
