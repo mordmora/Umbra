@@ -215,7 +215,7 @@ void ExpressionTypeChecker::visit(BinaryExpression& node) {
 
     using _eType = RvalExpressionType;
 
-    _eType finalResultType = _eType::VAR_NAME; 
+    _eType finalResultType = _eType::ERROR; 
 
     if (node.op == "+" || node.op == "-" || node.op == "*" || node.op == "/") {
         if (leftType == _eType::INTEGER && rightType == _eType::INTEGER) {
@@ -232,7 +232,7 @@ void ExpressionTypeChecker::visit(BinaryExpression& node) {
                     0,
                     0)
             );
-            finalResultType = _eType::VAR_NAME; // O tipo error
+            finalResultType = _eType::ERROR; // O tipo error
         }
     } else if (node.op == "==" || node.op == "!=" || node.op == "<" /* ... etc ... */) {
          // TODO: Implementar chequeo para operadores de comparación/lógicos

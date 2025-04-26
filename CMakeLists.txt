@@ -53,24 +53,32 @@ add_library(umbra_lexer STATIC
     src/preprocessor/Preprocessor.cpp
 )
 
-
+add_library(umbra_nodes STATIC
+    src/ast/ASTNode.h
+    src/ast/Nodes.h
+    src/ast/Nodes.cpp
+    src/ast/Types.h
+)
 
 # Ejecutable del compilador Umbra
 file(GLOB_RECURSE SOURCES
   "src/main.cpp"
+  "src/utils/*.cpp"
   "src/parser/*.cpp"
   "src/lexer/*.cpp"
   "src/ast/*.cpp"
-  "src/ast/statementnodes/*.cpp"
-  "src/ast/expressionnodes/*.cpp"
   "src/ast/visitor/*.cpp"
   "src/error/*.cpp"
   "src/semantic/*.cpp"
+  "src/codegen/context/*.cpp"
+  "src/codegen/ir/*.cpp"
+  "src/codegen/types/*.cpp"
+  "src/codegen/visitors/*.cpp"
   "src/preprocessor/*.cpp")
-add_executable(umbra_compiler ${SOURCES})
+add_executable(umbra ${SOURCES})
 llvm_map_components_to_libnames(llvm_libs support core irreader)
-target_link_libraries(umbra_compiler ${llvm_libs} umbra_lexer)
-set_target_properties(umbra_compiler
+target_link_libraries(umbra ${llvm_libs} umbra_lexer)
+set_target_properties(umbra
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
