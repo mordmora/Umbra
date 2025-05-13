@@ -11,14 +11,33 @@ namespace umbra{
 
         class CodegenVisitor : public BaseVisitor {
         public:
-            CodegenVisitor();
+            CodegenVisitor(CodegenContext &context);
+
+            llvm::Type* mapBuiltinTypeToLLVMType(const umbra::Type& type) const;
+            //umbra::Type* mapLLVMTypeToBuiltinType(llvm::Type* type) const;
+
+            //literals
+            void visit(umbra::StringLiteral& node) override;
+
+            //expressions
+
+
+            //statements
+
+
+
+            //top_level
+            void visit(umbra::FunctionDefinition& node) override;
+
+            //auxiliar
+
+            llvm::Value* getLastValue() const;
 
 
             private: 
+            llvm::Value* lastLLVMValue = nullptr;
             CodegenContext& context;
 
-        }
-
-
+        };
     }
 }

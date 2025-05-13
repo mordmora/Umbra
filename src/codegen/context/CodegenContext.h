@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include<llvm/IR/LLVMContext.h>
+#include <llvm/IR/LLVMContext.h>
 #include<llvm/IR/Module.h>
 #include<llvm/IR/IRBuilder.h>
 #include<map>
@@ -17,10 +17,15 @@ namespace umbra {
             llvm::LLVMContext llvmContext;
             llvm::Module llvmModule;
             llvm::IRBuilder<> llvmBuilder;
-            std::map<const umbra::Symbol*, llvm::Value*> namedValues;
+            std::map<const std::string&, llvm::Value*> namedValues;
             std::map<std::string, llvm::Value*> globalStrings;
 
+            llvm::Function* getPrintfFunction();
+
             CodegenContext(const std::string& moduleName);
+
+            private:
+            llvm::Function* printfFunction = nullptr;
 
         };
 }} // namespace umbra::code_gen

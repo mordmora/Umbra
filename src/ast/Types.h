@@ -6,6 +6,7 @@ enum class BuiltinType {
     Float,
     String,
     Char,
+    Double,
     Bool,
     Array,
     Null,
