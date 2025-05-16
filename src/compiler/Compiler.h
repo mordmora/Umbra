@@ -2,7 +2,11 @@
 
 #include <string>
 #include "../error/ErrorManager.h"
-
+#include "../lexer/Lexer.h"
+#include "../parser/Parser.h"
+#include "../ast/ASTNode.h"
+#include "../ast/Nodes.h"
+#include <llvm/IR/Module.h>
 namespace umbra {
 
     typedef struct UmbraCompilerOptions {
@@ -30,11 +34,12 @@ namespace umbra {
             UmbraCompilerOptions options;
 
             bool preprocess(std::string& src);
-            bool lex();
-            bool parse();
-            bool semanticAnalyze();
-            bool generateCode();
-            bool generateExecutable();
+            std::vector<Lexer::Token> lex(std::string& src);
+            std::unique_ptr<ProgramNode> parse(std::vector<Lexer::Token>& tokens);
+            bool semanticAnalyze(ProgramNode& programNode);
+            bool generateCode(ProgramNode& programNode, std::string& moduleName);
+            void generateIRFile(llvm::Module& module, const std::string& filename);
+            //bool generateExecutable();
 
     };
 }

@@ -212,7 +212,7 @@ bool Parser::isTypeToken(const Lexer::Token& token) {
 }
 
 //<program> ::= { <function_definition> }
-std::shared_ptr<ProgramNode> Parser::parseProgram() {
+std::unique_ptr<ProgramNode> Parser::parseProgram() {
     std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
 
     while (!isAtEnd()) {
@@ -222,7 +222,7 @@ std::shared_ptr<ProgramNode> Parser::parseProgram() {
         }
 
     }
-    return std::make_shared<ProgramNode>(std::move(functionDefinitions));
+    return std::make_unique<ProgramNode>(std::move(functionDefinitions));
 }
 //<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}"
 std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){

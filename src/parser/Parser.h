@@ -17,7 +17,7 @@ namespace umbra {
 
         Parser(const std::vector<Lexer::Token>& tokens);
         Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalErrorManager);
-        std::shared_ptr<ProgramNode> parseProgram();
+        std::unique_ptr<ProgramNode> parseProgram();
 
     private:
 
