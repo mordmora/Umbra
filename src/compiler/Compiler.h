@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <string>
+#include <memory>
 #include "../error/ErrorManager.h"
 #include "../lexer/Lexer.h"
 #include "../parser/Parser.h"
@@ -25,13 +26,14 @@ namespace umbra {
 
     class Compiler {
         public:
-            Compiler(UmbraCompilerOptions opt);
-            Compiler(UmbraCompilerOptions opt, ErrorManager& errorManager);
+            explicit Compiler(UmbraCompilerOptions opt); // Usará ErrorManager interno
+            Compiler(UmbraCompilerOptions opt, ErrorManager& externalErrorManager); // Usará ErrorManager externo
             bool compile();
 
         private:
-            ErrorManager errorManager;
             UmbraCompilerOptions options;
+            std::unique_ptr<ErrorManager> internalErrorManager_; // Solo se usa si no se proporciona uno externo
+            ErrorManager& errorManagerRef_; // Siempre referencia a un ErrorManager válido
 
             bool preprocess(std::string& src);
             std::vector<Lexer::Token> lex(std::string& src);
@@ -39,7 +41,7 @@ namespace umbra {
             bool semanticAnalyze(ProgramNode& programNode);
             bool generateCode(ProgramNode& programNode, std::string& moduleName);
             void generateIRFile(llvm::Module& module, const std::string& filename);
-            //bool generateExecutable();
+            bool generateExecutable(const std::string& irFilename, const std::string& outputName);
 
     };
 }

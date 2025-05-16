@@ -13,134 +13,43 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
+#include <boost/program_options.hpp>
 #include<optional>
 #include <iostream>
 #include <chrono>
+#include "compiler/Compiler.h"
 
-namespace umbra {
-
-
-void printAST(ASTNode* node) {
-    PrintASTVisitor visitor;
-    node->accept(visitor);
-}
-
-void semanticAnalize(ASTNode* node, ErrorManager& errorManager) {
-    StringInterner interner;
-    ScopeManager scopeManager;
-    ProgramChecker programChecker(interner, scopeManager, errorManager);
-    node->accept(programChecker);
-
-}
-
-} // namespace umbra
+namespace po = boost::program_options;
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <source_file>" << std::endl;
-        return 1;
+
+    po::options_description desc("Allowed options");
+    desc.add_options()
+    ("help", "Show this menu")
+    ("set-target-machine", "Set the target machine code")
+    ("show-tokenizer", "Print all tokens")
+    ("show-ast", "Print the AST")
+    ("show-ir", "Print the LLVM IR")
+    ("show-asm", "Print the assembly code")
+    ("dump-ir", "Dump the LLVM IR to a file")
+    ("dump-asm", "Dump the assembly code to a file")
+    ("compile-to-executable", "Compile to an executable");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if(vm.count("help")) {
+        std::cout << desc << "\n";
+        return 0;
     }
-    try {
 
-        umbra::Preprocessor preprocessor(argv[1]);
-        std::string sourceCode = preprocessor.getProcessedContent();
-        umbra::ErrorManager errorManager;
-        umbra::Lexer lexer(sourceCode, errorManager);
-
-        auto tokens = lexer.tokenize();
-
-        if(errorManager.hasErrors()) {
-            std::cerr << "\nCompilation failed with errors:\n";
-            std::cerr << errorManager.getErrorReport();
-            return 1;
-        }
-
-        umbra::Parser parser(tokens, errorManager);
-
-        try {
-            auto ast = parser.parseProgram();
-            
-
-            umbra::printAST(ast.get());
-            umbra::semanticAnalize(ast.get(), errorManager);
-
-            umbra::code_gen::CodegenContext context("umbra_main_module");
-            context.getPrintfFunction();
-            umbra::code_gen::CodegenVisitor codegenVisitor(context);
-            ast->accept(codegenVisitor);
-
-            llvm::Function* entryPointFunction = context.llvmModule.getFunction("start");
-            if(!entryPointFunction){
-                llvm::errs() << "Error: Entry point function 'start' not found in module.\n";
-                return 1;
-            }
-
-            llvm::FunctionType* cMainFuncType = llvm::FunctionType::get(
-                llvm::Type::getInt32Ty(context.llvmContext),
-                false
-            );
-
-            llvm::Function* cMainFunc = llvm::Function::Create(
-                cMainFuncType,
-                llvm::Function::ExternalLinkage,
-                "main",
-                &context.llvmModule
-            );
-
-            llvm::BasicBlock* cMainEntryBlock = llvm::BasicBlock::Create(
-                context.llvmContext,
-                "entry",
-                cMainFunc
-            );
-
-            context.llvmBuilder.SetInsertPoint(cMainEntryBlock);
-
-            llvm::CallInst* callToStart = context.llvmBuilder.CreateCall(
-                entryPointFunction
-            );
-
-            if (entryPointFunction->getReturnType()->isVoidTy()) {
-                // Si 'start' es void, 'main' debe retornar i32 0
-                context.llvmBuilder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.llvmContext), 0, true));
-            } else if (entryPointFunction->getReturnType()->isIntegerTy(32)) {
-                // Si 'start' devuelve i32, 'main' puede retornar ese valor
-                context.llvmBuilder.CreateRet(callToStart);
-            } else {
-                // Si 'start' devuelve otro tipo (ej. float), 'main' aún debe retornar i32.
-
-                llvm::errs() << "Warning: Entry point function 'start' returns a non-integer/non-void type. 'main' will return 0.\n";
-                context.llvmBuilder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context.llvmContext), 0, true));
-            }
-
-            std::string outputFilename = "output.ll";
-            std::error_code errorCode;
-            llvm::raw_fd_ostream outputStream(outputFilename, errorCode);
-            if (errorCode) {
-                std::cerr << "Error opening file for writing: " << errorCode.message() << std::endl;
-                return 1;
-            }
-            context.llvmModule.print(outputStream, nullptr);
-            outputStream.close();
-            std::cout << "Compilation successful!" << std::endl;
-
-        } catch (const std::exception& e) {
-            std::cerr << "Parser error: " << e.what() << std::endl;
-            return 1;
-        }
-
-        if (errorManager.hasErrors()) {
-            std::cerr << "\nCompilation failed with errors:\n";
-            std::cerr << errorManager.getErrorReport();
-            return 1;
-        }
-
-
-        // TODO: Add further stages of compilation here
-
-    } catch (const std::exception &e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
+    umbra::UmbraCompilerOptions options;
+    options.inputFilePath = argv[1];
+    
+    umbra::ErrorManager errorManager;
+    umbra::Compiler compiler(options, errorManager);
+    compiler.compile();
 
     return 0;
 }

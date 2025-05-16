@@ -35,6 +35,18 @@ else()
   add_compile_options(-Wall -Wextra )
 endif()
 
+#paquete de boost
+find_package(Boost REQUIRED COMPONENTS program_options)
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+    add_definitions(-DBOOST_ALL_NO_LIB)
+    
+    message(STATUS "Boost version: ${Boost_VERSION}")
+    message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
+    message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+else()
+    message(FATAL_ERROR "Boost not found")
+endif()
 
 # Paquete de LLVM
 find_package(LLVM REQUIRED CONFIG)
@@ -51,6 +63,7 @@ add_library(umbra_lexer STATIC
     src/error/CompilerError.cpp
     src/error/ErrorManager.cpp
     src/preprocessor/Preprocessor.cpp
+
 )
 
 add_library(umbra_nodes STATIC
@@ -74,10 +87,12 @@ file(GLOB_RECURSE SOURCES
   "src/codegen/ir/*.cpp"
   "src/codegen/types/*.cpp"
   "src/codegen/visitors/*.cpp"
+  "src/compiler/*.cpp"
   "src/preprocessor/*.cpp")
 add_executable(umbra ${SOURCES})
 llvm_map_components_to_libnames(llvm_libs support core irreader)
 target_link_libraries(umbra ${llvm_libs} umbra_lexer)
+target_link_libraries(umbra ${Boost_LIBRARIES})
 set_target_properties(umbra
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
