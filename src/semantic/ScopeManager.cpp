@@ -15,7 +15,6 @@ ScopeManager::exitScope(SymbolTable &symbolTable) {
         return;
     }
     
-    std::cout << "Exiting scope" << std::endl;
     _SymbolMap scopeSymbols = std::move(scopes.back());
     scopes.pop_back();
     

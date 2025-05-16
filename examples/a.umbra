@@ -1,0 +1,3 @@
+func sum(int a, int b) -> void {
+    print("hola mundo desde otra funcion\n")
+}

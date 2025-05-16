@@ -1,4 +1,3 @@
-func start(int a) -> int {
-    int b = 1 + 2
-    return b
+func start () -> void {
+    print("Hola mundo\n")
 }

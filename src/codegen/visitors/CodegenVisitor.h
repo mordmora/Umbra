@@ -16,14 +16,18 @@ namespace umbra{
             llvm::Type* mapBuiltinTypeToLLVMType(const umbra::Type& type) const;
             //umbra::Type* mapLLVMTypeToBuiltinType(llvm::Type* type) const;
 
+            //program
+            void visit(umbra::ProgramNode& node) override;
+
             //literals
             void visit(umbra::StringLiteral& node) override;
 
             //expressions
-
+            void visit(umbra::ExpressionStatement& node) override;
+            void visit(umbra::PrimaryExpression& node) override;
 
             //statements
-
+            void visit(umbra::FunctionCall& node) override;
 
 
             //top_level

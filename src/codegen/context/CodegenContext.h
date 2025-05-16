@@ -4,7 +4,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include<llvm/IR/Module.h>
 #include<llvm/IR/IRBuilder.h>
-#include<map>
+#include<unordered_map>
 #include<string>
 
 namespace llvm { class Value; }
@@ -17,8 +17,8 @@ namespace umbra {
             llvm::LLVMContext llvmContext;
             llvm::Module llvmModule;
             llvm::IRBuilder<> llvmBuilder;
-            std::map<const std::string&, llvm::Value*> namedValues;
-            std::map<std::string, llvm::Value*> globalStrings;
+            std::unordered_map<std::string, llvm::Value*> namedValues;
+            std::unordered_map<std::string, llvm::Value*> globalStrings;
 
             llvm::Function* getPrintfFunction();
 

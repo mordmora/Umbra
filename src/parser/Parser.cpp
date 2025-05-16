@@ -1,11 +1,8 @@
 #include "Parser.h"
 #include "../error/ErrorManager.h"
 #include <algorithm>
-#include<vector>
-#include <iostream>
+#include <vector>
 #include <cctype>
-
-#define UMBRA_PRINT(x);
 
 namespace umbra {
 
@@ -47,12 +44,6 @@ Parser::Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalEr
  * @return true si el token actual coincide con @p type y se avanza; false en caso contrario.
  */
 bool Parser::match(TokenType type) {
-    #ifdef UMBRA_DEBUG
-    std::cout << "Matching token: " 
-              << static_cast<int>(current->type) 
-              << " with " << static_cast<int>(type) 
-              << std::endl;
-    #endif
     if (check(type)) {
         advance();
         return true;
@@ -114,19 +105,9 @@ Lexer::Token Parser::lookAhead(int distance) {
  */
 bool Parser::check(TokenType type) const {
     if (isAtEnd()) {
-        #ifdef UMBRA_DEBUG
-        std::stringstream ss;
-        ss << "Check failed - at end of input" << std::endl;
-        UMBRA_PRINT(ss.str());
-        #endif
         return false;
     }
-    #ifdef UMBRA_DEBUG
-    std::stringstream ss;
-    ss << "Checking token type: " << static_cast<int>(type) 
-       << " against current: " << static_cast<int>(peek().type) << std::endl;
-    UMBRA_PRINT(ss.str());
-    #endif
+
     return peek().type == type;
 }
 
@@ -141,21 +122,10 @@ bool Parser::check(TokenType type) const {
  */
 Lexer::Token Parser::advance() {
     if (!isAtEnd()) {
-        #ifdef UMBRA_DEBUG
-        std::stringstream ss;
-        ss << "Advancing token: " << static_cast<int>(current->type)
-           << " at position: " << (current - tokens.begin()) << std::endl;
-        ss << "Token text: \"" << current->lexeme << "\"" << std::endl;
-        UMBRA_PRINT(ss.str());
-        #endif
         previousToken = *current;
         return *current++;
     }
-    #ifdef UMBRA_DEBUG
-    std::stringstream ss;
-    ss << "At end of input - returning previous token" << std::endl;
-    UMBRA_PRINT(ss.str());
-    #endif
+
     return previous();
 }
 
@@ -167,13 +137,6 @@ Lexer::Token Parser::advance() {
  * @return El token que fue consumido anteriormente.
  */
 Lexer::Token Parser::previous() const { 
-    #ifdef UMBRA_DEBUG
-    std::stringstream ss;
-    ss << "Getting previous token: " 
-       << static_cast<int>(previousToken.type) 
-       << std::endl;
-    UMBRA_PRINT(ss.str());
-    #endif
     return previousToken; 
 }
 
@@ -227,12 +190,7 @@ bool Parser::isAtEnd() const {
  */
 Lexer::Token Parser::consume(TokenType type, const std::string& message) {
     Lexer::Token currentToken = peek();
-    #ifdef UMBRA_DEBUG
-    std::cout << "Consuming token: " 
-              << static_cast<int>(currentToken.type) 
-              << " with " << static_cast<int>(type) 
-              << std::endl;
-    #endif
+
     if (check(type)) {
         advance();
         return currentToken;
@@ -256,7 +214,7 @@ bool Parser::isTypeToken(const Lexer::Token& token) {
 //<program> ::= { <function_definition> }
 std::shared_ptr<ProgramNode> Parser::parseProgram() {
     std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
-    UMBRA_PRINT("Parsing program");
+
     while (!isAtEnd()) {
         functionDefinitions.push_back(parseFunctionDefinition());
         if(match(TokenType::TOK_NEWLINE)) {
@@ -283,12 +241,10 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
 
     if(!check(TokenType::TOK_RIGHT_PAREN)){ //Parse params
         do{
-
-            UMBRA_PRINT("Parsing parameter");
             auto paramType = parseType();
             Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER,
                 "Expected parameter name");
-            auto paramId = std::make_unique<Identifier>(std::string(paramName.start, paramName.length));
+            auto paramId = std::make_unique<Identifier>(paramName.lexeme);
             parameters.push_back(std::make_pair(std::move(paramType), 
             std::move(paramId)));
         } while(match(TokenType::TOK_COMMA));
@@ -311,18 +267,17 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
 
     return std::make_unique<FunctionDefinition>(
-        std::make_unique<Identifier>(std::string(name.start, name.length)
-        ), 
+        std::make_unique<Identifier>(name.lexeme),
         std::make_unique<ParameterList>(
             std::move(parameters)
         ), std::move(returnType), 
         std::move(body),
-        std::move(returnVal));
+        std::move(returnVal) );
 
 }
 
 std::unique_ptr<Type> Parser::parseType(){
-    UMBRA_PRINT("Parsing type");
+
     if(isTypeToken(peek()) == false){
         throw std::runtime_error("Expected type token");
     }
@@ -334,10 +289,10 @@ std::unique_ptr<Type> Parser::parseType(){
 std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
     std::vector<std::unique_ptr<Statement>> statements;
     while(!isAtEnd()){
-        UMBRA_PRINT("STATEMENT LIST CURRENT TOKEN: "+peek().lexeme);
+
         auto statement = parseStatement();
         if(statement == nullptr){
-            UMBRA_PRINT("PARSED STATEMENT IS NULL");
+
             return statements;
         }
         if(!match(TokenType::TOK_NEWLINE)){
@@ -350,9 +305,9 @@ std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
 }
 
 std::unique_ptr<Statement> Parser::parseStatement(){
-    UMBRA_PRINT("STATEMENT CURRENT TOKEN: "+peek().lexeme);
+
     if(isTypeToken(peek())){
-        UMBRA_PRINT(peek().lexeme);
+
         return parseVariableDeclaration();
     }if(check(TokenType::TOK_IDENTIFIER)){
         return std::make_unique<ExpressionStatement>(parseFunctionCall());
@@ -380,10 +335,10 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
         }
 
         return std::make_unique<VariableDeclaration>(std::move(type), 
-        std::make_unique<Identifier>(name.lexeme()), std::move(initializer));
+        std::make_unique<Identifier>(name.lexeme), std::move(initializer));
     }
     return std::make_unique<VariableDeclaration>(std::move(type), 
-    std::make_unique<Identifier>(name.lexeme()), nullptr);
+    std::make_unique<Identifier>(name.lexeme), nullptr);
 }
 
 /**
@@ -407,12 +362,12 @@ std::unique_ptr<Expression> Parser::parseExpression(){
  * la expresión lógica OR resultante.
  */
 std::unique_ptr<Expression> Parser::parseLogicalOr(){
-    UMBRA_PRINT("PARSE LOGICAL OR NODE WITH CURRENT TOKEN: " + peek().lexeme);
+
     auto expr = parseLogicalAnd();
     while(match(TokenType::TOK_OR)){
         auto op = previous();
         auto right = parseLogicalAnd();
-        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -426,12 +381,11 @@ std::unique_ptr<Expression> Parser::parseLogicalOr(){
  * @return std::unique_ptr<Expression> Un puntero único a la expresión lógica AND resultante.
  */
 std::unique_ptr<Expression> Parser::parseLogicalAnd(){
-    UMBRA_PRINT("PARSE LOGICAL AND NODE WITH CURRENT TOKEN: " + peek().lexeme);
     auto expr = parseEquality();
     while(match(TokenType::TOK_AND)){
         auto op = previous();
         auto right = parseEquality();
-        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
     }
     return expr;
 }
@@ -445,37 +399,35 @@ std::unique_ptr<Expression> Parser::parseLogicalAnd(){
  * @return std::unique_ptr<Expression> Un puntero único a la expresión de igualdad resultante.
  */
 std::unique_ptr<Expression> Parser::parseEquality(){
-    UMBRA_PRINT("PARSE EQUALITY NODE WITH CURRENT TOKEN: " + peek().lexeme);
+
     auto expr = parseRelational();
     while(match(TokenType::TOK_EQUAL)){
         auto op = previous();
         auto right = parseRelational();
-        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
     }
     return expr;
 }
 
 std::unique_ptr<Expression> Parser::parseRelational(){
-    UMBRA_PRINT("PARSE RELATIONAL NODE WITH CURRENT TOKEN: "+ peek().lexeme);
+
     auto expr = parseAditive();
     while(check(TokenType::TOK_LESS) || check(TokenType::TOK_GREATER) || check(TokenType::TOK_LESS_EQ) || check(TokenType::TOK_GREATER_EQ)){
         auto op = advance();
         auto right = parseAditive();
-        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
     }
     return expr;
 }
 
 std::unique_ptr<Expression> Parser::parseAditive(){
-    std::cout << "Parsing adivite with " << peek().lexeme() << std::endl;
+
     auto left = parseMultiplicative();
     while(check(TokenType::TOK_ADD) || check(TokenType::TOK_MINUS)){
         auto op = advance();
         auto right = parseMultiplicative();
 
-        std::cout << "Aditive operator: " << op.lexeme() << std::endl;
-
-        left = std::make_unique<BinaryExpression>(op.lexeme(), std::move(left), std::move(right));
+        left = std::make_unique<BinaryExpression>(op.lexeme, std::move(left), std::move(right));
     }
     return left;
 }
@@ -487,17 +439,16 @@ std::unique_ptr<Expression> Parser::parseMultiplicative(){
     while(match(TokenType::TOK_MULT) || match(TokenType::TOK_DIV) || match(TokenType::TOK_MOD)){
         auto op = previous();
         auto right = parseUnary();
-        expr = std::make_unique<BinaryExpression>(op.lexeme(), std::move(expr), std::move(right));
+        expr = std::make_unique<BinaryExpression>(op.lexeme, std::move(expr), std::move(right));
     }
     return expr;
 }
 
 std::unique_ptr<Expression> Parser::parseUnary(){
-    UMBRA_PRINT("PARSE UNARY NODE WITH CURRENT TOKEN: "+ peek().lexeme);
     if(check(TokenType::TOK_PTR) || check(TokenType::TOK_REF) || check(TokenType::TOK_ACCESS)){
         auto op = advance();
         auto operand = parsePrimary();
-        return std::make_unique<UnaryExpression>(op.lexeme(), std::move(operand));
+        return std::make_unique<UnaryExpression>(op.lexeme, std::move(operand));
     }
     return parsePrimary();
 }
@@ -526,19 +477,19 @@ std::unique_ptr<Expression> Parser::parsePrimary(){
 }
 
 std::unique_ptr<Literal> Parser::parseLiteral(){
-    UMBRA_PRINT("PARSE LITERAL NODE WITH CURRENT TOKEN: "+ peek().lexeme);
+
     auto literal = advance();
-    std::cout << "Literal type " << static_cast<int>(literal.type) << std::endl;
+
     switch (literal.type){
         case TokenType::TOK_NUMBER:
-            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme()), BuiltinType::Int);
+            return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme), BuiltinType::Int);
         case TokenType::TOK_FLOAT:
-            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme()), BuiltinType::Float);
+            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), BuiltinType::Float);
         case TokenType::TOK_CHAR:
-            return std::make_unique<CharLiteral>(literal.lexeme()[0]);
+            return std::make_unique<CharLiteral>(literal.lexeme[0]);
         case TokenType::TOK_STRING_LITERAL:
 
-            return std::make_unique<StringLiteral>(literal.lexeme());
+            return std::make_unique<StringLiteral>(literal.lexeme);
         default:
             if(literal.type == TokenType::TOK_TRUE || literal.type == TokenType::TOK_FALSE){
                 return std::make_unique<BooleanLiteral>(literal.type == TokenType::TOK_TRUE);
@@ -590,9 +541,9 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
  * @return std::unique_ptr<Identifier> Un puntero único a un objeto Identifier con el lexema del token consumido.
  */
 std::unique_ptr<Identifier> Parser::parseIdentifier(){
-    UMBRA_PRINT(static_cast<int>(peek().type));
+
     auto id = consume(TokenType::TOK_IDENTIFIER, "Expected identifier");
-    return std::make_unique<Identifier>(id.lexeme());
+    return std::make_unique<Identifier>(id.lexeme);
 }
 
 /**

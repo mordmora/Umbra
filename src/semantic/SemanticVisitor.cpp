@@ -1,6 +1,5 @@
 #include "SemanticVisitor.h"
 #include "../error/CompilerError.h"
-#include <iostream>
 #include<memory.h>
 #include "TypeCompatibility.h"
 #include "../utils/utils.h"
@@ -23,10 +22,16 @@ void ProgramChecker::visit(ProgramNode& node) {
 void ProgramChecker::visit(ParameterList& node) {
 
     for (auto& param : node.parameters) {
+
+        auto symbolType = std::make_unique<Type>(
+            param.first->builtinType,
+            param.first->arrayDimensions
+        );
+
         bool status = symbolTable.addSymbol(std::make_unique<Symbol>(
             param.second->name,
             Symbol::SymbolKind::VARIABLE,
-            std::move(param.first),
+            std::move(symbolType),
             interner));
         if (!status) {
             errorManager.addError(
@@ -45,10 +50,15 @@ void ProgramChecker::visit(ParameterList& node) {
 
 void ProgramChecker::visit(FunctionDefinition& node) {
 
+    auto functionReturnType = std::make_unique<Type>(
+        node.returnType->builtinType,
+        node.returnType->arrayDimensions
+    );
+
     auto functionSymbol = std::make_unique<Symbol>(
         node.name->name,
         Symbol::SymbolKind::FUNCTION,
-        std::move(node.returnType),
+        std::move(functionReturnType),
         interner);
 
     if(node.parameters){
@@ -88,7 +98,6 @@ void ProgramChecker::visit(FunctionDefinition& node) {
 }
 
 void ProgramChecker::visit(VariableDeclaration& node) {
-    std::cout << "Starting variable declaration analysis " << node.name->name << std::endl;
     
     if (symbolTable.getSymbol(node.name->name)) {
         errorManager.addError(
@@ -208,7 +217,6 @@ void ExpressionTypeChecker::visit(Identifier& node) {
 void ExpressionTypeChecker::visit(BinaryExpression& node) {
     node.left->accept(*this);
     auto leftType = resultType;
-    // NO asignes node.builtinExpressionType aquí todavía
 
     node.right->accept(*this);
     auto rightType = resultType;

@@ -8,7 +8,6 @@
 #include <iostream>
 #include <sstream>
 #include "LookUpKeyword.h"
-#include "charTables.h"
 
 /**
  * @namespace umbra
@@ -40,7 +39,7 @@ Lexer::Lexer(const std::string &source, ErrorManager &externalErrorManager)
  * @brief Obtiene el código fuente actual
  * @return Cadena con el código fuente
  */
-std::string Lexer::getSource() { return source; }
+const std::string& Lexer::getSource() const { return source; }
 
 /**
  * @brief Inicializa la tabla de despachadores
@@ -200,7 +199,7 @@ void Lexer::handleComma() {
  * y determina si es un número decimal o un token de punto.
  */
 void Lexer::handleDot() {
-    if (IS_DIGIT(peek())) {
+    if (std::isdigit(peek())) {
         state = State::Decimal;
         number();
     } else {
@@ -252,18 +251,22 @@ void Lexer::handleMultiply() {
 
 void Lexer::handleDefault(char c) {
 
-    if (IS_ALPHA(c)) {
+    if (c == '0') { // Caso especial para prefijos como 0b, 0x
+        if (peek() == 'b' || peek() == 'B') {
 
-        identifier(); 
-    } else if (IS_DIGIT(c)) {
-        number(); 
-    } else if (c == '"') {
-        string(); 
-    } else if (c == '\'') {
-        charliteral(); 
+            isBinary(); // Renombrar o reestructurar isBinary
+        } else if (peek() == 'x' || peek() == 'X') {
+            // handleHex(); // Necesitarías una función similar
+            number(); // O deja que number() maneje esto si lo modificas
+        } else {
+            number(); // Número octal (tradicionalmente) o solo '0'
+        }
+    } else if (std::isalpha(c) || c == '_') { // isAlpha ya incluye '_' en tu implementación
+        identifier();
+    } else if (std::isdigit(c)) {
+        number();
     } else {
-
-        std::string desc = isprint(c) ? std::string(1, c) : "<non-printable>";
+        std::string desc = std::isprint(c) ? std::string(1, c) : "<non-printable>";
         reportLexicalError("Unexpected character: '" + desc + "'");
     }
 }
@@ -274,36 +277,37 @@ void Lexer::handleDefault(char c) {
  * @return Vector de tokens generados
  */
 std::vector<Lexer::Token> Lexer::tokenize() {
-    tokens.clear();
-
-    bool lastWasReturn = false;
+    tokens.clear(); // Asegurarse de que esté limpio si se llama varias veces
+    current = 0;
+    line = 1;
+    column = 1;
+    start = 0;
 
     while (!isAtEnd()) {
         start = current;
-        lastChar = advance();
-        if (IS_WHITESPACE(lastChar)) {
-            column++;
-            continue;
-        }
-        if (lastChar == '\n') {
-            if (!lastWasReturn) {
-                addToken(TokenType::TOK_NEWLINE);
-                lastWasReturn = true;
-            }
-            line++;
-            column = 1;
-            continue;
-        }
+        char c = advance();
 
-        lastWasReturn = false;
+        switch (c) {
+            case ' ':
+            case '\r':
+            case '\t':
+                break;
+            case '\n':
+                line++;
+                column = 1;
+                if (tokens.empty() || tokens.back().type != TokenType::TOK_NEWLINE) {
+                    addToken(TokenType::TOK_NEWLINE);
+                }
 
-        void (Lexer::*handler)() = dispatchTable[(unsigned char)lastChar];
-        if(handler){
-            (this->*handler)();
-        }else{
-            handleDefault(lastChar);
+                break;
+            default:
+                if (dispatchTable[static_cast<unsigned char>(c)]) {
+                    (this->*dispatchTable[static_cast<unsigned char>(c)])();
+                } else {
+                    handleDefault(c); // 'c' ya fue consumido por advance()
+                }
+                break;
         }
-
     }
     addToken(TokenType::TOK_EOF);
     return tokens;
@@ -382,29 +386,6 @@ void Lexer::addToken(TokenType type, const char* lexeme, size_t length) {
 }
 
 /**
- * @brief Verifica si un caracter es un operador
- * @param currentChar Caracter a verificar
- * @return true si es un operador, false en caso contrario
- */
-
-bool Lexer::matchOperatorFromTable(const char currentChar) {
-    for (const auto& rule : operatorRules) {
-        if (rule.first == currentChar) {
-            if (match(rule.second)) {
-                addToken(rule.combined, &source[start], 2);
-                return true;
-            } else if (rule.single != TokenType::TOK_INVALID) {
-                addToken(rule.single, &source[start], 1);
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-
-
-/**
  * @brief Añade un nuevo token con lexema específico
  * @param type Tipo de token
  * @param lexeme Lexema del token
@@ -441,12 +422,16 @@ void Lexer::charliteral() {
                 return;
         }
     } else {
-        value = c;
+        value = c; // c es el primer carácter después de la apertura '
 
-        if (peek() == '\'' && IS_ALPHA(c)) {
-            reportLexicalError("Character literal may contain only one character.");
-            return;
-        }
+        // No debería haber más caracteres antes del cierre '
+        // if (peek() != '\'') { // Si no es el cierre inmediato
+        //    reportLexicalError("Character literal may contain only one character or a valid escape sequence.");
+
+        //    while(!isAtEnd() && peek() != '\'' && peek() != '\n') advance();
+        //    if(peek() == '\'') advance(); // Consume el cierre si se encuentra
+        //    return;
+        // }
     }
 
     if (isAtEnd() || advance() != '\'') {
@@ -463,7 +448,6 @@ void Lexer::charliteral() {
  * @brief Procesa un literal de cadena
  */
 void Lexer::string() {
-    std::cout << "Processing string literal" << std::endl;
 
     std::string value;
     bool unterminated = true;
@@ -497,11 +481,10 @@ void Lexer::string() {
     }
 
     if (unterminated) {
-        std::cout << "Reporting error" << std::endl;
+
         reportLexicalError("Unterminated string literal. Did you forget a closing '\"'?");
         return;
     }
-
     addToken(TokenType::TOK_STRING_LITERAL, value.c_str(), value.length());
 }
 
@@ -513,27 +496,27 @@ void Lexer::string() {
     bool hasDot = false;
     bool hasExp = false;
 
-    while (IS_DIGIT(peek()))
+    while (std::isdigit(peek()))
         advance();
 
-    if (peek() == '.' && IS_DIGIT(peekNext())) {
+    if (peek() == '.' && std::isdigit(peekNext())) {
         hasDot = true;
         advance(); // consume '.'
-        while (IS_DIGIT(peek()))
+        while (std::isdigit(peek()))
             advance();
     }
 
     if (peek() == 'e' || peek() == 'E') {
         char next = peekNext();
-        if (IS_DIGIT(next) || next == '+' || next == '-') {
+        if (std::isdigit(next) || next == '+' || next == '-') {
             hasExp = true;
             advance(); // consume 'e'
             if (peek() == '+' || peek() == '-') advance();
-            if (!IS_DIGIT(peek())) {
+            if (!std::isdigit(peek())) {
                 reportLexicalError("Malformed number literal: expected digit after exponent.");
                 return;
             }
-            while (IS_DIGIT(peek()))
+            while (std::isdigit(peek()))
                 advance();
         }
     }
@@ -547,7 +530,7 @@ void Lexer::string() {
  * @brief Procesa un identificador o palabra reservada
  */
 void Lexer::identifier() {
-    while (IS_ALNUM(peek()))
+    while (std::isalnum(peek()))
         advance();
 
     const char* identStart = &source[start];
@@ -557,28 +540,6 @@ void Lexer::identifier() {
     addToken(type, identStart, identLen);
 }
 
-/**
- * @brief Verifica si un caracter es alfabético
- * @param c Caracter a verificar
- * @return true si es alfabético, false en caso contrario
- */
-bool Lexer::isAlpha(char c) const {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-}
-
-/**
- * @brief Verifica si un caracter es alfanumérico
- * @param c Caracter a verificar
- * @return true si es alfanumérico, false en caso contrario
- */
-bool Lexer::isAlphaNumeric(char c) const { return isAlpha(c) || isDigit(c); }
-
-/**
- * @brief Verifica si un caracter es un dígito
- * @param c Caracter a verificar
- * @return true si es un dígito, false en caso contrario
- */
-bool Lexer::isDigit(char c) const { return c >= '0' && c <= '9'; }
 
 /**
  * @brief Verifica si un caracter es un signo de operación
@@ -612,6 +573,10 @@ void Lexer::reset() {
     start = 0;
     line = 1;
     column = 1;
+    tokenIndex = 0; 
+    state = State::Start; 
+    tokens.clear(); 
+    // internalErrorManager->clear();
 }
 
 
@@ -620,7 +585,8 @@ void Lexer::reset() {
  * @param c Primer caracter del número binario
  * @return true si se procesó correctamente, false en caso contrario
  */
-bool Lexer::isBinary(char c) {
+bool Lexer::isBinary() {
+    char c;
     // int binario = 0b010010
     c = advance();
     if(c != 'b') {
@@ -647,17 +613,29 @@ bool Lexer::isBinary(char c) {
  * @brief Obtiene el siguiente token sin consumirlo
  * @return El siguiente token
  */
-Lexer::Token Lexer::peekToken() { return tokens[current]; }
+Lexer::Token Lexer::peekToken() {
+    if (tokenIndex < tokens.size()) {
+        return tokens[tokenIndex];
+    }
+
+    if (!tokens.empty() && tokens.back().type == TokenType::TOK_EOF) {
+        return tokens.back();
+    }
+
+}
 
 /**
  * @brief Obtiene y consume el siguiente token
  * @return El siguiente token
  */
 Lexer::Token Lexer::getNextToken() {
-    if (static_cast<std::size_t>(current) < tokens.size()) {
-        return tokens[current++];
+    if (tokenIndex < tokens.size()) {
+
+        if (tokens[tokenIndex].type != TokenType::TOK_EOF) {
+             return tokens[tokenIndex++];
+        }
+        return tokens[tokenIndex]; 
     }
-    return tokens.back();
 }
 
 /**
@@ -692,7 +670,7 @@ void Lexer::reportLexicalError(const std::string& msg, int offset) {
     
     std::string lineContent = getLineContent(line);
 
-    std::string underline(errorColumn + 2, ' ');
+    std::string underline(errorColumn > 0 ? errorColumn - 1 : 0, ' '); 
     underline += "^";
     
     std::string fullMessage = "\n" + lineContent + "\n" +

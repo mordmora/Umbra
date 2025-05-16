@@ -22,8 +22,7 @@ class Lexer {
      */
     struct Token {
         TokenType type;      ///< Tipo del token
-        const char* start;  ///< Texto literal del token
-        std::size_t length; ///< Longitud del token
+        std::string lexeme;  ///< Texto literal del token
         int line;           ///< Línea donde se encontró el token
         int column;         ///< Columna donde se encontró el token
 
@@ -35,10 +34,10 @@ class Lexer {
          * @param col Columna donde se encontró
          */
         Token(TokenType type, const char* start, size_t length, int line, int column)
-        : type(type), start(start), length(length), line(line), column(column) {}
+        : type(type), lexeme(start, length), line(line), column(column) {}
 
-        inline std::string lexeme() const {
-            return std::string(start, length);
+        inline std::string getLexeme() const {
+            return lexeme;
         }
     };
 
@@ -84,17 +83,15 @@ class Lexer {
      */
     Token getNextToken();
 
-    /**
-     * @brief Obtiene el texto fuente actual
-     * @return String con el texto fuente
-     */
-    std::string getSource();
+    const std::string& getSource() const;
+
+
   private:
     std::string source;                                     ///< Texto fuente a analizar
     std::unique_ptr<ErrorManager> internalErrorManager;     ///< Gestor de errores interno
     ErrorManager *errorManager;                             ///< Puntero al gestor de errores actual
     std::vector<Token> tokens;                              ///< Lista de tokens generados
-  char lastChar = ' ';                                      ///< Último carácter leído
+
   
   void (Lexer::*dispatchTable[256])() = {};                 ///< Tabla de despachadores para cada carácter
 
@@ -172,14 +169,6 @@ class Lexer {
     char peek() const;
 
     /**
-     * @brief Verifica si un carácter es un operador
-     * @param c Carácter a verificar
-     * @return true si es un operador
-     */
-
-    bool matchOperatorFromTable(const char c);
-
-    /**
      * @brief Genera un mensaje de error léxico
      * @param msg Mensaje de error
      */
@@ -250,27 +239,6 @@ class Lexer {
     void identifier();
 
     /**
-     * @brief Verifica si un carácter es una letra
-     * @param c Carácter a verificar
-     * @return true si es una letra
-     */
-    bool isAlpha(char c) const;
-
-    /**
-     * @brief Verifica si un carácter es alfanumérico
-     * @param c Carácter a verificar
-     * @return true si es alfanumérico
-     */
-    bool isAlphaNumeric(char c) const;
-
-    /**
-     * @brief Verifica si un carácter es un dígito
-     * @param c Carácter a verificar
-     * @return true si es un dígito
-     */
-    bool isDigit(char c) const;
-
-    /**
      * @brief Verifica si un carácter es un signo de operación
      * @param c Carácter a verificar
      * @return true si es un signo de operación
@@ -296,7 +264,10 @@ class Lexer {
      * @param c Carácter inicial
      * @return true si se procesó un número binario válido
      */
-    bool isBinary(char c);
+    bool isBinary();
+
+    private:
+        size_t tokenIndex = 0;
 
 };
 

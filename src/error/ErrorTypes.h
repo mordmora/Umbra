@@ -7,7 +7,8 @@ enum class ErrorType {
     // basic error types
     LEXICAL,
     SYNTACTIC,
-    SEMANTIC
+    SEMANTIC,
+    PREPROCESSOR
 };
 
 } // namespace umbra

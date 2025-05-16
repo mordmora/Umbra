@@ -11,7 +11,9 @@ namespace umbra {
     CodegenContext::CodegenContext(const std::string& moduleName)
         : llvmContext(),
         llvmModule(moduleName, llvmContext),
-        llvmBuilder(llvmContext) {}
+        llvmBuilder(llvmContext) {
+            
+        }
 
 
         llvm::Function* CodegenContext::getPrintfFunction() {

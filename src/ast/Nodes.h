@@ -36,8 +36,7 @@ namespace umbra {
     public:
         void accept(ASTVisitor& visitor) override {}
 
-        //Se usa para agregar información
-        //semántica a la expresión
+        
          BuiltinType builtinExpressionType;
     };
 
