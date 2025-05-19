@@ -426,6 +426,11 @@ namespace umbra {
         deep--;
     }
 
+    /**
+     * @brief Process a repeat-times loop statement node
+     * @param node The repeat-times node to visit
+     * @details Prints the hierarchical structure of a 'repeat n times' loop, showing the iteration count expression and all body statements with proper indentation to reflect nesting levels.
+     */
     void PrintASTVisitor::visit(RepeatTimesStatement& node) {
         indent();
         std::cout << "Repeat-Times Loop:" << std::endl;
@@ -449,6 +454,11 @@ namespace umbra {
         deep--;
     }
 
+    /**
+     * @brief Process a repeat-if conditional loop statement node
+     * @param node The repeat-if node to visit
+     * @details Prints the complete structure of a 'repeat if' loop, displaying the condition expression and all body statements while maintaining visual hierarchy through indentation.
+     */
     void PrintASTVisitor::visit(RepeatIfStatement& node){
         indent();
         std::cout << "Repeat-If Loop:" << std::endl;
