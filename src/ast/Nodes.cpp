@@ -174,7 +174,11 @@ namespace umbra {
      */
     RepeatIfStatement::RepeatIfStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<Statement>> body)
         : condition(std::move(condition)), body(std::move(body)) {} 
-
+    
+    void RepeatIfStatement::accept(ASTVisitor &visitor){
+        visitor.visit(*this);
+    }
+       
     /**
      * @brief Constructs a return statement node
      * @param returnValue Expression to return
