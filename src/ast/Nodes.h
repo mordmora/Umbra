@@ -155,6 +155,26 @@ namespace umbra {
         std::unique_ptr<Identifier> target; // For deallocation
     };
 
+    // Repeat times statement node (For)
+    class RepeatTimesStatement : public Statement {
+    public:
+        RepeatTimesStatement(std::unique_ptr<Expression> times,
+                            std::vector<std::unique_ptr<Statement>> body);  
+        void accept(ASTVisitor& visitor) override;
+        std::unique_ptr<Expression> times;
+        std::vector<std::unique_ptr<Statement>> body;
+    };
+    
+    // Repeat if statement node (While)
+    class RepeatIfStatement : public Statement {
+    public:
+        RepeatIfStatement(std::unique_ptr<Expression> condition,
+                            std::vector<std::unique_ptr<Statement>> body);
+        void accept(ASTVisitor& visitor) override;           
+        std::unique_ptr<Expression> condition;
+        std::vector<std::unique_ptr<Statement>> body;
+    };
+
     // Return statement node
     class ReturnExpression : public Expression{
     public:
@@ -321,6 +341,8 @@ namespace umbra {
         std::unique_ptr<Expression> object;
         std::unique_ptr<Identifier> member;
     };
+
+    
 
 };
 

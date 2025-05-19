@@ -1,0 +1,5 @@
+func start () -> void {
+    repeat 6 times {
+        print("Hola mundo\n")
+    }
+}

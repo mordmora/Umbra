@@ -1,6 +1,13 @@
 #include "CodegenVisitor.h"
 #include "../context/CodegenContext.h"
 #include "../../semantic/Symbol.h" // Include the Symbol header
+#include <llvm-14/llvm/ADT/APInt.h>
+#include <llvm-14/llvm/IR/BasicBlock.h>
+#include <llvm-14/llvm/IR/Constant.h>
+#include <llvm-14/llvm/IR/Constants.h>
+#include <llvm-14/llvm/IR/Instructions.h>
+#include <llvm-14/llvm/IR/Type.h>
+#include <llvm-14/llvm/IR/Value.h>
 
 namespace umbra{
 
@@ -177,6 +184,113 @@ namespace umbra{
                 node.functionCall->accept(*this);
                 lastLLVMValue = getLastValue();
             }
+        }
+
+        void CodegenVisitor::visit(umbra::NumericLiteral& node) {
+            if (node.builtinType == BuiltinType::Int) {
+                lastLLVMValue = llvm::ConstantInt::get(
+                    context.llvmContext,
+                    llvm::APInt(32, static_cast<uint64_t>(node.value))
+                );
+            }
+            else if (node.builtinType == BuiltinType::Float) {
+                lastLLVMValue = llvm::ConstantFP::get(
+                    llvm::Type::getFloatTy(context.llvmContext),
+                    node.value
+                );
+            } else if (node.builtinType == BuiltinType::Double) {
+                lastLLVMValue = llvm::ConstantFP::get(
+                    llvm::Type::getDoubleTy(context.llvmContext),
+                    node.value
+                );
+            } else {
+                throw std::runtime_error("NumericLiteral with type not supported");
+            }
+        }
+        
+        void CodegenVisitor::visit(umbra::BooleanLiteral& node) {
+            lastLLVMValue = llvm::ConstantInt::get(
+                context.llvmContext,
+                llvm::APInt(1, node.value ? 1 : 0)
+            );
+        }
+        
+        void CodegenVisitor::visit(umbra::CharLiteral& node) {
+            lastLLVMValue = llvm::ConstantInt::get(
+                context.llvmContext,
+                llvm::APInt(8, static_cast<uint64_t>(node.value))
+            );
+        }        
+
+        void CodegenVisitor::visit(umbra::RepeatTimesStatement& node){
+            node.times->accept(*this);
+            llvm::Value* timesValue = getLastValue();
+
+            if (timesValue->getType()->isFloatingPointTy()) {
+                timesValue = context.llvmBuilder.CreateFPToSI(
+                    timesValue, 
+                    llvm::Type::getInt32Ty(context.llvmContext), 
+                    "repeat.times.int");
+            }
+
+            llvm::Function* currentFunction = context.llvmBuilder.GetInsertBlock()->getParent();
+
+            llvm::BasicBlock* conditionBB = llvm::BasicBlock::Create(
+                context.llvmContext, 
+                "repeat.times.cond", 
+                currentFunction);
+            llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(
+                context.llvmContext, 
+                "repeat.times.body");
+            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
+                context.llvmContext, 
+                "repeat.times.end");
+
+            llvm::AllocaInst* counter = context.llvmBuilder.CreateAlloca(
+                llvm::Type::getInt32Ty(context.llvmContext),
+                nullptr, "repeat.counter");
+            context.llvmBuilder.CreateStore(
+                llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 0)),
+                counter);
+
+            context.llvmBuilder.CreateBr(conditionBB);
+            context.llvmBuilder.SetInsertPoint(conditionBB);
+
+            llvm::Value* counterValue = context.llvmBuilder.CreateLoad(
+                llvm::Type::getInt32Ty(context.llvmContext),
+                counter,
+                "counter.load"
+            );
+            llvm::Value* condValue = context.llvmBuilder.CreateICmpSLT(
+                counterValue,
+                timesValue,
+                "repeat.times.cond");
+            
+            context.llvmBuilder.CreateCondBr(condValue, bodyBB, endBB);
+
+            currentFunction->getBasicBlockList().push_back(bodyBB);
+            context.llvmBuilder.SetInsertPoint(bodyBB);
+
+            for (const auto& statement : node.body) {
+                statement->accept(*this);
+            }
+
+            llvm::Value* newCounterValue = context.llvmBuilder.CreateAdd(
+                counterValue,
+                llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 1)),
+                "counter.increment");
+            context.llvmBuilder.CreateStore(newCounterValue, counter);
+
+            context.llvmBuilder.CreateBr(conditionBB);
+
+            currentFunction->getBasicBlockList().push_back(endBB);
+            context.llvmBuilder.SetInsertPoint(endBB);
+
+            lastLLVMValue = nullptr;
+        }
+
+        void CodegenVisitor::visit(umbra::RepeatIfStatement& node) {
+
         }
     }
 }

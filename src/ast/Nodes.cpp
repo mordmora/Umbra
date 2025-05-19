@@ -7,6 +7,7 @@
 
 #include "Nodes.h"
 #include "ASTVisitor.h"
+#include <memory>
 
 namespace umbra {
 
@@ -154,6 +155,30 @@ namespace umbra {
         std::unique_ptr<Expression> size, std::unique_ptr<Identifier> target) 
         : action(action), type(std::move(type)), size(std::move(size)), target(std::move(target)) {}
 
+    /**
+     * @brief Constructs a repeat times loop statement node
+     * @param times Loop times continuation
+     * @param body Vector of loop body statements
+     */
+    RepeatTimesStatement::RepeatTimesStatement(std::unique_ptr<Expression> times, std::vector<std::unique_ptr<Statement>> body)
+        : times(std::move(times)), body(std::move(body)) {} 
+
+    void RepeatTimesStatement::accept(ASTVisitor &visitor){
+        visitor.visit(*this);
+    }
+    
+    /**
+     * @brief Constructs a repeat if loop statement node
+     * @param condition Loop continuation condition
+     * @param body Vector of loop body statements
+     */
+    RepeatIfStatement::RepeatIfStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<Statement>> body)
+        : condition(std::move(condition)), body(std::move(body)) {} 
+    
+    void RepeatIfStatement::accept(ASTVisitor &visitor){
+        visitor.visit(*this);
+    }
+       
     /**
      * @brief Constructs a return statement node
      * @param returnValue Expression to return

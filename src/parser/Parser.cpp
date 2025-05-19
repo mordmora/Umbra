@@ -1,6 +1,7 @@
 #include "Parser.h"
 #include "../error/ErrorManager.h"
 #include <algorithm>
+#include <memory>
 #include <vector>
 #include <cctype>
 
@@ -305,13 +306,20 @@ std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
 }
 
 std::unique_ptr<Statement> Parser::parseStatement(){
+    skipNewLines();
 
     if(isTypeToken(peek())){
-
         return parseVariableDeclaration();
-    }if(check(TokenType::TOK_IDENTIFIER)){
+    } else if(check(TokenType::TOK_IDENTIFIER)){
         return std::make_unique<ExpressionStatement>(parseFunctionCall());
+    } else if (match(TokenType::TOK_REPEAT)) {
+        if (check(TokenType::TOK_IF)) {
+            return parseRepeatIfStatement();
+        } else {
+            return parseRepeatTimesStatement();
+        }
     }
+
     return nullptr;
 }
 
@@ -544,6 +552,60 @@ std::unique_ptr<Identifier> Parser::parseIdentifier(){
 
     auto id = consume(TokenType::TOK_IDENTIFIER, "Expected identifier");
     return std::make_unique<Identifier>(id.lexeme);
+}
+
+/**
+ * @brief Parsea una estructura de repetición del tipo 'repeat ... times { ... }'.
+ * @details Esta función analiza una instrucción de repetición con contador.
+ * Espera una expresión que indique cuántas veces repetir (después de la palabra clave 'repeat'),
+ * seguida de la palabra clave 'times', y un bloque de sentencias entre llaves.
+ * Si alguno de estos elementos está ausente o malformado, se informa un error de sintaxis y se intenta sincronizar.
+ *
+ * @return std::unique_ptr<RepeatTimesStatement> Un puntero único a un nodo que representa la instrucción repeat-times.
+ */
+std::unique_ptr<RepeatTimesStatement> Parser::parseRepeatTimesStatement() {
+
+    auto timesExpr = parseExpression();
+    if (!timesExpr) {
+        error("Expected expression after 'repeat'", peek().line, peek().column);
+        synchronize();
+        return nullptr;
+    }
+
+    consume(TokenType::TOK_TIMES, "Expected 'times' after repeat expression");
+
+    consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before repeat body");
+    auto body = parseStatementList();
+    consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after repeat body");
+
+    return std::make_unique<RepeatTimesStatement>(std::move(timesExpr), std::move(body));
+}
+
+/**
+ * @brief Parsea una estructura de repetición condicional del tipo 'repeat if (...) { ... }'.
+ * @details Esta función analiza una instrucción de repetición controlada por una condición booleana.
+ * Se espera la palabra clave 'if' después de 'repeat', seguida de una expresión condicional, y luego
+ * un bloque de sentencias delimitado por llaves. Si falta alguno de estos elementos o la condición es inválida,
+ * se lanza un error de sintaxis y se intenta sincronizar el análisis.
+ *
+ * @return std::unique_ptr<RepeatIfStatement> Un puntero único a un nodo AST que representa la instrucción repeat-if.
+ */
+std::unique_ptr<RepeatIfStatement> Parser::parseRepeatIfStatement() {
+
+    consume(TokenType::TOK_IF, "Expected 'if' after repeat");
+
+    auto condition = parseExpression();
+    if (!condition) {
+        error("Expected expression after 'repeat if'", peek().line, peek().column);
+        synchronize();
+        return nullptr;
+    }
+
+    consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before repeat body");
+    auto body = parseStatementList();
+    consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after repeat body");
+
+    return std::make_unique<RepeatIfStatement>(std::move(condition), std::move(body));
 }
 
 /**

@@ -25,7 +25,9 @@
  * @namespace umbra
  */
 #include"ASTVisitor.h"
+#include "Nodes.h"
 #include <iostream>
+#include <iterator>
 
 namespace umbra {
 
@@ -421,6 +423,62 @@ namespace umbra {
             indent();
             std::cout << "(no return value)" << std::endl;
         }
+        deep--;
+    }
+
+    /**
+     * @brief Process a repeat-times loop statement node
+     * @param node The repeat-times node to visit
+     * @details Prints the hierarchical structure of a 'repeat n times' loop, showing the iteration count expression and all body statements with proper indentation to reflect nesting levels.
+     */
+    void PrintASTVisitor::visit(RepeatTimesStatement& node) {
+        indent();
+        std::cout << "Repeat-Times Loop:" << std::endl;
+
+        deep++;
+
+        indent();
+        std::cout << "Iterations:" << std::endl;
+        deep++;
+        node.times->accept(*this);
+        deep--;
+
+        indent();
+        std::cout << "Body:" << std::endl;
+        deep++;
+        for (const auto& statement : node.body) {
+            statement->accept(*this);
+        }
+        deep--;
+
+        deep--;
+    }
+
+    /**
+     * @brief Process a repeat-if conditional loop statement node
+     * @param node The repeat-if node to visit
+     * @details Prints the complete structure of a 'repeat if' loop, displaying the condition expression and all body statements while maintaining visual hierarchy through indentation.
+     */
+    void PrintASTVisitor::visit(RepeatIfStatement& node){
+        indent();
+        std::cout << "Repeat-If Loop:" << std::endl;
+
+        deep++;
+
+        indent();
+        std::cout << "Condition:" << std::endl;
+        deep++;
+        node.condition->accept(*this);
+        deep--;
+
+        indent();
+        std::cout << "Body:" << std::endl;  
+        deep++;
+        for (const auto& statement : node.body) {
+            statement->accept(*this);
+        }
+        deep--;
+
         deep--;
     }
 }
