@@ -134,6 +134,18 @@ public:
      * @param node The return expression node to visit
      */
     virtual void visit(ReturnExpression& node) = 0;
+
+    /**
+     * @brief Visit method for RepeatTimesStatement
+     * @param node The return repeat statement node to visit
+     */
+    virtual void visit(RepeatTimesStatement& node) = 0;
+
+    /**
+     * @brief Visit method for RepeatIfStatement
+     * @param node The return repeat statement node to visit
+     */
+    virtual void visit(RepeatIfStatement& node) = 0;
 };
 
 /**
@@ -168,6 +180,8 @@ class BaseVisitor : public ASTVisitor {
         void visit(NumericLiteral &node) override {}
         void visit(ReturnExpression& node) override {}
         // Add any other visit methods required by ASTVisitor
+        void visit(RepeatTimesStatement& node) override {}
+        void visit(RepeatIfStatement& node) override {}
 };
 
 
@@ -285,6 +299,18 @@ public:
      * @param node The return expression node to process
      */
     void visit(ReturnExpression& node) override;
+
+    /**
+     * @brief Visit implementation for RepeatTimesStatement
+     * @param node The return repeat expression node to process
+     */
+    void visit(RepeatTimesStatement& node) override;
+
+    /**
+     * @brief Visit implementation for RepeatIfStatement
+     * @param node The return repeat expression node to process
+     */
+    void visit(RepeatIfStatement& node) override;
 };
 
 } // namespace umbra

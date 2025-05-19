@@ -163,6 +163,10 @@ namespace umbra {
     RepeatTimesStatement::RepeatTimesStatement(std::unique_ptr<Expression> times, std::vector<std::unique_ptr<Statement>> body)
         : times(std::move(times)), body(std::move(body)) {} 
 
+    void RepeatTimesStatement::accept(ASTVisitor &visitor){
+        visitor.visit(*this);
+    }
+    
     /**
      * @brief Constructs a repeat if loop statement node
      * @param condition Loop continuation condition

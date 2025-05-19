@@ -25,7 +25,9 @@
  * @namespace umbra
  */
 #include"ASTVisitor.h"
+#include "Nodes.h"
 #include <iostream>
+#include <iterator>
 
 namespace umbra {
 
@@ -421,6 +423,52 @@ namespace umbra {
             indent();
             std::cout << "(no return value)" << std::endl;
         }
+        deep--;
+    }
+
+    void PrintASTVisitor::visit(RepeatTimesStatement& node) {
+        indent();
+        std::cout << "Repeat-Times Loop:" << std::endl;
+
+        deep++;
+
+        indent();
+        std::cout << "Iterations:" << std::endl;
+        deep++;
+        node.times->accept(*this);
+        deep--;
+
+        indent();
+        std::cout << "Body:" << std::endl;
+        deep++;
+        for (const auto& statement : node.body) {
+            statement->accept(*this);
+        }
+        deep--;
+
+        deep--;
+    }
+
+    void PrintASTVisitor::visit(RepeatIfStatement& node){
+        indent();
+        std::cout << "Repeat-If Loop:" << std::endl;
+
+        deep++;
+
+        indent();
+        std::cout << "Condition:" << std::endl;
+        deep++;
+        node.condition->accept(*this);
+        deep--;
+
+        indent();
+        std::cout << "Body:" << std::endl;  
+        deep++;
+        for (const auto& statement : node.body) {
+            statement->accept(*this);
+        }
+        deep--;
+
         deep--;
     }
 }

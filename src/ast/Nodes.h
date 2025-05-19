@@ -160,7 +160,7 @@ namespace umbra {
     public:
         RepeatTimesStatement(std::unique_ptr<Expression> times,
                             std::vector<std::unique_ptr<Statement>> body);  
-        void accept(ASTVisitor& visitor) override {}
+        void accept(ASTVisitor& visitor) override;
         std::unique_ptr<Expression> times;
         std::vector<std::unique_ptr<Statement>> body;
     };
@@ -170,7 +170,7 @@ namespace umbra {
     public:
         RepeatIfStatement(std::unique_ptr<Expression> condition,
                             std::vector<std::unique_ptr<Statement>> body);
-        void accept(ASTVisitor& visitor) override {}            
+        void accept(ASTVisitor& visitor) override;           
         std::unique_ptr<Expression> condition;
         std::vector<std::unique_ptr<Statement>> body;
     };
