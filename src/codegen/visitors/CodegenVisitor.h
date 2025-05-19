@@ -21,6 +21,9 @@ namespace umbra{
 
             //literals
             void visit(umbra::StringLiteral& node) override;
+            void visit(umbra::NumericLiteral& node) override;
+            void visit(umbra::BooleanLiteral& node) override;
+            void visit(umbra::CharLiteral& node) override;
 
             //expressions
             void visit(umbra::ExpressionStatement& node) override;
@@ -28,7 +31,8 @@ namespace umbra{
 
             //statements
             void visit(umbra::FunctionCall& node) override;
-
+            void visit(umbra::RepeatTimesStatement& node) override;
+            void visit(umbra::RepeatIfStatement& node) override;
 
             //top_level
             void visit(umbra::FunctionDefinition& node) override;
