@@ -1,6 +1,7 @@
 #include "CodegenVisitor.h"
 #include "../context/CodegenContext.h"
 #include "../../semantic/Symbol.h" // Include the Symbol header
+#include <cstdint>
 #include <llvm-14/llvm/ADT/APInt.h>
 #include <llvm-14/llvm/IR/BasicBlock.h>
 #include <llvm-14/llvm/IR/Constant.h>
@@ -47,6 +48,39 @@ namespace umbra{
             }
 
         }
+
+        void CodegenVisitor::visit(umbra::NumericLiteral& node) {
+            if (node.builtinType == BuiltinType::Int) {
+                lastLLVMValue = llvm::ConstantInt::get(
+                    llvm::Type::getInt32Ty(context.llvmContext), 
+                    node.value, 
+                    true
+                );
+            }
+            else if (node.builtinType == BuiltinType::Float) {
+                lastLLVMValue = llvm::ConstantFP::get(
+                    llvm::Type::getFloatTy(context.llvmContext),
+                    node.value
+                );
+            } else if (node.builtinType == BuiltinType::Double) {
+                lastLLVMValue = llvm::ConstantFP::get(
+                    llvm::Type::getDoubleTy(context.llvmContext),
+                    node.value
+                );
+            } else {
+                throw std::runtime_error("NumericLiteral with type not supported");
+            }
+        }
+        
+        void CodegenVisitor::visit(umbra::BooleanLiteral& node) {
+            lastLLVMValue = llvm::ConstantInt::get(
+                llvm::Type::getInt1Ty(context.llvmContext), node.value);
+        }
+        
+        void CodegenVisitor::visit(umbra::CharLiteral& node) {
+            lastLLVMValue = llvm::ConstantInt::get(
+                llvm::Type::getInt8Ty(context.llvmContext), static_cast<uint8_t>(node.value));
+        }        
 
         void CodegenVisitor::visit(umbra::FunctionDefinition& node){
             llvm::Function* functionBeingDefined = context.llvmModule.getFunction(node.name->name);
@@ -167,7 +201,6 @@ namespace umbra{
             }
         }
 
-
         void CodegenVisitor::visit(umbra::ExpressionStatement& node){
             node.exp->accept(*this);
             lastLLVMValue = getLastValue();
@@ -185,53 +218,10 @@ namespace umbra{
                 lastLLVMValue = getLastValue();
             }
         }
-
-        void CodegenVisitor::visit(umbra::NumericLiteral& node) {
-            if (node.builtinType == BuiltinType::Int) {
-                lastLLVMValue = llvm::ConstantInt::get(
-                    context.llvmContext,
-                    llvm::APInt(32, static_cast<uint64_t>(node.value))
-                );
-            }
-            else if (node.builtinType == BuiltinType::Float) {
-                lastLLVMValue = llvm::ConstantFP::get(
-                    llvm::Type::getFloatTy(context.llvmContext),
-                    node.value
-                );
-            } else if (node.builtinType == BuiltinType::Double) {
-                lastLLVMValue = llvm::ConstantFP::get(
-                    llvm::Type::getDoubleTy(context.llvmContext),
-                    node.value
-                );
-            } else {
-                throw std::runtime_error("NumericLiteral with type not supported");
-            }
-        }
         
-        void CodegenVisitor::visit(umbra::BooleanLiteral& node) {
-            lastLLVMValue = llvm::ConstantInt::get(
-                context.llvmContext,
-                llvm::APInt(1, node.value ? 1 : 0)
-            );
-        }
-        
-        void CodegenVisitor::visit(umbra::CharLiteral& node) {
-            lastLLVMValue = llvm::ConstantInt::get(
-                context.llvmContext,
-                llvm::APInt(8, static_cast<uint64_t>(node.value))
-            );
-        }        
-
         void CodegenVisitor::visit(umbra::RepeatTimesStatement& node){
             node.times->accept(*this);
             llvm::Value* timesValue = getLastValue();
-
-            if (timesValue->getType()->isFloatingPointTy()) {
-                timesValue = context.llvmBuilder.CreateFPToSI(
-                    timesValue, 
-                    llvm::Type::getInt32Ty(context.llvmContext), 
-                    "repeat.times.int");
-            }
 
             llvm::Function* currentFunction = context.llvmBuilder.GetInsertBlock()->getParent();
 
