@@ -572,6 +572,14 @@ std::unique_ptr<RepeatTimesStatement> Parser::parseRepeatTimesStatement() {
         return nullptr;
     }
 
+    if (auto numericLiteral = dynamic_cast<NumericLiteral*>(timesExpr.get())) {
+        if (numericLiteral->builtinExpressionType == BuiltinType::Float) {
+            error("Repeat times expression must be an integer, not a float", peek().line, peek().column);
+            synchronize();
+            return nullptr;
+        }
+    }
+
     consume(TokenType::TOK_TIMES, "Expected 'times' after repeat expression");
 
     consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before repeat body");
