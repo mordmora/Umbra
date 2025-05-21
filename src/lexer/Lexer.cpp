@@ -129,7 +129,6 @@ void Lexer::handleDivide() {
  */
 
 void Lexer::handleEqual() {
-
     if (match('=')) {
         addToken(TokenType::TOK_EQUAL);
     } else {
@@ -422,16 +421,7 @@ void Lexer::charliteral() {
                 return;
         }
     } else {
-        value = c; // c es el primer carácter después de la apertura '
-
-        // No debería haber más caracteres antes del cierre '
-        // if (peek() != '\'') { // Si no es el cierre inmediato
-        //    reportLexicalError("Character literal may contain only one character or a valid escape sequence.");
-
-        //    while(!isAtEnd() && peek() != '\'' && peek() != '\n') advance();
-        //    if(peek() == '\'') advance(); // Consume el cierre si se encuentra
-        //    return;
-        // }
+        value = c;
     }
 
     if (isAtEnd() || advance() != '\'') {

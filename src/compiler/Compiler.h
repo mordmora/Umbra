@@ -35,6 +35,7 @@ namespace umbra {
             std::unique_ptr<ErrorManager> internalErrorManager_; // Solo se usa si no se proporciona uno externo
             ErrorManager& errorManagerRef_; // Siempre referencia a un ErrorManager válido
 
+            void printTokens(const std::vector<Lexer::Token>& tokens);
             bool preprocess(std::string& src);
             std::vector<Lexer::Token> lex(std::string& src);
             std::unique_ptr<ProgramNode> parse(std::vector<Lexer::Token>& tokens);

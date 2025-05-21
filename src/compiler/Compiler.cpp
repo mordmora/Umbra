@@ -48,9 +48,23 @@ namespace umbra {
         }
     }
 
+    void Compiler::printTokens(const std::vector<Lexer::Token>& tokens) {
+        for (const auto& token : tokens) {
+            std::cout << "Token << " << token.lexeme << " >> "
+                      << "Type: " << static_cast<int>(token.type) << " "
+                      << "Line: " << token.line << " "
+                      << "Column: " << token.column << std::endl;
+        }
+    }
+
     std::vector<Lexer::Token> Compiler::lex(std::string& src){
         std::unique_ptr<Lexer> lexer = std::make_unique<Lexer>(src, errorManagerRef_); // Usa la referencia
         auto tokens = lexer->tokenize();
+
+        if(options.printTokens) {
+            printTokens(tokens);
+        }
+
         if (errorManagerRef_.hasErrors()) { // Usa la referencia
             return {};
         }

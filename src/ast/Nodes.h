@@ -117,10 +117,10 @@ namespace umbra {
         std::unique_ptr<Expression> value;
     };
 
-    // Conditional statement node
-    class Conditional : public Statement {
+    // IfStatement statement node
+    class IfStatement : public Statement {
     public:
-        Conditional(std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches,
+        IfStatement(std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches,
             std::vector<std::unique_ptr<Statement>> elseBranch);
         void accept(ASTVisitor& visitor) override {}
         struct Branch {

@@ -62,6 +62,7 @@ namespace umbra {
         std::unique_ptr<Literal> parseLiteral();
         std::unique_ptr<RepeatTimesStatement> parseRepeatTimesStatement();
         std::unique_ptr<RepeatIfStatement> parseRepeatIfStatement();
+        std::unique_ptr<IfStatement> parseIfStatement();
         
         //void expectToken(TokenType expectedType);
         void error(const std::string& message, int line, int column);

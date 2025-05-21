@@ -99,22 +99,6 @@ enum class TokenType {
 
 };
 
-struct OperatorRule {
-    char first;
-    char second;
-    TokenType combined;
-    TokenType single;
-};
-
-static const OperatorRule operatorRules[] = {
-    {'=', '=', TokenType::TOK_EQUAL, TokenType::TOK_ASSIGN},
-    {'!', '=', TokenType::TOK_DIFFERENT, TokenType::TOK_NOT},
-    {'<', '=', TokenType::TOK_LESS_EQ, TokenType::TOK_LESS},
-    {'>', '=', TokenType::TOK_GREATER_EQ, TokenType::TOK_GREATER},
-    {'&', '&', TokenType::TOK_AND, TokenType::TOK_INVALID},
-    {'|', '|', TokenType::TOK_OR, TokenType::TOK_INVALID},
-    {'-', '>', TokenType::TOK_ARROW, TokenType::TOK_INVALID}
-};
 
 
 } // namespace umbra

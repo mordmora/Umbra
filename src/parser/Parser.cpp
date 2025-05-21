@@ -550,6 +550,35 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     return std::make_unique<PrimaryExpression>(std::move(functionCall));
 }
 
+std::unique_ptr<IfStatement> Parser::parseIfStatement() {
+    consume(TokenType::TOK_IF, "Expected 'if' keyword");
+    bool containsParens = false;
+
+    if(check(TokenType::TOK_LEFT_PAREN)){
+        containsParens = true;
+        advance();
+    }
+
+    auto condition = parseExpression();
+    if (!condition) {
+        error("Expected expression after 'if'", peek().line, peek().column);
+        synchronize();
+        return nullptr;
+    }
+
+    if(containsParens){
+        consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after if condition");
+    }
+
+    consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before if body");
+    auto body = parseStatementList();
+    consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after if body");
+
+    std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches;
+    branches.push_back(std::make_pair(std::move(condition), std::move(body)));
+
+}
+
 /**
  * @brief Parsea un identificador y lo envuelve en un objeto Identifier.
  * @details Esta función consume el token actual, que se espera sea de tipo

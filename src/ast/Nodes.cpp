@@ -124,7 +124,7 @@ namespace umbra {
      * @param branches Vector of condition-statement pairs for if/else-if branches
      * @param elseBranch Vector of statements for the else branch
      */
-    Conditional::Conditional(
+    IfStatement::IfStatement(
         std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches,
         std::vector<std::unique_ptr<Statement>> elseBranch)
         : elseBranch(std::move(elseBranch)) {
