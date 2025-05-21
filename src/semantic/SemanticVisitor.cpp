@@ -1,6 +1,7 @@
 #include "SemanticVisitor.h"
 #include "../error/CompilerError.h"
 #include<memory.h>
+#include <memory>
 #include "TypeCompatibility.h"
 #include "../utils/utils.h"
 
@@ -110,14 +111,35 @@ void ProgramChecker::visit(VariableDeclaration& node) {
         return;
     }
 
+    auto typeForSymbolTable = std::make_unique<Type>(
+        node.type->builtinType,
+        node.type->arrayDimensions
+    );
+
+    bool symbolAdded = symbolTable.addSymbol(std::make_unique<Symbol>(
+        node.name->name,
+        Symbol::SymbolKind::VARIABLE,
+        std::move(typeForSymbolTable),
+        interner
+    ));
+
+    if (symbolAdded) {
+        scopeManager.currentScope()[interner.get(node.name->name)] = nullptr;
+    } else {
+        errorManager.addError(
+            std::make_unique<CompilerError>(
+                ErrorType::SEMANTIC,
+                "Failed to add variable " + node.name->name + " to symbol table",
+                0,
+                0)
+        );
+        return;
+    }
+
     if (node.initializer != nullptr) {
-
         ExpressionTypeChecker typeChecker(interner, scopeManager, symbolTable, errorManager);
-
         node.initializer->accept(typeChecker);
-
         auto initializerType = typeChecker.resultType;
-
         node.initializer->builtinExpressionType = rvalExpressionTypeToBuiltin(initializerType);
 
         if (!TypeCompatibility::areTypesCompatible(*node.type, initializerType)) {
@@ -129,16 +151,6 @@ void ProgramChecker::visit(VariableDeclaration& node) {
                     0)
             );
         }
-    }
-    
-    if (symbolTable.addSymbol(std::make_unique<Symbol>(
-            node.name->name,
-            Symbol::SymbolKind::VARIABLE,
-            std::move(node.type),
-            interner)))
-    {
-        // Registrar el símbolo en el scope actual.
-        scopeManager.currentScope()[&symbolTable.getSymbol(node.name->name)->name] = nullptr;
     }
 }
 

@@ -522,7 +522,11 @@ void Lexer::string() {
     }
 
     size_t len = current - start;
-    addToken(TokenType::TOK_NUMBER, &source[start], len);
+    if (hasDot) {
+        addToken(TokenType::TOK_FLOAT, &source[start], len);
+    } else {
+        addToken(TokenType::TOK_INT, &source[start], len);
+    }
 }
 
 
