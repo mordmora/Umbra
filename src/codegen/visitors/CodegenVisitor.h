@@ -14,6 +14,7 @@ namespace umbra{
             CodegenVisitor(CodegenContext &context);
 
             llvm::Type* mapBuiltinTypeToLLVMType(const umbra::Type& type) const;
+            std::string createFormatStringSpecifier(llvm::Type* type);
             //umbra::Type* mapLLVMTypeToBuiltinType(llvm::Type* type) const;
 
             //program
@@ -36,6 +37,8 @@ namespace umbra{
 
             //top_level
             void visit(umbra::FunctionDefinition& node) override;
+            void visit(umbra::VariableDeclaration& node) override;
+            void visit(umbra::AssignmentStatement& node) override;
 
             //auxiliar
 
