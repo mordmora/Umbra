@@ -284,6 +284,10 @@ std::unique_ptr<Type> Parser::parseType(){
     }
     auto typeStr = tokenTypeToBuiltin(peek());
     advance();
+
+    if (typeStr == BuiltinType::Undef) {
+        error("Invalid type", peek().line, peek().column);
+    }
     return std::make_unique<Type>(typeStr);
 }
 
@@ -331,6 +335,12 @@ std::unique_ptr<ReturnExpression> Parser::parseReturnExpression(){
 
 std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
     auto type = parseType();
+    if (!type) {
+        error("Invalid type specification", peek().line, peek().column);
+        synchronize();
+        return nullptr;
+    }
+    
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
 
     if(match(TokenType::TOK_ASSIGN)){
@@ -469,7 +479,7 @@ std::unique_ptr<Expression> Parser::parsePrimary(){
         }
         return parseIdentifier();
 
-    }if(check(TokenType::TOK_NUMBER) 
+    }if(check(TokenType::TOK_INT) 
     || check(TokenType::TOK_CHAR)   
     || check(TokenType::TOK_STRING_LITERAL)
     || check(TokenType::TOK_TRUE)
@@ -489,7 +499,7 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
     auto literal = advance();
 
     switch (literal.type){
-        case TokenType::TOK_NUMBER:
+        case TokenType::TOK_INT:
             return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme), BuiltinType::Int);
         case TokenType::TOK_FLOAT:
             return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), BuiltinType::Float);
