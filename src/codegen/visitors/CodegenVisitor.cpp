@@ -3,12 +3,15 @@
 #include "../../semantic/Symbol.h" // Include the Symbol header
 #include <cstdint>
 #include <llvm-14/llvm/ADT/APInt.h>
+#include <llvm-14/llvm/ADT/ArrayRef.h>
 #include <llvm-14/llvm/IR/BasicBlock.h>
 #include <llvm-14/llvm/IR/Constant.h>
 #include <llvm-14/llvm/IR/Constants.h>
+#include <llvm-14/llvm/IR/DerivedTypes.h>
 #include <llvm-14/llvm/IR/Instructions.h>
 #include <llvm-14/llvm/IR/Type.h>
 #include <llvm-14/llvm/IR/Value.h>
+#include <llvm-14/llvm/Support/Casting.h>
 
 namespace umbra{
 
@@ -37,6 +40,28 @@ namespace umbra{
                     return llvm::Type::getVoidTy(context.llvmContext);
                 default:
                     throw std::runtime_error("Unsupported type");
+            }
+        }
+
+        std::string CodegenVisitor::createFormatStringSpecifier(llvm::Type* type){
+            if (type->isIntegerTy(32)) {
+                return "%d";
+            } else if (type->isFloatTy()) {
+                return "%f";
+            } else if (type->isDoubleTy()) {
+                return "%lf";
+            } else if (type->isIntegerTy(8)) {
+                return "%c";
+            } else if (type->isIntegerTy(1)) {
+                return "%d";
+            } else {
+                throw std::runtime_error("Unsupported type for print format specifier.");
+            }
+        }
+
+        void CodegenVisitor::visit(umbra::ProgramNode& node){
+            for (const auto& function : node.functions) {
+                function->accept(*this);
             }
         }
 
@@ -170,34 +195,74 @@ namespace umbra{
         }
 
         void CodegenVisitor::visit(umbra::FunctionCall& node){
-            std::vector<llvm::Value*> llvmArgs;
-            for (const auto& arg_expr : node.arguments) {
-                arg_expr->accept(*this);
-                llvmArgs.push_back(getLastValue());
-            }
-
-
             llvm::Function* targetFunction = nullptr;
             const std::string& calledFunctionName = node.functionName->name;
-
+            
             if (calledFunctionName == "print") {
                 targetFunction = context.getPrintfFunction();
                 if (!targetFunction) {
                     throw std::runtime_error("Failed to get or declare 'printf' function from context.");
                 }
+                
+                std::string formatString = "";
+                std::vector<llvm::Value*> printfArgs;
+                
+                for (const auto& argExpr : node.arguments) {
+                    argExpr->accept(*this);
+                    llvm::Value* argValue = getLastValue();
+
+                    if (!argValue) {
+                         throw std::runtime_error("Attempted to print a null value.");
+                    }
+
+                    llvm::Type* argLLVMType = argValue->getType();
+                    
+                    if (argLLVMType->isPointerTy()) {
+                        if (argLLVMType->getPointerElementType()->isIntegerTy(8)) {
+                            formatString += "%s";
+                            printfArgs.push_back(argValue);
+                        } else {
+                            argValue = context.llvmBuilder.CreateLoad(
+                                argLLVMType->getPointerElementType(),
+                                argValue
+                            );
+                            argLLVMType = argValue->getType();
+                            formatString += createFormatStringSpecifier(argLLVMType);
+                            printfArgs.push_back(argValue);
+                        }
+                    } else {
+                        formatString += createFormatStringSpecifier(argLLVMType);
+                        printfArgs.push_back(argValue);
+                    }
+                    formatString += " ";
+                }
+                
+                if (!formatString.empty()) {
+                    formatString.pop_back(); 
+                }
+
+                llvm::Value* formatStrPtr = context.llvmBuilder.CreateGlobalStringPtr(formatString.c_str(), "printf_format_str");
+                
+                std::vector<llvm::Value*> callArgs;
+                callArgs.push_back(formatStrPtr);
+                
+                for (llvm::Value* val : printfArgs) {
+                    callArgs.push_back(val);
+                }
+
+                lastLLVMValue = context.llvmBuilder.CreateCall(targetFunction, callArgs, "calltmp_" + calledFunctionName);
+                
             } else {
+                std::vector<llvm::Value*> llvmArgs;
+                for (const auto& argExpr : node.arguments) {
+                    argExpr->accept(*this);
+                    llvmArgs.push_back(getLastValue());
+                }
                 targetFunction = context.llvmModule.getFunction(calledFunctionName);
                 if (!targetFunction) {
                     throw std::runtime_error("User-defined function not found in LLVM module: " + calledFunctionName);
                 }
-            }
-            lastLLVMValue = context.llvmBuilder.CreateCall(targetFunction, llvmArgs, "calltmp_" + calledFunctionName);
-        }
-
-
-        void CodegenVisitor::visit(umbra::ProgramNode& node){
-            for (const auto& function : node.functions) {
-                function->accept(*this);
+                lastLLVMValue = context.llvmBuilder.CreateCall(targetFunction, llvmArgs, "calltmp_" + calledFunctionName);
             }
         }
 
@@ -217,6 +282,80 @@ namespace umbra{
                 node.functionCall->accept(*this);
                 lastLLVMValue = getLastValue();
             }
+        }
+
+        void CodegenVisitor::visit(umbra::VariableDeclaration& node){
+            
+            llvm::Type* llvmType = mapBuiltinTypeToLLVMType(*node.type);
+
+            llvm::AllocaInst* alloca = context.llvmBuilder.CreateAlloca(
+                llvmType,
+                nullptr,
+                node.name->name
+            );
+
+            if (!node.initializer) {
+                if (llvmType->isIntegerTy()) {
+                    context.llvmBuilder.CreateStore(
+                        llvm::ConstantInt::get(llvmType, 0),
+                        alloca
+                    );
+                } else if (llvmType->isFloatingPointTy()) {
+                    context.llvmBuilder.CreateStore(
+                        llvm::ConstantFP::get(llvmType, 0.0),
+                        alloca
+                    );
+                } else if (llvmType->isPointerTy()) {
+                    context.llvmBuilder.CreateStore(
+                        llvm::ConstantPointerNull::get(
+                        llvm::cast<llvm::PointerType>(llvmType)),
+                        alloca
+                    );
+                }
+            } else {
+                node.initializer->accept(*this);
+                llvm::Value* initValue = getLastValue();
+                context.llvmBuilder.CreateStore(initValue, alloca);
+            }
+
+            context.namedValues[node.name->name] = alloca;
+            lastLLVMValue = alloca;
+        }
+
+        void CodegenVisitor::visit(umbra::AssignmentStatement& node){
+            node.value->accept(*this);
+            llvm::Value* valueToStore = getLastValue();
+
+            llvm::Value* targetAlloca = context.namedValues[node.target->name];
+            if (!targetAlloca) {
+                throw std::runtime_error("Unknown variable name: " + node.target->name);
+            }
+
+            llvm::Type* targetType = targetAlloca->getType()->getPointerElementType();
+
+            if (node.index) {
+                node.index->accept(*this);
+                llvm::Value* indexValue = getLastValue();
+
+                // Index to dereference the pointer and actual array index value
+                std::vector<llvm::Value*> indices = {
+                    llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 0)),
+                    indexValue
+                };
+
+                    llvm::Value* elementPtr = context.llvmBuilder.CreateGEP(
+                        targetType,
+                        targetAlloca,
+                        indices,
+                        node.target->name + ".idx"
+                    );
+
+                    context.llvmBuilder.CreateStore(valueToStore, elementPtr);
+            } else {
+                context.llvmBuilder.CreateStore(valueToStore, targetAlloca);
+            }
+
+            lastLLVMValue = valueToStore;
         }
         
         void CodegenVisitor::visit(umbra::RepeatTimesStatement& node){
