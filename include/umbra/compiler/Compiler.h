@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <string>
 #include <memory>
@@ -37,9 +37,10 @@ namespace umbra {
 
             void printTokens(const std::vector<Lexer::Token>& tokens);
             bool preprocess(std::string& src);
+            void printAST(ProgramNode& node);
             std::vector<Lexer::Token> lex(std::string& src);
             std::unique_ptr<ProgramNode> parse(std::vector<Lexer::Token>& tokens);
-            bool semanticAnalyze(ProgramNode& programNode);
+            bool semanticAnalyze(ProgramNode* programNode);
             bool generateCode(ProgramNode& programNode, std::string& moduleName);
             void generateIRFile(llvm::Module& module, const std::string& filename);
             bool generateExecutable(const std::string& irFilename, const std::string& outputName);

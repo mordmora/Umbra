@@ -1,23 +1,22 @@
 
-#include "CodegenContext.h"
+#include "umbra/codegen/context/CodegenContext.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 
-namespace umbra { 
+namespace umbra {
     namespace code_gen {
     CodegenContext::CodegenContext(const std::string& moduleName)
         : llvmContext(),
         llvmModule(moduleName, llvmContext),
         llvmBuilder(llvmContext) {
-            
         }
 
 
         llvm::Function* CodegenContext::getPrintfFunction() {
-            
+
             if(printfFunction)
                 return printfFunction;
 

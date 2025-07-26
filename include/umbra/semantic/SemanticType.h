@@ -1,14 +1,15 @@
 #pragma once
 
 namespace umbra {
-enum class RvalExpressionType {
+enum class SemanticType {
     INTEGER,
     FLOAT,
     STRING,
     BOOLEAN,
     CHAR,
     VAR_NAME,
-    ERROR
+    ERROR,
+    NONE
 };
 
 }

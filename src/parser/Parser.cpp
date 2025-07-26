@@ -1,5 +1,5 @@
-#include "Parser.h"
-#include "../error/ErrorManager.h"
+#include "umbra/parser/Parser.h"
+#include "umbra/error/ErrorManager.h"
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -9,20 +9,20 @@ namespace umbra {
 
 /**
  * @brief Constructor de Parser.
- * @details Inicializa una nueva instancia de Parser a partir de un vector de tokens. 
- * Se establece el iterador 'current' al inicio del vector y se guarda el primer token 
+ * @details Inicializa una nueva instancia de Parser a partir de un vector de tokens.
+ * Se establece el iterador 'current' al inicio del vector y se guarda el primer token
  * en 'previousToken'. Este constructor es útil cuando no se dispone de un ErrorManager externo.
- * 
+ *
  * @param tokens Vector de tokens proveniente del análisis léxico.
  */
-Parser::Parser(const std::vector<Lexer::Token>& tokens) 
+Parser::Parser(const std::vector<Lexer::Token>& tokens)
     : tokens(tokens), current(tokens.begin()), errorManager(nullptr),
       previousToken(*current) {
 }
 
 /**
  * @brief Constructor de Parser con ErrorManager externo.
- * @details Inicializa una nueva instancia de Parser usando un vector de tokens y una 
+ * @details Inicializa una nueva instancia de Parser usando un vector de tokens y una
  * referencia a un ErrorManager externo para registrar errores sintácticos durante el análisis.
  * Se posiciona el iterador 'current' al comienzo del vector y se guarda el primer token
  * en 'previousToken'.
@@ -30,9 +30,9 @@ Parser::Parser(const std::vector<Lexer::Token>& tokens)
  * @param tokens Vector de tokens generados por el analizador léxico.
  * @param externalErrorManager Referencia al manejador de errores externo.
  */
-Parser::Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalErrorManager) 
+Parser::Parser(const std::vector<Lexer::Token>& tokens, ErrorManager& externalErrorManager)
     : tokens(tokens), current(tokens.begin()),
-      errorManager(&externalErrorManager), 
+      errorManager(&externalErrorManager),
       previousToken(*current) {
 }
 
@@ -54,7 +54,7 @@ bool Parser::match(TokenType type) {
 
 /**
  * @brief Obtiene la representación en cadena del tipo de un token.
- * @details Dado un token @p tk, esta función utiliza un switch para retornar el lexema 
+ * @details Dado un token @p tk, esta función utiliza un switch para retornar el lexema
  * asociado si el token corresponde a un tipo (por ejemplo, entero, flotante, booleano, etc.).
  * Si el token no es de tipo, se retorna una cadena vacía.
  *
@@ -82,7 +82,7 @@ BuiltinType tokenTypeToBuiltin(Lexer::Token tk){
 
 /**
  * @brief Retorna el token ubicado a cierta distancia desde el token actual.
- * @details Permite visualizar el token que se encuentra @p distance posiciones adelante 
+ * @details Permite visualizar el token que se encuentra @p distance posiciones adelante
  * en el vector de tokens. Si no existe un token en esa posición, se retorna el último token del vector.
  *
  * @param distance La cantidad de tokens a adelantar desde la posición actual.
@@ -132,13 +132,13 @@ Lexer::Token Parser::advance() {
 
 /**
  * @brief Obtiene el token previamente consumido.
- * @details Esta función retorna el último token que fue consumido por el parser. 
+ * @details Esta función retorna el último token que fue consumido por el parser.
  * Es útil para poder referenciar el contexto anterior sin modificar la posición actual en el flujo de tokens.
  *
  * @return El token que fue consumido anteriormente.
  */
-Lexer::Token Parser::previous() const { 
-    return previousToken; 
+Lexer::Token Parser::previous() const {
+    return previousToken;
 }
 
 bool isNumber(const std::string &str) {
@@ -157,30 +157,30 @@ void Parser::skipNewLines(){
 
 /**
  * @brief Retorna el token actual sin avanzar el iterador.
- * @details Esta función proporciona acceso al token que se encuentra en la posición actual del flujo sin 
- * alterar el estado del parser. Es fundamental para operaciones de lookahead o para validaciones donde no 
+ * @details Esta función proporciona acceso al token que se encuentra en la posición actual del flujo sin
+ * alterar el estado del parser. Es fundamental para operaciones de lookahead o para validaciones donde no
  * se desee consumir el token.
  *
  * @return El token actual apuntado por el iterador.
  */
-Lexer::Token Parser::peek() const { 
-    return *current; 
+Lexer::Token Parser::peek() const {
+    return *current;
 }
 
 /**
  * @brief Verifica si el parser ha alcanzado el fin de la entrada.
- * @details Compara el tipo del token actual con el token especial de fin de archivo (EOF). Esto garantiza que 
+ * @details Compara el tipo del token actual con el token especial de fin de archivo (EOF). Esto garantiza que
  * el parser no intente avanzar más allá del flujo de tokens y ayuda a proteger contra accesos fuera de rango.
  *
  * @return true si el token actual es EOF; false en caso contrario.
  */
-bool Parser::isAtEnd() const { 
-    return peek().type == TokenType::TOK_EOF; 
+bool Parser::isAtEnd() const {
+    return peek().type == TokenType::TOK_EOF;
 }
 
 /**
  * @brief Consume el token actual si coincide con el tipo esperado, en caso contrario genera un error.
- * @details Compara el tipo del token actual con el tipo esperado (@p type). Si coinciden, se avanza el parser y se 
+ * @details Compara el tipo del token actual con el tipo esperado (@p type). Si coinciden, se avanza el parser y se
  * retorna el token consumido. Si no coinciden, se utiliza el ErrorManager para registrar un error sintáctico con
  * un mensaje descriptivo y, a continuación, se lanza una excepción std::runtime_error para interrumpir el análisis.
  *
@@ -197,18 +197,18 @@ Lexer::Token Parser::consume(TokenType type, const std::string& message) {
         return currentToken;
     }
     errorManager->addError(
-        std::make_unique<CompilerError>(ErrorType::SYNTACTIC, 
+        std::make_unique<CompilerError>(ErrorType::SYNTACTIC,
         message, peek().line, peek().column));
     throw std::runtime_error(message);
 }
 
 bool Parser::isTypeToken(const Lexer::Token& token) {
-    return token.type == TokenType::TOK_INT 
-    || token.type == TokenType::TOK_FLOAT 
-    || token.type == TokenType::TOK_BOOL 
-    || token.type == TokenType::TOK_CHAR 
-    || token.type == TokenType::TOK_STRING 
-    || token.type == TokenType::TOK_ARRAY 
+    return token.type == TokenType::TOK_INT
+    || token.type == TokenType::TOK_FLOAT
+    || token.type == TokenType::TOK_BOOL
+    || token.type == TokenType::TOK_CHAR
+    || token.type == TokenType::TOK_STRING
+    || token.type == TokenType::TOK_ARRAY
     || token.type == TokenType::TOK_VOID;
 }
 
@@ -235,7 +235,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER,
     "Expected function name");
 
-    consume(TokenType::TOK_LEFT_PAREN, 
+    consume(TokenType::TOK_LEFT_PAREN,
     "Expected '(' after function name");
 
     std::vector<std::pair<std::unique_ptr<Type>, std::unique_ptr<Identifier>>> parameters;
@@ -246,7 +246,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
             Lexer::Token paramName = consume(TokenType::TOK_IDENTIFIER,
                 "Expected parameter name");
             auto paramId = std::make_unique<Identifier>(paramName.lexeme);
-            parameters.push_back(std::make_pair(std::move(paramType), 
+            parameters.push_back(std::make_pair(std::move(paramType),
             std::move(paramId)));
         } while(match(TokenType::TOK_COMMA));
     }
@@ -257,7 +257,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     auto returnType = parseType();
 
     consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before function body");
-    
+
     skipNewLines();
 
     auto body = parseStatementList();
@@ -271,7 +271,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
         std::make_unique<Identifier>(name.lexeme),
         std::make_unique<ParameterList>(
             std::move(parameters)
-        ), std::move(returnType), 
+        ), std::move(returnType),
         std::move(body),
         std::move(returnVal) );
 
@@ -305,7 +305,7 @@ std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
         }
 
         statements.push_back(std::move(statement));
-    } 
+    }
     return statements;
 }
 
@@ -340,7 +340,7 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
         synchronize();
         return nullptr;
     }
-    
+
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
 
     if(match(TokenType::TOK_ASSIGN)){
@@ -352,10 +352,10 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
             return nullptr;
         }
 
-        return std::make_unique<VariableDeclaration>(std::move(type), 
+        return std::make_unique<VariableDeclaration>(std::move(type),
         std::make_unique<Identifier>(name.lexeme), std::move(initializer));
     }
-    return std::make_unique<VariableDeclaration>(std::move(type), 
+    return std::make_unique<VariableDeclaration>(std::move(type),
     std::make_unique<Identifier>(name.lexeme), nullptr);
 }
 
@@ -372,11 +372,11 @@ std::unique_ptr<Expression> Parser::parseExpression(){
 
 /**
  * @brief Parsea una expresión lógica OR.
- * @details Esta función parsea expresiones que involucran el operador lógico OR. 
+ * @details Esta función parsea expresiones que involucran el operador lógico OR.
  * Llama a parseLogicalAnd() para la parte izquierda y, mientras se encuentre el token OR,
  * construye de forma recursiva un objeto BinaryExpression que representa la operación.
  *
- * @return std::unique_ptr<Expression> Un puntero único a un objeto Expression que representa 
+ * @return std::unique_ptr<Expression> Un puntero único a un objeto Expression que representa
  * la expresión lógica OR resultante.
  */
 std::unique_ptr<Expression> Parser::parseLogicalOr(){
@@ -410,7 +410,7 @@ std::unique_ptr<Expression> Parser::parseLogicalAnd(){
 
 /**
  * @brief Parsea una expresión de igualdad.
- * @details Procesa expresiones que comparan la igualdad utilizando el token TOK_EQUAL. 
+ * @details Procesa expresiones que comparan la igualdad utilizando el token TOK_EQUAL.
  * A partir de una expresión relacional (obtenida con parseRelational), se construye
  * un árbol de BinaryExpression que representa todas las comparaciones de igualdad consecutivas.
  *
@@ -479,8 +479,8 @@ std::unique_ptr<Expression> Parser::parsePrimary(){
         }
         return parseIdentifier();
 
-    }if(check(TokenType::TOK_INT) 
-    || check(TokenType::TOK_CHAR)   
+    }if(check(TokenType::TOK_INT)
+    || check(TokenType::TOK_CHAR)
     || check(TokenType::TOK_STRING_LITERAL)
     || check(TokenType::TOK_TRUE)
     || check(TokenType::TOK_FALSE)){
@@ -524,9 +524,9 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     auto id = parseIdentifier();
     consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
     std::vector<std::unique_ptr<Expression>> args;
-    
+
     skipNewLines();
-    
+
     if (!check(TokenType::TOK_RIGHT_PAREN)) {
         do {
             auto arg = parseExpression();
@@ -546,7 +546,7 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
 
     auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));
-    
+
     return std::make_unique<PrimaryExpression>(std::move(functionCall));
 }
 
@@ -673,7 +673,7 @@ void Parser::error(const std::string& message, int line, int column) {
  * @brief Intenta sincronizar el parser después de un error de análisis.
  * @details Avanza el iterador de tokens hasta encontrar un punto de sincronización.
  * Se utiliza para evitar cascadas de errores cuando se ha detectado un fallo en la sintaxis.
- * Considera terminar la sincronización si se encuentra un salto de línea o ciertos tokens clave 
+ * Considera terminar la sincronización si se encuentra un salto de línea o ciertos tokens clave
  * como TOK_FUNC, TOK_IF, TOK_ELSEIF, TOK_ELSE, TOK_REPEAT o TOK_RETURN.
  */
 void Parser::synchronize() {

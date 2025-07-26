@@ -1,7 +1,7 @@
 #ifndef UMBRA_COMPILER_ERROR_H
 #define UMBRA_COMPILER_ERROR_H
 
-#include "ErrorTypes.h"
+#include "umbra/error/ErrorTypes.h"
 #include <string>
 
 namespace umbra {
@@ -43,7 +43,7 @@ class SemanticError : public CompilerError {
     public:
         enum class Action {WARNING, ERROR};
         SemanticError(const std::string &message, int line, int column, Action action);
-    
+
         std::string toString() const override;
 
     private:

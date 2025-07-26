@@ -2,12 +2,12 @@
  * @file Lexer.h
  * @brief Implementación del analizador léxico para el lenguaje Umbra
  */
-#include "Lexer.h"
-#include "Tokens.h"
+#include "umbra/lexer/Lexer.h"
+#include "umbra/lexer/Tokens.h"
 #include <cctype>
 #include <iostream>
 #include <sstream>
-#include "LookUpKeyword.h"
+#include "umbra/lexer/LookUpKeyword.h"
 
 /**
  * @namespace umbra
@@ -43,15 +43,15 @@ const std::string& Lexer::getSource() const { return source; }
 
 /**
  * @brief Inicializa la tabla de despachadores
- * 
+ *
  * Esta función asigna funciones de manejo a cada carácter en la tabla de despachadores.
  * Cada función maneja un tipo específico de token o símbolo.
- * 
+ *
  * Ejemplo de asignación:
  * dispatchTable['+'] = &Lexer::handlePlus;
  * dispatchTable['-'] = &Lexer::handleMinus;
  */
- 
+
 void Lexer::setupDispatch(){
     dispatchTable[(unsigned char)'+'] = &Lexer::handlePlus;
     dispatchTable[(unsigned char)'-'] = &Lexer::handleMinus;
@@ -74,10 +74,10 @@ void Lexer::setupDispatch(){
 
 /**
  * @brief Maneja el token de suma o incremento
- * 
+ *
  * Esta función verifica si el carácter actual es un signo de suma
  * y determina si es un operador de incremento o una suma normal.
- * 
+ *
  */
 
 void Lexer::handlePlus() {
@@ -90,7 +90,7 @@ void Lexer::handlePlus() {
 
 /**
  * @brief Maneja el token de resta o decremento
- * 
+ *
  * Esta función verifica si el carácter actual es un signo de resta
  * y determina si es un operador de decremento, un operador de flecha o una resta normal.
  */
@@ -107,7 +107,7 @@ void Lexer::handleMinus() {
 
 /**
  * @brief Maneja el token de división
- * 
+ *
  * Esta función verifica si el carácter actual es un signo de división
  * y determina si es un comentario o una división normal.
  */
@@ -123,7 +123,7 @@ void Lexer::handleDivide() {
 
 /**
  * @brief Maneja el token de igualdad o asignación
- * 
+ *
  * Esta función verifica si el carácter actual es un signo de igualdad
  * y determina si es un operador de igualdad o una asignación.
  */
@@ -137,7 +137,7 @@ void Lexer::handleEqual() {
 }
 /**
  * @brief Maneja el token de paréntesis izquierdo
- * 
+ *
  * Esta función maneja el token de paréntesis izquierdo.
  */
 void Lexer::handleLeftParen() {
@@ -145,7 +145,7 @@ void Lexer::handleLeftParen() {
 }
 /**
  * @brief Maneja el token de paréntesis derecho
- * 
+ *
  * Esta función maneja el token de paréntesis derecho.
  */
 void Lexer::handleRightParen() {
@@ -153,7 +153,7 @@ void Lexer::handleRightParen() {
 }
 /**
  * @brief Maneja el token de llave izquierda
- * 
+ *
  * Esta función maneja el token de llave izquierda.
  */
 void Lexer::handleLeftBrace() {
@@ -161,7 +161,7 @@ void Lexer::handleLeftBrace() {
 }
 /**
  * @brief Maneja el token de llave derecha
- * 
+ *
  * Esta función maneja el token de llave derecha.
  */
 void Lexer::handleRightBrace() {
@@ -169,7 +169,7 @@ void Lexer::handleRightBrace() {
 }
 /**
  * @brief Maneja el token de corchete izquierdo
- * 
+ *
  * Esta función maneja el token de corchete izquierdo.
  */
 void Lexer::handleLeftBracket() {
@@ -177,7 +177,7 @@ void Lexer::handleLeftBracket() {
 }
 /**
  * @brief Maneja el token de corchete derecho
- * 
+ *
  * Esta función maneja el token de corchete derecho.
  */
 void Lexer::handleRightBracket() {
@@ -185,7 +185,7 @@ void Lexer::handleRightBracket() {
 }
 /**
  * @brief Maneja el token de coma
- * 
+ *
  * Esta función maneja el token de coma.
  */
 void Lexer::handleComma() {
@@ -193,7 +193,7 @@ void Lexer::handleComma() {
 }
 /**
  * @brief Maneja el token de punto
- * 
+ *
  * Esta función verifica si el carácter actual es un punto seguido de un dígito
  * y determina si es un número decimal o un token de punto.
  */
@@ -207,7 +207,7 @@ void Lexer::handleDot() {
 }
 /**
  * @brief Maneja el token de comillas dobles
- * 
+ *
  * Esta función maneja el token de comillas dobles.
  */
 void Lexer::handleDoubleQuote() {
@@ -215,7 +215,7 @@ void Lexer::handleDoubleQuote() {
 }
 /**
  * @brief Maneja el token de comillas simples
- * 
+ *
  * Esta función maneja el token de comillas simples.
  */
 void Lexer::handleSingleQuote() {
@@ -223,7 +223,7 @@ void Lexer::handleSingleQuote() {
 }
 /**
  * @brief Maneja el token de dos puntos
- * 
+ *
  * Esta función maneja el token de dos puntos.
  */
 void Lexer::handleColon() {
@@ -232,7 +232,7 @@ void Lexer::handleColon() {
 
 /**
  * @brief Maneja el token de multiplicación
- * 
+ *
  * Esta función maneja el token de multiplicación.
  */
 void Lexer::handleMultiply() {
@@ -242,10 +242,10 @@ void Lexer::handleMultiply() {
 /**
  * @brief Maneja tokens por defecto
  * @param c Carácter actual
- * 
+ *
  * Esta función maneja tokens que no son operadores ni delimitadores.
  * Se encarga de identificar literales, números y caracteres no válidos.
- * 
+ *
  */
 
 void Lexer::handleDefault(char c) {
@@ -368,8 +368,8 @@ bool Lexer::match(char expected) {
  * @brief Añade un nuevo token a la lista
  * @param type Tipo de token
  */
-void Lexer::addToken(TokenType type) { 
-    addToken(type,&source[start], current - start); 
+void Lexer::addToken(TokenType type) {
+    addToken(type,&source[start], current - start);
 }
 
 /**
@@ -567,9 +567,9 @@ void Lexer::reset() {
     start = 0;
     line = 1;
     column = 1;
-    tokenIndex = 0; 
-    state = State::Start; 
-    tokens.clear(); 
+    tokenIndex = 0;
+    state = State::Start;
+    tokens.clear();
     // internalErrorManager->clear();
 }
 
@@ -628,7 +628,7 @@ Lexer::Token Lexer::getNextToken() {
         if (tokens[tokenIndex].type != TokenType::TOK_EOF) {
              return tokens[tokenIndex++];
         }
-        return tokens[tokenIndex]; 
+        return tokens[tokenIndex];
     }
 }
 
@@ -661,16 +661,16 @@ void Lexer::reportLexicalError(const std::string& msg, int offset) {
 
     int tokenStartColumn = column - (current - start);
     int errorColumn = tokenStartColumn + offset;
-    
+
     std::string lineContent = getLineContent(line);
 
-    std::string underline(errorColumn > 0 ? errorColumn - 1 : 0, ' '); 
+    std::string underline(errorColumn > 0 ? errorColumn - 1 : 0, ' ');
     underline += "^";
-    
+
     std::string fullMessage = "\n" + lineContent + "\n" +
                               underline + "\n" +
                               msg;
-    
+
     errorManager->addError(std::make_unique<CompilerError>(
         ErrorType::LEXICAL,
         fullMessage,

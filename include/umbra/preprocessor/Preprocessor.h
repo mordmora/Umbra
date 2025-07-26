@@ -23,7 +23,7 @@ private:
 
     std::optional<std::string> parseUseDirective(const std::string& line);
 
-    std::filesystem::path resolveIncludePath(const std::filesystem::path& currentFileCanonicalPath, 
+    std::filesystem::path resolveIncludePath(const std::filesystem::path& currentFileCanonicalPath,
                                              const std::string& includeDirectivePath);
 };
 

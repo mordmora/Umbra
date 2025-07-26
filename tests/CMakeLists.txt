@@ -1,10 +1,8 @@
 include(FetchContent)
 
 FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/release-1.11.0.zip
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/release-1.14.0.zip
 )
-FetchContent_MakeAvailable(googletest)
-
 # Pruebas unitarias para lógica del Lexer
 add_subdirectory(lexer)
