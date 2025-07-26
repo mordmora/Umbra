@@ -8,6 +8,12 @@
 #include "umbra/semantic/SymbolTable.h"
 #include "umbra/ast/Visitor.h"
 #include "umbra/semantic/TypeCk.h"
+/*
+    Primera fase de analisis semantico: Recoleccion de simbolos
+
+    Esta clase tiene como objetivo buscar y registrar todos los simbolos presentes en un programa
+    ej: Declaraciones de variables, definiciones de funciones, etc.
+*/
 
 
 namespace umbra {

@@ -4,7 +4,10 @@
 /*
     Implementacion sencilla del patron visitante generico para faciliar el recorrido por el AST.
 
-    Ptr
+    Ptr es el tipo de puntero que se necesita usar (en nuestro caso deberia ser std::unique_ptr)
+    ImplClass es la clase implementadora, es decir la clase que esta heredando de BaseV
+    RetY es el tipo de retorno de los metodos visit, por defecto es void, pero puede modificarse segun lo que se necesite
+    ParamTys es un argumento variadico que permite agregar argumentos de plantilla, normalmente no se usan.
 
 */
 
@@ -17,6 +20,11 @@
 #include "umbra/ast/Nodes.h"
 
 namespace umbra{
+// --------------------------------------------------------------
+// - defaultVisit(): unifica stubs y soporta RetTy void y no-void
+// - Se agregó case PARENTHESIZED al switch, despachando a PrimaryExpression
+// - Simplificados bloques de stubs visitXxx(), ya no son void sino RetTy
+// --------------------------------------------------------------
 
 template<typename T>
 struct PtrTraits {
@@ -105,8 +113,12 @@ class BaseV {
                 DISPATCH(StringLiteral);
         }
     }
-    // Default no-op implementations para nodos no sobreescritos
-    // Helper that returns RetTy() for non-void or does nothing for void
+    /*
+      - Refactor de los stubs para que devuelvan defaultVisit(), soportando RetTy != void.
+      - Se agregó manejo de NodeKind::PARENTHESIZED, despachando a visitPrimaryExpression.
+      - Ahora no es necesario implementar un stub void para cada visitXxx, se usa defaultVisit().
+    */
+    // Default no-op implementaciones para nodos no sobreescritos
     template<typename U = RetTy>
     std::enable_if_t<std::is_void_v<U>, void> defaultVisit() {}
 
@@ -142,5 +154,11 @@ class BaseV {
     RetTy visitCharLiteral(CharLiteral*)                   { return defaultVisit(); }
     RetTy visitStringLiteral(StringLiteral*)               { return defaultVisit(); }
 };
+
+// --------------------------------------------------------------
+// - defaultVisit(): unifica stubs y soporta RetTy void y no-void
+// - Se maneja NodeKind::PARENTHESIZED dentro del switch, despachando a PrimaryExpression
+// - Simplificados los stubs de visitXxx para evitar código repetido
+// --------------------------------------------------------------
 
 }

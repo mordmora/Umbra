@@ -6,7 +6,15 @@
 #include<string>
 #include<unordered_map>
 
+/*
+    En este archivo se encuentran las clases relacionalas a la tabla de simbolos.
+    Se usa una estructura con informacion semantica rica para realizar un analisis mas agresivo
+    y reducir la complejidad a la hora de generar codigo.
+*/
+
 namespace umbra{
+
+
 
     enum class SymbolKind {
         VARIABLE,

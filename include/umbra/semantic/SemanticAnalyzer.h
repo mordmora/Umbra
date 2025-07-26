@@ -1,3 +1,8 @@
+// --------------------------------------------------------------
+// - Se agregó TypeCk al constructor y se lo pasa a SymbolCollector
+// - convertBuiltinToSemanticType ahora es inline en el header (sin impl duplicada)
+// - Ajuste en orden de miembros para inicializar collector antes de campos usados
+// --------------------------------------------------------------
 #pragma once
 #include "umbra/ast/Nodes.h"
 #include "umbra/semantic/SemanticContext.h"
