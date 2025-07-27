@@ -261,7 +261,7 @@ namespace umbra {
 
         BuiltinType builtinExpressionType;
         BuiltinType builtinType;
-        Literal(NodeKind kind) : Expression(kind) {}
+        Literal(NodeKind kind, BuiltinType builtinType) : Expression(kind), builtinType(builtinType) {}
 
     };
 
@@ -271,6 +271,8 @@ namespace umbra {
         FunctionCall(std::unique_ptr<Identifier> functionName, std::vector<std::unique_ptr<Expression>> arguments) : Expression(NodeKind::FUNCTION_CALL),
         functionName(std::move(functionName)),
         arguments(std::move(arguments)) {};
+
+
 
         std::unique_ptr<Identifier> functionName;
         std::vector<std::unique_ptr<Expression>> arguments;
@@ -286,8 +288,7 @@ namespace umbra {
     // Numeric literal node
     class NumericLiteral : public Literal {
     public:
-        BuiltinType builtinType;
-        NumericLiteral(double value, BuiltinType numericType) : Literal(NodeKind::NUMERIC_LITERAL), value(value) {}
+        NumericLiteral(double value, BuiltinType numericType) : Literal(NodeKind::NUMERIC_LITERAL, numericType), value(value) {}
 
         double value;
     };
@@ -295,7 +296,7 @@ namespace umbra {
     // Boolean literal node
     class BooleanLiteral : public Literal {
     public:
-        BooleanLiteral(bool value) : Literal(NodeKind::BOOLEAN_LITERAL), value(value) {}
+        BooleanLiteral(bool value) : Literal(NodeKind::BOOLEAN_LITERAL, BuiltinType::Bool), value(value) {}
 
         bool value;
     };
@@ -303,7 +304,7 @@ namespace umbra {
     // Char literal node
     class CharLiteral : public Literal {
     public:
-        CharLiteral(char value) : Literal(NodeKind::CHAR_LITERAL), value(value) {};
+        CharLiteral(char value) : Literal(NodeKind::CHAR_LITERAL, BuiltinType::Char), value(value) {};
 
         char value;
     };
@@ -311,7 +312,7 @@ namespace umbra {
     // String literal node
     class StringLiteral : public Literal {
     public:
-        StringLiteral(const std::string& value) : Literal(NodeKind::STRING_LITERAL), value(std::move(value)) {};
+        StringLiteral(const std::string& value) : Literal(NodeKind::STRING_LITERAL, BuiltinType::String), value(std::move(value)) {};
 
         std::string value;
     };

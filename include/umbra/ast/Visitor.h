@@ -142,7 +142,8 @@ class BaseV {
     RetTy visitBinaryExpression(BinaryExpression*)         { return defaultVisit(); }
     RetTy visitUnaryExpression(UnaryExpression*)           { return defaultVisit(); }
     RetTy visitPrimaryExpression(PrimaryExpression*)       { return defaultVisit(); }
-    RetTy visitFunctionCall(FunctionCall*)                 { return defaultVisit(); }
+    RetTy visitFunctionCall(FunctionCall*)                 {
+        return defaultVisit(); }
     RetTy visitReturnExpression(ReturnExpression*)         { return defaultVisit(); }
     RetTy visitArrayAccessExpression(ArrayAccessExpression*) { return defaultVisit(); }
     RetTy visitTernaryExpression(TernaryExpression*)       { return defaultVisit(); }

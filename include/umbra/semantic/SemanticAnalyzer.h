@@ -3,6 +3,13 @@
 // - convertBuiltinToSemanticType ahora es inline en el header (sin impl duplicada)
 // - Ajuste en orden de miembros para inicializar collector antes de campos usados
 // --------------------------------------------------------------
+
+/*
+    En esta clase se maneja el pipeline de analisis semantico.
+    La clase SemanticAnalyzer es el orquestador que va llamando fase por fase y haciendo las
+    respectivas comprobaciones.
+
+*/
 #pragma once
 #include "umbra/ast/Nodes.h"
 #include "umbra/semantic/SemanticContext.h"
@@ -20,39 +27,22 @@ namespace umbra {
             SemanticAnalyzer(ErrorManager& errManager, ProgramNode* root)
                 : errorManager(errManager),
                   rootASTNode(root),
+                  context(symTable),
                   collector(context, symTable, rootASTNode, typeCk)
             {
             }
 
             void execAnalysisPipeline();
 
+
         private:
+            SymbolTable symTable;        // Debe inicializarse primero
+            SemanticContext context;     // Luego este que usa symTable
             SymbolCollector collector;
             TypeCk typeCk;
-            SymbolTable symTable;
-            SemanticType lastType = SemanticType::NONE;
-            SemanticContext context;
+            SemanticType lastType = SemanticType::None;
             ErrorManager& errorManager;
             ProgramNode* rootASTNode;
     };
-
-    inline SemanticType convertBuiltinToSemanticType(BuiltinType builtinType) {
-        switch (builtinType) {
-            case BuiltinType::Int:
-                return SemanticType::INTEGER;
-            case BuiltinType::Float:
-                return SemanticType::FLOAT;
-            case BuiltinType::String:
-                return SemanticType::STRING;
-            case BuiltinType::Bool:
-                return SemanticType::BOOLEAN;
-            case BuiltinType::Char:
-                return SemanticType::CHAR;
-            case BuiltinType::Void:
-                return SemanticType::NONE;
-            default:
-                return SemanticType::ERROR;
-        }
-    }
 
 }

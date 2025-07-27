@@ -11,11 +11,14 @@
 namespace umbra {
 
     struct SemanticContext{
-        SymbolTable symbolTable;
+        SymbolTable& symbolTable;
         std::unordered_map<Expression*, SemanticType> exprTypes;
+
+        SemanticContext(SymbolTable& symTable) : symbolTable(symTable) {}
 
         void enterScope();
         void exitScope();
+        int getCurrentScopeLevel() const;
         //void reportError();
     };
 

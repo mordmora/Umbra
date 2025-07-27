@@ -3,8 +3,17 @@
 namespace umbra {
 
     void SemanticContext::enterScope(){
-        symbolTable.enterScrope();
-        std::cout << "Enter in new scope :)" << std::endl;
+        symbolTable.enterScope();
+        std::cout << "Enter in new scope :) - Level " << symbolTable.getCurrentScopeLevel() << std::endl;
+    }
+
+    void SemanticContext::exitScope(){
+        std::cout << "Exit scope - Level " << symbolTable.getCurrentScopeLevel() << std::endl;
+        symbolTable.exitScope();
+    }
+
+    int SemanticContext::getCurrentScopeLevel() const {
+        return symbolTable.getCurrentScopeLevel();
     }
 
 

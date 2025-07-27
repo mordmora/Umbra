@@ -40,10 +40,14 @@ namespace umbra{
         // Constructor que inicializa con scope global
         SymbolTable();
 
-        void enterScrope();
+        void enterScope();
         void exitScope();
         void insert(const std::string& name, Symbol);
         Symbol lookup(const std::string& name) const;
+        int getCurrentScopeLevel() const;
+
+        std::vector<std::unordered_map<std::string, Symbol>> getScopes() {return scopes;}
+
     private:
         std::vector<std::unordered_map<std::string, Symbol>> scopes;
     };

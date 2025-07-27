@@ -1,16 +1,10 @@
 #pragma once
+namespace umbra{
 
-enum class BuiltinType {
-    None,
-    Int,
-    Float,
-    String,
-    Char,
-    Double,
-    Bool,
-    Array,
-    Null,
-    Void,
-    Undef,
-    UserDefType
-};
+    enum class BuiltinType {
+        #define X(T) T,
+        #include "umbra/utils/builtin_types.def"
+        #undef X
+    };
+
+}

@@ -37,6 +37,19 @@ namespace umbra {
 
         void visitVariableDeclaration(VariableDeclaration* node);
 
+        void visitFunctionCall(FunctionCall* node);
+
+        void visitPrimaryExpression(PrimaryExpression* node);
+
+        void visitExpressionStatement(ExpressionStatement* node);
+
+        // Métodos auxiliares para validación de tipos
+        bool validateFunctionCall(FunctionCall* node);
+        std::vector<SemanticType> extractArgumentTypes(const std::vector<std::unique_ptr<Expression>>& arguments);
+
+        // Imprime todos los símbolos recolectados durante el recorrido
+        void printCollectedSymbols() const;
+
         private:
         ProgramNode* rootASTNode;
         SemanticContext& theContext;

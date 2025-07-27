@@ -89,8 +89,18 @@ BuiltinType tokenTypeToBuiltin(Lexer::Token tk){
  * @return El token que se encuentra a @p distance posiciones adelante o el último token si se excede el límite.
  */
 Lexer::Token Parser::lookAhead(int distance) {
-    if (current + distance < tokens.end()) {
-        return *(current + distance);
+    // skip newline tokens to allow lookahead past line breaks
+    auto it = current;
+    int remaining = distance;
+    while (it != tokens.end() && remaining > 0) {
+        ++it;
+        if (it == tokens.end()) break;
+        if (it->type != TokenType::TOK_NEWLINE) {
+            --remaining;
+        }
+    }
+    if (it != tokens.end()) {
+        return *it;
     }
     return tokens.back();
 }
@@ -300,8 +310,12 @@ std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
 
             return statements;
         }
-        if(!match(TokenType::TOK_NEWLINE)){
-            error("Expected newline after statement", peek().line, peek().column);
+
+        skipNewLines();
+
+        if(check(TokenType::TOK_RIGHT_BRACE) || check(TokenType::TOK_RETURN)){
+            statements.push_back(std::move(statement));
+            return statements;
         }
 
         statements.push_back(std::move(statement));
@@ -344,16 +358,19 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
 
     if(match(TokenType::TOK_ASSIGN)){
-
+        // skip newlines before parsing initializer expression
+        skipNewLines();
         auto initializer = parseExpression();
-        if(!initializer){
+        if(!initializer) {
             error("Expected expression after '='", peek().line, peek().column);
             synchronize();
             return nullptr;
         }
-
-        return std::make_unique<VariableDeclaration>(std::move(type),
-        std::make_unique<Identifier>(name.lexeme), std::move(initializer));
+        return std::make_unique<VariableDeclaration>(
+            std::move(type),
+            std::make_unique<Identifier>(name.lexeme),
+            std::move(initializer)
+        );
     }
     return std::make_unique<VariableDeclaration>(std::move(type),
     std::make_unique<Identifier>(name.lexeme), nullptr);
@@ -473,7 +490,9 @@ std::unique_ptr<Expression> Parser::parseUnary(){
 
 std::unique_ptr<Expression> Parser::parsePrimary(){
 
+
     if(check(TokenType::TOK_IDENTIFIER)){
+        std::cout << "look ahead: " << lookAhead(1).lexeme << std::endl;
         if(lookAhead(1).type == TokenType::TOK_LEFT_PAREN){
             return parseFunctionCall();
         }
@@ -522,6 +541,9 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
 //<function_call> ::= <identifier> "(" [ <argument_list> ] ")"
 std::unique_ptr<Expression> Parser::parseFunctionCall(){
     auto id = parseIdentifier();
+
+    std::cout << "Parsing function call" << std::endl;
+
     consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
     std::vector<std::unique_ptr<Expression>> args;
 
@@ -546,6 +568,8 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
 
     auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));
+
+    std::cout << "Lexeme " << peek().lexeme << std::endl;
 
     return std::make_unique<PrimaryExpression>(std::move(functionCall));
 }

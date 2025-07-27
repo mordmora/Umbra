@@ -11,7 +11,7 @@ namespace umbra {
         scopes.emplace_back();
     }
 
-    void SymbolTable::enterScrope(){
+    void SymbolTable::enterScope(){
         scopes.emplace_back();
     }
 
@@ -24,15 +24,21 @@ namespace umbra {
         }
     }
 
+    int SymbolTable::getCurrentScopeLevel() const {
+        return scopes.size() - 1;
+    }
+
     void SymbolTable::insert(const std::string& name, Symbol symbol){
         if (scopes.empty()) {
             throw std::runtime_error("No hay scopes disponibles para insertar simbolo: " + name);
         }
 
+
         if(scopes.back().count(name)){
             throw std::runtime_error("Redefinicion de simbolo: " + name);
         }
         scopes.back()[name] = symbol;
+
     }
 
     Symbol SymbolTable::lookup(const std::string& name) const {
@@ -42,6 +48,6 @@ namespace umbra {
                 return found->second;
             }
         }
-        return Symbol{SemanticType::ERROR, SymbolKind::VARIABLE, {}, 0, 0};
+        return Symbol{SemanticType::Error, SymbolKind::VARIABLE, {}, 0, 0};
     }
 }
