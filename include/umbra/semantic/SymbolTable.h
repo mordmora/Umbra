@@ -13,15 +13,13 @@
 */
 
 namespace umbra{
-
-
-
     enum class SymbolKind {
         VARIABLE,
         FUCNTION
     };
 
     struct FunctionSignature {
+        bool isVarArg = false;
         SemanticType returnType;
         std::vector<SemanticType> argTypes;
     };
@@ -37,7 +35,7 @@ namespace umbra{
     class SymbolTable{
 
     public:
-        // Constructor que inicializa con scope global
+
         SymbolTable();
 
         void enterScope();

@@ -11,7 +11,7 @@ namespace llvm { class Value; }
 namespace umbra { class Symbol; }
 
 namespace umbra {
-    namespace code_gen {
+
         class CodegenContext {
             public:
             llvm::LLVMContext llvmContext;
@@ -28,6 +28,4 @@ namespace umbra {
             llvm::Function* printfFunction = nullptr;
 
         };
-}} // namespace umbra::code_gen
-
-
+} // namespace umbra

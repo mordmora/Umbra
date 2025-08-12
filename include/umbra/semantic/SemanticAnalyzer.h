@@ -28,7 +28,7 @@ namespace umbra {
                 : errorManager(errManager),
                   rootASTNode(root),
                   context(symTable),
-                  collector(context, symTable, rootASTNode, typeCk)
+                  collector(context, symTable, rootASTNode, typeCk, errorManager)
             {
             }
 

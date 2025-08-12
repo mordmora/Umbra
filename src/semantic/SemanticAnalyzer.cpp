@@ -8,6 +8,7 @@ namespace umbra {
 
     void SemanticAnalyzer::execAnalysisPipeline(){
         collector.visitProgramNode(rootASTNode);
+        // Nota: ErrorManager se actualiza dentro del collector.
     }
 
 

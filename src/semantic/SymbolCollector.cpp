@@ -10,11 +10,13 @@
 namespace umbra {
 
     void SymbolCollector::visitProgramNode(ProgramNode* node) {
-        theContext.enterScope();
+        // Usar el scope global existente. Registrar builtins antes.
+        registerBuiltins();
         for(auto &F : node->functions){
             visit(F.get());
         }
-        theContext.exitScope();
+        // Validar punto de entrada al final
+        validateEntryPoint();
     }
 
     void SymbolCollector::visitFunctionDefinition(FunctionDefinition* node) {
@@ -33,6 +35,8 @@ namespace umbra {
                 signature.argTypes.push_back(paramType);
             }
         }
+
+        node->Signature = signature;
 
         // Add function to current (global) scope
         Symbol functionSymbol{
@@ -80,7 +84,7 @@ namespace umbra {
         };
 
         if(node->initializer != nullptr){
-            // Visitar la expresión inicializadora
+
             if(node->initializer->getKind() == NodeKind::FUNCTION_CALL){
 
                 auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->initializer.get());
@@ -91,9 +95,10 @@ namespace umbra {
                     std::string& name = primaryExpr->functionCall->functionName->name;
                     auto rvalSym = symTable.lookup(name);
                     if(rvalSym.type != builtinTypeToSemaType(node->type->builtinType)){
-                        std::cout << "Function " << name << " has type " << static_cast<int>(
-                            rvalSym.type
-                        ) << " and variable " << node->name->name << " is type " << static_cast<int>(node->type->builtinType) << std::endl;
+                        std::string msg = "Type mismatch: function '" + name + "' returns " + std::to_string(static_cast<int>(rvalSym.type)) +
+                                          ", but variable '" + node->name->name + "' is type " + std::to_string(static_cast<int>(node->type->builtinType));
+                        errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+                        return;
                     }
                 }
             }
@@ -101,6 +106,7 @@ namespace umbra {
             auto rvalType = typeCk.visit(node->initializer.get());
             node->initializer->builtinExpressionType = semaTypeToBuiltinType(rvalType);
             if(rvalType == SemanticType::Error){
+                errorManager.addError(std::make_unique<SemanticError>("Invalid initializer expression", 0, 0, SemanticError::Action::ERROR));
                 return;
             }
         }
@@ -108,14 +114,12 @@ namespace umbra {
     }
 
     void SymbolCollector::visitFunctionCall(FunctionCall* node){
-        std::cout << "Diving into function call" << std::endl;
         if(node) {
             validateFunctionCall(node);
         }
     }
 
     void SymbolCollector::visitPrimaryExpression(PrimaryExpression* node) {
-        // Visitar expresiones primarias que podrían contener llamadas a función
         if(node && node->getKind() == NodeKind::FUNCTION_CALL) {
             if(node->functionCall) {
                 validateFunctionCall(node->functionCall.get());
@@ -136,44 +140,41 @@ namespace umbra {
 
     bool SymbolCollector::validateFunctionCall(FunctionCall* node) {
         if(!node) {
-            std::cout << "Error: null function call node" << std::endl;
+            errorManager.addError(std::make_unique<SemanticError>("Null function call node", 0, 0, SemanticError::Action::ERROR));
             return false;
         }
 
         auto symbolFCall = symTable.lookup(node->functionName->name);
         if(symbolFCall.type == SemanticType::Error){
-            std::cout << "Function '" << node->functionName->name << "' does not exist" << std::endl;
+            std::string msg = "Undefined function '" + node->functionName->name + "'";
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
             return false;
+        }
+
+        if(node->functionName->name == "print"){
+            //Parsear string de la funcion print, por ejemplo print("n: {$1}, n2: {$2}", v1, v2);
+            std::string_view arg1 = node->functionName->name;
+
         }
 
         std::vector<SemanticType> argTypes = extractArgumentTypes(node->arguments);
 
         const auto& expectedTypes = symbolFCall.signature.argTypes;
         if(argTypes.size() != expectedTypes.size()) {
-            std::cout << "Wrong number of arguments for function '" << node->functionName->name
-                      << "'. Expected: " << expectedTypes.size()
-                      << ", Got: " << argTypes.size() << std::endl;
+            std::string msg = "Wrong number of arguments for function '" + node->functionName->name + "'. Expected: " +
+                              std::to_string(expectedTypes.size()) + ", Got: " + std::to_string(argTypes.size());
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
             return false;
         }
 
-        bool typesMatch = std::equal(argTypes.begin(), argTypes.end(),
-                                   expectedTypes.begin());
+        bool typesMatch = std::equal(argTypes.begin(), argTypes.end(), expectedTypes.begin());
         if(!typesMatch) {
-            std::cout << "Argument types don't match function signature for '"
-                      << node->functionName->name << "'" << std::endl;
-
-            // Mostrar detalles de la discrepancia
-            std::cout << "Expected types: ";
-            for(const auto& type : expectedTypes) {
-                std::cout << static_cast<int>(type) << " ";
-            }
-            std::cout << "\nActual types: ";
-            for(const auto& type : argTypes) {
-                std::cout << static_cast<int>(type) << " ";
-            }
-            std::cout << std::endl;
+            std::string msg = "Argument types don't match function signature for '" + node->functionName->name + "'";
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
             return false;
         }
+        node->argTypes = argTypes;
+        node->semaT = symbolFCall.signature.returnType;
         return true;
     }
 
@@ -185,7 +186,6 @@ namespace umbra {
                       [this](const std::unique_ptr<Expression>& arg) {
                           return typeCk.visit(arg.get());
                       });
-
         return argTypes;
     }
 
@@ -206,6 +206,32 @@ void SymbolCollector::printCollectedSymbols() const {
         }
     }
     std::cout << "==========================\n";
+}
+
+void SymbolCollector::registerBuiltins() {
+    // builtin: print(string) -> void (mínimo para Hola Mundo)
+    Symbol printSym{
+        .type = SemanticType::Void,
+        .kind = SymbolKind::FUCNTION,
+        .signature = FunctionSignature{true, SemanticType::Void, {SemanticType::String}},
+        .line = 0,
+        .col = 0
+    };
+    symTable.insert("print", printSym);
+}
+
+void SymbolCollector::validateEntryPoint() {
+    auto sym = symTable.lookup("start");
+    if (sym.kind != SymbolKind::FUCNTION || sym.signature.argTypes.size() != 0) {
+        errorManager.addError(std::make_unique<SemanticError>(
+            "Entry point 'start' must be a function with no parameters", 0, 0, SemanticError::Action::ERROR));
+        return;
+    }
+    // Permitir Void o Int
+    if (!(sym.signature.returnType == SemanticType::Void || sym.signature.returnType == SemanticType::Int)) {
+        errorManager.addError(std::make_unique<SemanticError>(
+            "Entry point 'start' must return void or int", 0, 0, SemanticError::Action::ERROR));
+    }
 }
 
 

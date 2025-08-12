@@ -492,7 +492,6 @@ std::unique_ptr<Expression> Parser::parsePrimary(){
 
 
     if(check(TokenType::TOK_IDENTIFIER)){
-        std::cout << "look ahead: " << lookAhead(1).lexeme << std::endl;
         if(lookAhead(1).type == TokenType::TOK_LEFT_PAREN){
             return parseFunctionCall();
         }
@@ -542,8 +541,6 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
 std::unique_ptr<Expression> Parser::parseFunctionCall(){
     auto id = parseIdentifier();
 
-    std::cout << "Parsing function call" << std::endl;
-
     consume(TokenType::TOK_LEFT_PAREN, "Expected ( in expression");
     std::vector<std::unique_ptr<Expression>> args;
 
@@ -568,8 +565,6 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
 
     auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));
-
-    std::cout << "Lexeme " << peek().lexeme << std::endl;
 
     return std::make_unique<PrimaryExpression>(std::move(functionCall));
 }

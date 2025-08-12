@@ -1,13 +1,13 @@
-
 #include "umbra/codegen/context/CodegenContext.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
+#include <vector>
 
 namespace umbra {
-    namespace code_gen {
+
     CodegenContext::CodegenContext(const std::string& moduleName)
         : llvmContext(),
         llvmModule(moduleName, llvmContext),
@@ -21,9 +21,11 @@ namespace umbra {
                 return printfFunction;
 
             llvm::Type* charPtrType = llvm::Type::getInt8Ty(llvmContext)->getPointerTo();
+            // Fix: pass a proper parameter list instead of constructing ArrayRef from a single pointer
+            std::vector<llvm::Type*> params = { charPtrType };
             llvm::FunctionType* printfType = llvm::FunctionType::get(
                 llvm::Type::getInt32Ty(llvmContext),
-                llvm::ArrayRef<llvm::Type*>(charPtrType),
+                params,
                 true
             );
 
@@ -39,5 +41,4 @@ namespace umbra {
 
         }
 
-    }
-} //namespace umbra::code_gen
+} // namespace umbra

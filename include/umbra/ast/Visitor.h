@@ -55,7 +55,6 @@ class BaseV {
     RetTy visit(PTR(ASTNode) A){
 
         switch(A->getKind()){
-
             case NodeKind::PROGRAM:
                 DISPATCH(ProgramNode);
             case NodeKind::FUNCTION_DEFINITION:

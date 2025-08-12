@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include <memory>
@@ -8,6 +6,8 @@
 #include "umbra/semantic/SymbolTable.h"
 #include "umbra/ast/Visitor.h"
 #include "umbra/semantic/TypeCk.h"
+#include "umbra/error/ErrorManager.h"
+#include "umbra/error/CompilerError.h"
 /*
     Primera fase de analisis semantico: Recoleccion de simbolos
 
@@ -26,7 +26,8 @@ namespace umbra {
     class SymbolCollector : public BaseV<std::unique_ptr, SymbolCollector, void> {
 
         public:
-        SymbolCollector(SemanticContext& theContext, SymbolTable& symTable, ProgramNode* node, TypeCk typeCk) : theContext(theContext), symTable(symTable), rootASTNode(node), typeCk(typeCk) {}
+        SymbolCollector(SemanticContext& theContext, SymbolTable& symTable, ProgramNode* node, TypeCk typeCk, ErrorManager& errorManager)
+            : rootASTNode(node), theContext(theContext), symTable(symTable), typeCk(typeCk), errorManager(errorManager) {}
 
         SymbolTable& getSymbolTable() { return symTable; }
         SemanticContext& getTheContext() { return theContext; }
@@ -43,18 +44,23 @@ namespace umbra {
 
         void visitExpressionStatement(ExpressionStatement* node);
 
-        // Métodos auxiliares para validación de tipos
+
         bool validateFunctionCall(FunctionCall* node);
         std::vector<SemanticType> extractArgumentTypes(const std::vector<std::unique_ptr<Expression>>& arguments);
 
-        // Imprime todos los símbolos recolectados durante el recorrido
+
         void printCollectedSymbols() const;
 
         private:
+
+        void registerBuiltins();
+        void validateEntryPoint();
+
         ProgramNode* rootASTNode;
         SemanticContext& theContext;
         SymbolTable& symTable;
         TypeCk typeCk;
+        ErrorManager& errorManager;
 
    };
 

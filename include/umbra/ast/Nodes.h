@@ -1,6 +1,3 @@
-
-
-
 #ifndef AST_NODES_HPP
 #define AST_NODES_HPP
 
@@ -9,6 +6,7 @@
 #include <memory>
 #include "umbra/ast/ASTNode.h"
 #include "Types.h"
+#include "umbra/semantic/SymbolTable.h"
 
 #include<iostream>
 
@@ -60,6 +58,8 @@ namespace umbra {
             : ASTNode(NodeKind::FUNCTION_DEFINITION), name(std::move(name)),
               parameters(std::move(parameters)), returnType(std::move(returnType)),
               body(std::move(body)), returnValue(std::move(returnValue)) {}
+
+        FunctionSignature Signature;
 
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
@@ -235,14 +235,14 @@ namespace umbra {
         } exprType;
 
         // Builder
-        PrimaryExpression(std::unique_ptr<Identifier> identifier) : Expression(NodeKind::IDENTIFIER), identifier(std::move(identifier)) {} ;
-        PrimaryExpression(std::unique_ptr<Literal> literal) : Expression(NodeKind::LITERAL), literal(std::move(literal)) {} ;
-        PrimaryExpression(std::unique_ptr<Expression> parenthesized) : Expression(NodeKind::PARENTHESIZED), parenthesized(std::move(parenthesized)) {};
-        PrimaryExpression(std::unique_ptr<FunctionCall> functionCall) : Expression(NodeKind::FUNCTION_CALL), functionCall(std::move(functionCall)) {};
-        PrimaryExpression(std::unique_ptr<ArrayAccessExpression> arrayAccess) : Expression(NodeKind::ARRAY_ACCESS_EXPRESSION), arrayAccess(std::move(arrayAccess)) {};
-        PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess) : Expression(NodeKind::MEMBER_ACCESS_EXPRESSION), memberAccess(std::move(memberAccess)){};
-        PrimaryExpression(std::unique_ptr<CastExpression> castExpr) : Expression(NodeKind::CAST_EXPRESSION), castExpression(std::move(castExpr)) {};
-        PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr) : Expression(NodeKind::TERNARY_EXPRESSION), ternaryExpression(std::move(ternaryExpr)) {};
+        PrimaryExpression(std::unique_ptr<Identifier> identifier) : Expression(NodeKind::PRIMARY_EXPRESSION), identifier(std::move(identifier)) { exprType = IDENTIFIER; } ;
+        PrimaryExpression(std::unique_ptr<Literal> literal) : Expression(NodeKind::PRIMARY_EXPRESSION), literal(std::move(literal)) { exprType = LITERAL; } ;
+        PrimaryExpression(std::unique_ptr<Expression> parenthesized) : Expression(NodeKind::PRIMARY_EXPRESSION), parenthesized(std::move(parenthesized)) { exprType = PARENTHESIZED; };
+        PrimaryExpression(std::unique_ptr<FunctionCall> functionCall) : Expression(NodeKind::PRIMARY_EXPRESSION), functionCall(std::move(functionCall)) { exprType = EXPRESSION_CALL; };
+        PrimaryExpression(std::unique_ptr<ArrayAccessExpression> arrayAccess) : Expression(NodeKind::PRIMARY_EXPRESSION), arrayAccess(std::move(arrayAccess)) { exprType = ARRAY_ACCESS; };
+        PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess) : Expression(NodeKind::PRIMARY_EXPRESSION), memberAccess(std::move(memberAccess)){ exprType = MEMBER_ACCESS; };
+        PrimaryExpression(std::unique_ptr<CastExpression> castExpr) : Expression(NodeKind::PRIMARY_EXPRESSION), castExpression(std::move(castExpr)) { exprType = CAST_EXPRESSION; };
+        PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr) : Expression(NodeKind::PRIMARY_EXPRESSION), ternaryExpression(std::move(ternaryExpr)) { exprType = TERNARY_EXPRESSION; };
 
         // Members
         std::unique_ptr<Identifier> identifier;
@@ -272,7 +272,7 @@ namespace umbra {
         functionName(std::move(functionName)),
         arguments(std::move(arguments)) {};
 
-
+        std::vector<SemanticType> argTypes;
 
         std::unique_ptr<Identifier> functionName;
         std::vector<std::unique_ptr<Expression>> arguments;

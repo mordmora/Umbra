@@ -1,6 +1,8 @@
 #ifndef ASTNODE_H
 #define ASTNODE_H
 
+#include"umbra/semantic/SemanticType.h"
+
 namespace umbra {
 
 enum class NodeKind {
@@ -47,6 +49,7 @@ class ASTNode {
     virtual ~ASTNode() = default;
     ASTNode(NodeKind kind) : kind(kind) {}
     NodeKind kind;
+    SemanticType semaT;
 
     NodeKind getKind() const { return kind; }
 

@@ -79,7 +79,7 @@ namespace umbra {
     bool Compiler::semanticAnalyze(ProgramNode* programNode){
         SemanticAnalyzer analizer(errorManagerRef_, programNode);
         analizer.execAnalysisPipeline();
-        return true;
+        return !errorManagerRef_.hasErrors();
     }
 
     void Compiler::printAST(ProgramNode& node){
@@ -88,10 +88,10 @@ namespace umbra {
     }
 
     bool Compiler::generateCode(ProgramNode& programNode, std::string& moduleName){
-        umbra::code_gen::CodegenContext codegenContext(moduleName);
+        umbra::CodegenContext codegenContext(moduleName);
         codegenContext.getPrintfFunction();
         umbra::code_gen::CodegenVisitor codegenVisitor(codegenContext);
-        //programNode.accept(codegenVisitor);
+        codegenVisitor.visit(&programNode);
         if (errorManagerRef_.hasErrors()) {
             return false;
         }
