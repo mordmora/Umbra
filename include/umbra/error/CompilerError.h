@@ -50,6 +50,12 @@ class SemanticError : public CompilerError {
         Action action;
 };
 
+class IOError : public CompilerError {
+    public:
+    IOError(const std::string& message, int line=0, int col=0) : CompilerError(ErrorType::IO, message, line, col) {}
+    std::string toString() const override;
+};
+
 } // namespace umbra
 
 #endif // UMBRA_COMPILER_ERROR_H

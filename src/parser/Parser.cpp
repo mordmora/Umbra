@@ -227,11 +227,24 @@ std::unique_ptr<ProgramNode> Parser::parseProgram() {
     std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
 
     while (!isAtEnd()) {
-        functionDefinitions.push_back(parseFunctionDefinition());
-        if(match(TokenType::TOK_NEWLINE)) {
-            continue;
+        // Ignorar líneas en blanco
+        skipNewLines();
+        if (isAtEnd()) break;
+        if (!check(TokenType::TOK_FUNC)) {
+            // Reportar y sincronizar hasta la siguiente definición o EOF
+            error("Expected 'func' keyword", peek().line, peek().column);
+            synchronize();
+            if (isAtEnd()) break;
+            // intentar continuar si encontramos un 'func'
+            if (!check(TokenType::TOK_FUNC)) {
+                // si no es 'func', evitar bucle infinito avanzando un token
+                advance();
+                continue;
+            }
         }
-
+        functionDefinitions.push_back(parseFunctionDefinition());
+        // Consumir líneas en blanco tras cada función
+        while (match(TokenType::TOK_NEWLINE)) {}
     }
     return std::make_unique<ProgramNode>(std::move(functionDefinitions));
 }
@@ -271,8 +284,17 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
     skipNewLines();
 
     auto body = parseStatementList();
-    auto returnVal = returnType->builtinType == BuiltinType::Void ? nullptr : parseReturnExpression();
-    match(TokenType::TOK_RETURN);
+
+    // Si la función es void, permitir retorno implícito o 'return' vacío opcional
+    if (returnType->builtinType == BuiltinType::Void) {
+        if (check(TokenType::TOK_RETURN)) {
+            auto retStmt = parseReturnExpression();
+            if (retStmt) {
+                body.push_back(std::move(retStmt));
+            }
+        }
+    }
+
     skipNewLines();
 
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after function body");
@@ -282,8 +304,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
         std::make_unique<ParameterList>(
             std::move(parameters)
         ), std::move(returnType),
-        std::move(body),
-        std::move(returnVal) );
+        std::move(body));
 
 }
 
@@ -304,21 +325,17 @@ std::unique_ptr<Type> Parser::parseType(){
 std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
     std::vector<std::unique_ptr<Statement>> statements;
     while(!isAtEnd()){
+        skipNewLines();
+        if (check(TokenType::TOK_RIGHT_BRACE)) break;
 
         auto statement = parseStatement();
-        if(statement == nullptr){
-
-            return statements;
-        }
-
-        skipNewLines();
-
-        if(check(TokenType::TOK_RIGHT_BRACE) || check(TokenType::TOK_RETURN)){
-            statements.push_back(std::move(statement));
-            return statements;
+        if(!statement){
+            synchronize();
+            break;
         }
 
         statements.push_back(std::move(statement));
+        skipNewLines();
     }
     return statements;
 }
@@ -326,23 +343,42 @@ std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
 std::unique_ptr<Statement> Parser::parseStatement(){
     skipNewLines();
 
+    if (check(TokenType::TOK_RETURN)) {
+        // ReturnExpression ahora hereda de Statement
+        return std::unique_ptr<Statement>(parseReturnExpression().release());
+    }
     if(isTypeToken(peek())){
         return parseVariableDeclaration();
-    } else if(check(TokenType::TOK_IDENTIFIER)){
+    }
+    if(check(TokenType::TOK_IDENTIFIER)){
         return std::make_unique<ExpressionStatement>(parseFunctionCall());
-    } else if (match(TokenType::TOK_REPEAT)) {
+    }
+    if (match(TokenType::TOK_REPEAT)) {
         if (check(TokenType::TOK_IF)) {
             return parseRepeatIfStatement();
         } else {
             return parseRepeatTimesStatement();
         }
     }
+    if(check(TokenType::TOK_IF)){
+        auto pif = parseIfStatement();
+        return pif;
+    }
 
     return nullptr;
 }
 
 std::unique_ptr<ReturnExpression> Parser::parseReturnExpression(){
+    // Consumir la keyword 'return'
     consume(TokenType::TOK_RETURN, "Expected 'return' keyword");
+
+    // Si inmediatamente viene un cierre de bloque, un salto de línea o EOF,
+    // tratamos esto como 'return' sin valor (válido para funciones void).
+    if (check(TokenType::TOK_RIGHT_BRACE) || check(TokenType::TOK_NEWLINE) || check(TokenType::TOK_EOF)) {
+        return std::make_unique<ReturnExpression>(nullptr);
+    }
+
+    // En caso contrario, parseamos una expresión como valor de retorno
     auto returnValue = parseExpression();
     return std::make_unique<ReturnExpression>(std::move(returnValue));
 }
@@ -497,8 +533,8 @@ std::unique_ptr<Expression> Parser::parsePrimary(){
         }
         return parseIdentifier();
 
-    }if(check(TokenType::TOK_INT)
-    || check(TokenType::TOK_CHAR)
+    }if(check(TokenType::TOK_NUMBER)
+    || check(TokenType::TOK_CHAR_LITERAL)
     || check(TokenType::TOK_STRING_LITERAL)
     || check(TokenType::TOK_TRUE)
     || check(TokenType::TOK_FALSE)){
@@ -517,11 +553,16 @@ std::unique_ptr<Literal> Parser::parseLiteral(){
     auto literal = advance();
 
     switch (literal.type){
-        case TokenType::TOK_INT:
+        case TokenType::TOK_NUMBER: {
+            // Detectar si es entero o flotante por el lexema
+            if (literal.lexeme.find('.') != std::string::npos ||
+                literal.lexeme.find('e') != std::string::npos ||
+                literal.lexeme.find('E') != std::string::npos) {
+                return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), BuiltinType::Float);
+            }
             return std::make_unique<NumericLiteral>(std::stoi(literal.lexeme), BuiltinType::Int);
-        case TokenType::TOK_FLOAT:
-            return std::make_unique<NumericLiteral>(std::stof(literal.lexeme), BuiltinType::Float);
-        case TokenType::TOK_CHAR:
+        }
+        case TokenType::TOK_CHAR_LITERAL:
             return std::make_unique<CharLiteral>(literal.lexeme[0]);
         case TokenType::TOK_STRING_LITERAL:
 
@@ -570,32 +611,77 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
 }
 
 std::unique_ptr<IfStatement> Parser::parseIfStatement() {
-    consume(TokenType::TOK_IF, "Expected 'if' keyword");
-    bool containsParens = false;
 
-    if(check(TokenType::TOK_LEFT_PAREN)){
+    consume(TokenType::TOK_IF, "Expected 'if' keyword");
+
+    bool containsParens = false;
+    if (check(TokenType::TOK_LEFT_PAREN)) {
         containsParens = true;
         advance();
     }
 
+    skipNewLines();
     auto condition = parseExpression();
     if (!condition) {
         error("Expected expression after 'if'", peek().line, peek().column);
         synchronize();
         return nullptr;
     }
+    skipNewLines();
 
-    if(containsParens){
+    if (containsParens) {
         consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after if condition");
     }
 
+    skipNewLines();
     consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before if body");
     auto body = parseStatementList();
     consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after if body");
 
-    std::vector<std::pair<std::unique_ptr<Expression>, std::vector<std::unique_ptr<Statement>>>> branches;
-    branches.push_back(std::make_pair(std::move(condition), std::move(body)));
+    std::vector<Branch> branches;
+    Branch first;
+    first.condition = std::move(condition);
+    first.body = std::move(body);
+    branches.push_back(std::move(first));
 
+    // Parsear cero o más elseif bloques
+    while (check(TokenType::TOK_ELSEIF)) {
+        advance(); // consume 'elseif'
+        bool elseifParens = false;
+        if (check(TokenType::TOK_LEFT_PAREN)) { elseifParens = true; advance(); }
+        skipNewLines();
+        auto elseifCond = parseExpression();
+        if (!elseifCond) {
+            error("Expected expression after 'elseif'", peek().line, peek().column);
+            synchronize();
+            break;
+        }
+        skipNewLines();
+        if (elseifParens) {
+            consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after elseif condition");
+        }
+        skipNewLines();
+        consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before elseif body");
+        auto elseifBody = parseStatementList();
+        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after elseif body");
+
+        Branch eb;
+        eb.condition = std::move(elseifCond);
+        eb.body = std::move(elseifBody);
+        branches.push_back(std::move(eb));
+    }
+
+    // Parsear else opcional
+    std::vector<std::unique_ptr<Statement>> elseBranch;
+    if (check(TokenType::TOK_ELSE)) {
+        advance(); // consume 'else'
+        skipNewLines();
+        consume(TokenType::TOK_LEFT_BRACE, "Expected '{' before else body");
+        elseBranch = parseStatementList();
+        consume(TokenType::TOK_RIGHT_BRACE, "Expected '}' after else body");
+    }
+
+    return std::make_unique<IfStatement>(std::move(branches), std::move(elseBranch));
 }
 
 /**

@@ -22,7 +22,8 @@ namespace umbra{
     }
 
     // Handle string literals
-    SemanticType TypeCk::visitStringLiteral(StringLiteral* node) {
+    SemanticType TypeCk::visitStringLiteral(StringLiteral* /*node */) {
+        // String literals always have type String.
         return SemanticType::String;
     }
 

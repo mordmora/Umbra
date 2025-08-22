@@ -51,10 +51,11 @@ namespace umbra {
              * @note No toma propiedad de root ni de errManager.
              */
             SemanticAnalyzer(ErrorManager& errManager, ProgramNode* root)
-                : errorManager(errManager),
+                : context(symTable),
+                  typeCk(),
+                  errorManager(errManager),
                   rootASTNode(root),
-                  context(symTable),
-                  collector(context, symTable, rootASTNode, typeCk, errorManager)
+                  collector(context, symTable, root, typeCk, errorManager)
             {
             }
 
@@ -74,16 +75,16 @@ namespace umbra {
             SymbolTable symTable;        // Debe inicializarse primero
             /// Contexto semántico asociado a la tabla de símbolos (scopes y tipos de expresiones).
             SemanticContext context;     // Luego este que usa symTable
-            /// Visitante que recolecta símbolos, registra builtins y valida llamadas.
-            SymbolCollector collector;
             /// Comprobador/inferecedor de tipos para expresiones (lado derecho, args, etc.).
             TypeCk typeCk;
-            /// Último tipo inferido/reportado por ciertas operaciones (puede usarse como caché o estado temporal).
-            SemanticType lastType = SemanticType::None;
             /// Gestor de errores compartido con el resto del compilador.
             ErrorManager& errorManager;
             /// Nodo raíz del AST del programa a analizar.
             ProgramNode* rootASTNode;
+            /// Visitante que recolecta símbolos, registra builtins y valida llamadas.
+            SymbolCollector collector;
+            /// Último tipo inferido/reportado por ciertas operaciones (puede usarse como caché o estado temporal).
+            SemanticType lastType = SemanticType::None;
     };
 
 }

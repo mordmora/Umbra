@@ -111,6 +111,8 @@ class BaseV {
             case NodeKind::STRING_LITERAL:
                 DISPATCH(StringLiteral);
         }
+        // Si llega aquí, retornar un valor por defecto para evitar warnings y UB
+        return defaultVisit();
     }
     /*
       - Refactor de los stubs para que devuelvan defaultVisit(), soportando RetTy != void.

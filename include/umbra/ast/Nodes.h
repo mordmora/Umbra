@@ -53,18 +53,16 @@ namespace umbra {
     class FunctionDefinition : public ASTNode {
     public:
         FunctionDefinition(std::unique_ptr<Identifier> name, std::unique_ptr<ParameterList> parameters,
-            std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body,
-            std::unique_ptr<ReturnExpression> returnValue)
+            std::unique_ptr<Type> returnType, std::vector<std::unique_ptr<Statement>> body)
             : ASTNode(NodeKind::FUNCTION_DEFINITION), name(std::move(name)),
               parameters(std::move(parameters)), returnType(std::move(returnType)),
-              body(std::move(body)), returnValue(std::move(returnValue)) {}
+              body(std::move(body)) {}
 
         FunctionSignature Signature;
 
         std::unique_ptr<Identifier> name;
         std::unique_ptr<ParameterList> parameters;
         std::unique_ptr<Type> returnType;
-        std::unique_ptr<ReturnExpression> returnValue;
         std::vector<std::unique_ptr<Statement>> body;
     };
 
@@ -155,7 +153,8 @@ namespace umbra {
             std::unique_ptr<Identifier> target) : Statement(NodeKind::MEMORY_MANAGEMENT),
                                                 action(action),
                                                 type(std::move(type)),
-                                                size(std::move(size)) {}
+                                                size(std::move(size)),
+                                                target(std::move(target)) {}
 
         ActionType action;
         std::unique_ptr<Type> type;
@@ -188,9 +187,9 @@ namespace umbra {
     };
 
     // Return statement node
-    class ReturnExpression : public Expression{
+    class ReturnExpression : public Statement{
     public:
-        ReturnExpression(std::unique_ptr<Expression> returnValue) : Expression(NodeKind::RETURN_EXPRESSION), returnValue(std::move(returnValue)) {}
+        ReturnExpression(std::unique_ptr<Expression> returnValue) : Statement(NodeKind::RETURN_EXPRESSION), returnValue(std::move(returnValue)) {}
 
         std::unique_ptr<Expression> returnValue;
     };

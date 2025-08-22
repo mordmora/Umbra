@@ -5,6 +5,7 @@ namespace umbra {
 
 enum class ErrorType {
     // basic error types
+    IO,
     LEXICAL,
     SYNTACTIC,
     SEMANTIC,

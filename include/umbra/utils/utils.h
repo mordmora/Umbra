@@ -33,7 +33,7 @@ namespace umbra {
         std::string currFormat = "";
         bool normalMode = true;
         size_t l = str.length();
-        for(int i = 0; i < l; i++){
+        for(size_t i = 0; i < l; i++){
             if(normalMode){
                 if(str[i] == '{'){
                     normalMode = false;
@@ -49,6 +49,7 @@ namespace umbra {
                 }
             }
         }
+        return output; // devolver lo acumulado por ahora
     }
 
 }

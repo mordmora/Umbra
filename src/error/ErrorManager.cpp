@@ -8,7 +8,9 @@ void ErrorManager::addError(std::unique_ptr<CompilerError> error) {
     if (errors.size() < MAX_ERRORS) {
         errors.push_back(std::move(error));
     } else {
-        throw std::runtime_error("Too many errors, aborted.");
+        // No arrojar excepción; simplemente ignorar errores adicionales
+        // para permitir que el compilador reporte los existentes.
+        return;
     }
 }
 
@@ -18,6 +20,9 @@ std::string ErrorManager::getErrorReport() const {
     std::ostringstream report;
     for (const auto &error : errors) {
         report << error->toString() << "\n";
+    }
+    if (errors.size() >= MAX_ERRORS) {
+        report << "(Further errors omitted after reaching MAX_ERRORS)\n";
     }
     return report.str();
 }

@@ -25,7 +25,7 @@ namespace code_gen {
             case BuiltinType::Char:
                 return llvm::Type::getInt8Ty(Ctxt);
             case BuiltinType::String:
-                return llvm::Type::getInt8Ty(Ctxt)->getPointerTo();
+                return llvm::PointerType::get(llvm::Type::getInt8Ty(Ctxt), 0);
             default:
                 return llvm::Type::getVoidTy(Ctxt);
         }
@@ -43,6 +43,11 @@ namespace code_gen {
         llvm::Value* visitStringLiteral(StringLiteral* node);
         llvm::Value* visitFunctionCall(FunctionCall* node);
         llvm::Value* visitReturnExpression(ReturnExpression* node);
+        llvm::Value* visitBinaryExpression(BinaryExpression* node);
+        llvm::Value* visitIdentifier(Identifier* node);
+        llvm::Value* visitNumericLiteral(NumericLiteral* node);
+        llvm::Value* visitBooleanLiteral(BooleanLiteral* node);
+        llvm::Value* visitIfStatement(IfStatement* node);
 
         private:
         llvm::Value* emitExpr(Expression* expr);

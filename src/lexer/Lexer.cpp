@@ -512,11 +512,7 @@ void Lexer::string() {
     }
 
     size_t len = current - start;
-    if (hasDot) {
-        addToken(TokenType::TOK_FLOAT, &source[start], len);
-    } else {
-        addToken(TokenType::TOK_INT, &source[start], len);
-    }
+    addToken(TokenType::TOK_NUMBER, &source[start], len);
 }
 
 
@@ -524,7 +520,7 @@ void Lexer::string() {
  * @brief Procesa un identificador o palabra reservada
  */
 void Lexer::identifier() {
-    while (std::isalnum(peek()))
+    while (std::isalnum(peek()) || peek() == '_')
         advance();
 
     const char* identStart = &source[start];
