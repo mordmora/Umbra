@@ -1,9 +1,9 @@
-
-#include "Preprocessor.h"
+#include "umbra/preprocessor/Preprocessor.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <iostream> // Para depuración
+#include "umbra/io/UmbraIO.h"
 
 namespace umbra {
 
@@ -29,7 +29,7 @@ Preprocessor::Preprocessor(const std::string& mainFilePath) {
     if (!std::filesystem::is_regular_file(canonical_main_path)) {
         throw std::runtime_error("El archivo principal no existe o no es un archivo regular: " + canonical_main_path.string());
     }
-    
+
     this->processedContent = processFile(canonical_main_path, 0);
 }
 
@@ -42,11 +42,10 @@ std::optional<std::string> Preprocessor::parseUseDirective(const std::string& li
     std::string keyword;
     ss >> keyword; // Lee la primera palabra
 
-    if (keyword == "use") { 
+    if (keyword == "use") {
         std::string filePathWithQuotes;
-        // Tomar el resto de la línea después de "use "
         size_t start_pos = line.find_first_not_of(" \t", keyword.length());
-        if (start_pos == std::string::npos) return std::nullopt; // No hay nada después de "use"
+        if (start_pos == std::string::npos) return std::nullopt;
 
         filePathWithQuotes = line.substr(start_pos);
 
@@ -63,9 +62,9 @@ std::optional<std::string> Preprocessor::parseUseDirective(const std::string& li
 
 // Resuelve la ruta de inclusión y devuelve una ruta canónica
 std::filesystem::path Preprocessor::resolveIncludePath(
-    const std::filesystem::path& currentFileCanonicalPath, 
+    const std::filesystem::path& currentFileCanonicalPath,
     const std::string& includeDirectivePathStr) {
-    
+
     std::filesystem::path include_directive_path_obj(includeDirectivePathStr);
     std::filesystem::path resolved_path;
 
@@ -76,7 +75,7 @@ std::filesystem::path Preprocessor::resolveIncludePath(
         std::filesystem::path current_file_directory = currentFileCanonicalPath.parent_path();
         resolved_path = current_file_directory / include_directive_path_obj;
     }
-    
+
     try {
 
         return std::filesystem::weakly_canonical(resolved_path);
@@ -99,23 +98,22 @@ std::string Preprocessor::processFile(const std::filesystem::path& currentFileCa
     }
     includedFilesCanonicalPaths.insert(canonicalPathStr);
 
-    std::ifstream file_stream(currentFileCanonicalPath);
-    if (!file_stream.is_open()) {
-
-        throw std::runtime_error("No se pudo abrir el archivo para inclusión: " + canonicalPathStr);
+    // Sustituye ifstream por UmbraIO::readAll
+    std::string fileContent;
+    if (!UmbraIO::readAll(currentFileCanonicalPath, fileContent, nullptr)) {
+        throw std::runtime_error("No se pudo abrir o leer el archivo para inclusión: " + canonicalPathStr);
     }
-
 
     std::stringstream content_buffer;
     std::string line;
 
-
-    while (std::getline(file_stream, line)) {
-
+    // Procesa por líneas desde el buffer leído
+    std::istringstream iss(fileContent);
+    while (std::getline(iss, line)) {
         if (auto included_file_directive_path = parseUseDirective(line)) {
-            std::filesystem::path next_file_to_include_canonical_path = 
+            std::filesystem::path next_file_to_include_canonical_path =
                 resolveIncludePath(currentFileCanonicalPath, *included_file_directive_path);
-            
+
             content_buffer << processFile(next_file_to_include_canonical_path, level + 1);
         } else {
             content_buffer << line << '\n';

@@ -1,34 +1,30 @@
-#include "Compiler.h"
-#include "../preprocessor/Preprocessor.h"
-#include "../error/CompilerError.h"
-#include "../semantic/SemanticVisitor.h"
-#include "../semantic/ScopeManager.h"
-#include "../semantic/Symbol.h"
-#include "../semantic/TypeCompatibility.h"
-#include "../semantic/StringInterner.h"
+#include "umbra/compiler/Compiler.h"
+#include "umbra/preprocessor/Preprocessor.h"
+#include "umbra/error/CompilerError.h"
+#include "umbra/error/ErrorManager.h"
+#include "umbra/semantic/SemanticAnalyzer.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
-#include "../codegen/visitors/CodegenVisitor.h"
-#include "../codegen/context/CodegenContext.h"
-#include "../utils/utils.h"
+#include "umbra/codegen/visitors/CodegenVisitor.h"
+#include "umbra/codegen/context/CodegenContext.h"
+#include "umbra/utils/utils.h"
+#include "umbra/ast/PrintASTVisitor.h"
 
 #include <memory>
 
 namespace umbra {
 
     Compiler::Compiler(UmbraCompilerOptions opt)
-        : options(std::move(opt)), // Mueve opt si es apropiado
+        : options(std::move(opt)),
           internalErrorManager_(std::make_unique<ErrorManager>()),
           errorManagerRef_(*internalErrorManager_) {
-        // Ahora errorManagerRef_ apunta al ErrorManager interno recién creado
+
     }
 
     Compiler::Compiler(UmbraCompilerOptions opt, ErrorManager& externalErrorManager)
-        : options(std::move(opt)), // Mueve opt si es apropiado
-          // internalErrorManager_ permanece nullptr o sin inicializar (no se usa)
+        : options(std::move(opt)),
           errorManagerRef_(externalErrorManager) {
-        // Ahora errorManagerRef_ apunta al ErrorManager externo
     }
 
     bool Compiler::preprocess(std::string& src) {
@@ -38,7 +34,7 @@ namespace umbra {
             src = preprocessor.getProcessedContent();
             return true;
         } catch (const std::exception& e) {
-            errorManagerRef_.addError(std::make_unique<CompilerError>( // Usa la referencia
+            errorManagerRef_.addError(std::make_unique<CompilerError>(
                 ErrorType::PREPROCESSOR,
                 "Error during preprocessing: " + std::string(e.what()),
                 0,
@@ -58,45 +54,45 @@ namespace umbra {
     }
 
     std::vector<Lexer::Token> Compiler::lex(std::string& src){
-        std::unique_ptr<Lexer> lexer = std::make_unique<Lexer>(src, errorManagerRef_); // Usa la referencia
+        std::unique_ptr<Lexer> lexer = std::make_unique<Lexer>(src, errorManagerRef_);
         auto tokens = lexer->tokenize();
 
         if(options.printTokens) {
             printTokens(tokens);
         }
 
-        if (errorManagerRef_.hasErrors()) { // Usa la referencia
+        if (errorManagerRef_.hasErrors()) {
             return {};
         }
         return tokens;
     }
 
     std::unique_ptr<ProgramNode> Compiler::parse(std::vector<Lexer::Token>& tokens){
-        std::unique_ptr<Parser> parser = std::make_unique<Parser>(tokens, errorManagerRef_); // Usa la referencia
+        std::unique_ptr<Parser> parser = std::make_unique<Parser>(tokens, errorManagerRef_);
         auto programNode = parser->parseProgram();
-        if (errorManagerRef_.hasErrors()) { // Usa la referencia
+        if (errorManagerRef_.hasErrors()) {
             return nullptr;
         }
         return programNode;
     }
 
-    bool Compiler::semanticAnalyze(ProgramNode& programNode){
-        StringInterner interner;
-        ScopeManager scopeManager;
-        ProgramChecker programChecker(interner, scopeManager, errorManagerRef_); // Usa la referencia
-        programNode.accept(programChecker);
-        if (errorManagerRef_.hasErrors()) { // Usa la referencia
-            return false;
-        }
-        return true;
+    bool Compiler::semanticAnalyze(ProgramNode* programNode){
+        SemanticAnalyzer analizer(errorManagerRef_, programNode);
+        analizer.execAnalysisPipeline();
+        return !errorManagerRef_.hasErrors();
+    }
+
+    void Compiler::printAST(ProgramNode& node){
+        Printer prt;
+        prt.visitProgramNode(node);
     }
 
     bool Compiler::generateCode(ProgramNode& programNode, std::string& moduleName){
-        umbra::code_gen::CodegenContext codegenContext(moduleName);
+        umbra::CodegenContext codegenContext(moduleName);
         codegenContext.getPrintfFunction();
-        umbra::code_gen::CodegenVisitor codegenVisitor(codegenContext); // Pasa la referencia
-        programNode.accept(codegenVisitor);
-        if (errorManagerRef_.hasErrors()) { // Usa la referencia
+        umbra::code_gen::CodegenVisitor codegenVisitor(codegenContext);
+        codegenVisitor.visit(&programNode);
+        if (errorManagerRef_.hasErrors()) {
             return false;
         }
 
@@ -139,7 +135,7 @@ namespace umbra {
         return true;
     }
 
-    
+
     void Compiler::generateIRFile(llvm::Module& module, const std::string& filename){
         std::error_code errorCode;
         llvm::raw_fd_ostream outputStream(filename, errorCode);
@@ -171,7 +167,7 @@ namespace umbra {
     bool Compiler::compile(){
         std::string src;
         if (!preprocess(src)){
-            // errorManagerRef_ ya tiene el error
+
             return false;
         }
         auto tokens = lex(src);
@@ -180,7 +176,6 @@ namespace umbra {
         }
 
         if (tokens.empty() || (tokens.back().type != TokenType::TOK_EOF && !tokens.empty()) ) {
-            // errorManagerRef_.addError(std::make_unique<CompilerError>(ErrorType::LEXER, "Lexical analysis produced no tokens or missing EOF.",0,0));
             return false;
         }
 
@@ -189,8 +184,14 @@ namespace umbra {
             return false;
         }
 
-        if (!semanticAnalyze(*root)) {
+
+        if (!semanticAnalyze(root.get())) {
             return false;
+        }
+
+        if (options.printAST){
+            std::cout << "Printing AST " << std::endl;
+            printAST(*root);
         }
 
         std::string moduleName = "umbra_module";
@@ -202,6 +203,8 @@ namespace umbra {
 
         std::cout << "Compilation successful!" << std::endl;
         return true;
+
+
     }
 
 } // namespace umbra

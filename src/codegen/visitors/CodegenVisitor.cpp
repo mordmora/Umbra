@@ -1,425 +1,324 @@
-#include "CodegenVisitor.h"
-#include "../context/CodegenContext.h"
-#include "../../semantic/Symbol.h" // Include the Symbol header
-#include <cstdint>
-#include <llvm-14/llvm/ADT/APInt.h>
-#include <llvm-14/llvm/ADT/ArrayRef.h>
-#include <llvm-14/llvm/IR/BasicBlock.h>
-#include <llvm-14/llvm/IR/Constant.h>
-#include <llvm-14/llvm/IR/Constants.h>
-#include <llvm-14/llvm/IR/DerivedTypes.h>
-#include <llvm-14/llvm/IR/Instructions.h>
-#include <llvm-14/llvm/IR/Type.h>
-#include <llvm-14/llvm/IR/Value.h>
-#include <llvm-14/llvm/Support/Casting.h>
+#include "umbra/codegen/visitors/CodegenVisitor.h"
+#include "umbra/codegen/context/CodegenContext.h"
+#include "umbra/ast/Visitor.h"
+#include "umbra/semantic/SymbolTable.h"
+#include <llvm/ADT/APInt.h>
+#include <llvm/ADT/ArrayRef.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/Support/Casting.h>
 
-namespace umbra{
+namespace umbra {
+namespace code_gen {
 
-    namespace code_gen{
-
-
-        CodegenVisitor::CodegenVisitor(CodegenContext& context) : context(context), lastLLVMValue(nullptr) {}
-
-        llvm::Value* CodegenVisitor::getLastValue() const {
-            return lastLLVMValue;
+    llvm::Value* CodegenVisitor::visitProgramNode(ProgramNode* node){
+        // Visitar todas las funciones
+        for(auto& F : node->functions){
+            visit(F.get());
         }
+        return nullptr;
+    }
 
-        llvm::Type* CodegenVisitor::mapBuiltinTypeToLLVMType(const umbra::Type& type) const {
-            switch (type.builtinType) {
-                case BuiltinType::Int:
-                    return llvm::Type::getInt32Ty(context.llvmContext);
-                case BuiltinType::Float:
-                    return llvm::Type::getFloatTy(context.llvmContext);
-                case BuiltinType::Double:
-                    return llvm::Type::getDoubleTy(context.llvmContext);
-                case BuiltinType::Char:
-                    return llvm::Type::getInt8Ty(context.llvmContext);
-                case BuiltinType::Bool:
-                    return llvm::Type::getInt1Ty(context.llvmContext);
-                case BuiltinType::Void:
-                    return llvm::Type::getVoidTy(context.llvmContext);
-                default:
-                    throw std::runtime_error("Unsupported type");
+    llvm::Value* CodegenVisitor::visitFunctionDefinition(FunctionDefinition* node){
+        // Tipos de retorno y params a partir de la firma semántica
+        llvm::Type* retTy = builtinTypeToLLVMType(node->returnType->builtinType, Ctxt.llvmContext);
+
+        std::vector<llvm::Type*> paramTys;
+        if (node->parameters) {
+            for (auto& p : node->parameters->parameters) {
+                paramTys.push_back(builtinTypeToLLVMType(p.first->builtinType, Ctxt.llvmContext));
+            }
+        }
+        auto* FT = llvm::FunctionType::get(retTy, paramTys, false);
+        llvm::Function* F = llvm::Function::Create(
+            FT,
+            llvm::Function::ExternalLinkage,
+            node->name->name,
+            Ctxt.llvmModule
+        );
+
+        // Nombrar argumentos y meterlos al mapa namedValues como locales
+        if (node->parameters) {
+            unsigned idx = 0;
+            for (auto& arg : F->args()) {
+                auto& pname = node->parameters->parameters[idx++].second->name;
+                arg.setName(pname);
+                Ctxt.namedValues[pname] = &arg;
             }
         }
 
-        std::string CodegenVisitor::createFormatStringSpecifier(llvm::Type* type){
-            if (type->isIntegerTy(32)) {
-                return "%d";
-            } else if (type->isFloatTy()) {
-                return "%f";
-            } else if (type->isDoubleTy()) {
-                return "%lf";
-            } else if (type->isIntegerTy(8)) {
-                return "%c";
-            } else if (type->isIntegerTy(1)) {
-                return "%d";
+        // Crear bloque de entrada
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(Ctxt.llvmContext, "entry", F);
+        Ctxt.llvmBuilder.SetInsertPoint(entry);
+
+        // Emitir cuerpo
+        for (auto& S : node->body) {
+            visit(S.get());
+        }
+
+        // Si el bloque actual no tiene terminador, insertar retorno por defecto acorde al tipo
+        llvm::BasicBlock* curBB = Ctxt.llvmBuilder.GetInsertBlock();
+        if (curBB && !curBB->getTerminator()) {
+            if (retTy->isVoidTy()) {
+                Ctxt.llvmBuilder.CreateRetVoid();
+            } else if (retTy->isIntegerTy(32)) {
+                // retorno por defecto 0 si no se emitió return
+                Ctxt.llvmBuilder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(Ctxt.llvmContext), 0, true));
             } else {
-                throw std::runtime_error("Unsupported type for print format specifier.");
+                // fallback para otros tipos no soportados aún
+                Ctxt.llvmBuilder.CreateRetVoid();
             }
         }
 
-        void CodegenVisitor::visit(umbra::ProgramNode& node){
-            for (const auto& function : node.functions) {
-                function->accept(*this);
+        // Limpiar valores nombrados de parámetros para el próximo contexto de función
+        if (node->parameters) {
+            for (auto& p : node->parameters->parameters) {
+                Ctxt.namedValues.erase(p.second->name);
             }
         }
 
-        void CodegenVisitor::visit(umbra::StringLiteral& node){
-            lastLLVMValue = context.llvmBuilder.CreateGlobalStringPtr(node.value, "generic_string");
-            
-            if(context.globalStrings.find(node.value) == context.globalStrings.end()){
-                context.globalStrings[node.value] = lastLLVMValue;
-            }
+        return F;
+    }
 
+    llvm::Value* CodegenVisitor::visitExpressionStatement(ExpressionStatement* node) {
+        if (node->exp) {
+            return visit(node->exp.get());
         }
+        return nullptr;
+    }
 
-        void CodegenVisitor::visit(umbra::NumericLiteral& node) {
-            if (node.builtinType == BuiltinType::Int) {
-                lastLLVMValue = llvm::ConstantInt::get(
-                    llvm::Type::getInt32Ty(context.llvmContext), 
-                    node.value, 
-                    true
-                );
-            }
-            else if (node.builtinType == BuiltinType::Float) {
-                lastLLVMValue = llvm::ConstantFP::get(
-                    llvm::Type::getFloatTy(context.llvmContext),
-                    node.value
-                );
-            } else if (node.builtinType == BuiltinType::Double) {
-                lastLLVMValue = llvm::ConstantFP::get(
-                    llvm::Type::getDoubleTy(context.llvmContext),
-                    node.value
-                );
-            } else {
-                throw std::runtime_error("NumericLiteral with type not supported");
-            }
+    static llvm::Constant* getOrCreateGlobalString(CodegenContext& Ctxt, const std::string& str, const std::string& nameHint){
+        auto it = Ctxt.globalStrings.find(str);
+        if (it != Ctxt.globalStrings.end()) {
+            return llvm::cast<llvm::Constant>(it->second);
         }
-        
-        void CodegenVisitor::visit(umbra::BooleanLiteral& node) {
-            lastLLVMValue = llvm::ConstantInt::get(
-                llvm::Type::getInt1Ty(context.llvmContext), node.value);
-        }
-        
-        void CodegenVisitor::visit(umbra::CharLiteral& node) {
-            lastLLVMValue = llvm::ConstantInt::get(
-                llvm::Type::getInt8Ty(context.llvmContext), static_cast<uint8_t>(node.value));
-        }        
+        // Create a constant [N x i8] with the contents of str (including null)
+        llvm::Constant* gv = Ctxt.llvmBuilder.CreateGlobalString(str, nameHint);
+        Ctxt.globalStrings[str] = gv;
+        return gv;
+    }
 
-        void CodegenVisitor::visit(umbra::FunctionDefinition& node){
-            llvm::Function* functionBeingDefined = context.llvmModule.getFunction(node.name->name);
+    llvm::Value* CodegenVisitor::visitStringLiteral(StringLiteral* node){
+        return getOrCreateGlobalString(Ctxt, node->value, "str");
+    }
 
-            if (functionBeingDefined && !functionBeingDefined->empty()) {
-                std::cerr << "Warning: Function " << node.name->name << " already defined. Skipping redefinition." << std::endl;
-                lastLLVMValue = functionBeingDefined;
-                return;
+    llvm::Value* CodegenVisitor::visitBooleanLiteral(BooleanLiteral* node){
+        return llvm::ConstantInt::get(llvm::Type::getInt1Ty(Ctxt.llvmContext), node->value);
+    }
+
+    llvm::Value* CodegenVisitor::visitNumericLiteral(NumericLiteral* node){
+        switch(node->builtinType){
+            case BuiltinType::Int:
+                return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Ctxt.llvmContext), (int)node->value, true);
+            case BuiltinType::Float: {
+                return llvm::ConstantFP::get(llvm::Type::getFloatTy(Ctxt.llvmContext), node->value);
             }
-
-            std::vector<llvm::Type*> argTypes;
-            if (node.parameters) {
-                for(const auto& param : node.parameters->parameters){
-                    if (!param.first) {
-                        throw std::runtime_error("Null type for parameter " + param.second->name + " in function " + node.name->name);
-                    }
-                    argTypes.push_back(mapBuiltinTypeToLLVMType(*param.first));
-                }
-            }
-
-            if (!node.returnType) {
-                throw std::runtime_error("Null return type for function " + node.name->name);
-            }
-            llvm::Type* returnType = mapBuiltinTypeToLLVMType(*node.returnType);
-
-            llvm::FunctionType* FT = llvm::FunctionType::get(returnType, argTypes, false);
-
-
-            if (!functionBeingDefined) {
-                functionBeingDefined = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, node.name->name, &context.llvmModule);
-            } else if (functionBeingDefined->getFunctionType() != FT) {
-
-                throw std::runtime_error("Function " + node.name->name + " redeclared with different signature.");
-            }
-
-
-
-            llvm::BasicBlock *BB = llvm::BasicBlock::Create(context.llvmContext, "entry", functionBeingDefined);
-            context.llvmBuilder.SetInsertPoint(BB);
-
-            context.namedValues.clear();
-            if (node.parameters) {
-                unsigned Idx = 0;
-                for (auto &Arg : functionBeingDefined->args()) {
-
-                    Arg.setName(node.parameters->parameters[Idx].second->name);
-
-                    llvm::AllocaInst *Alloca = context.llvmBuilder.CreateAlloca(Arg.getType(), nullptr, Arg.getName());
-                    context.llvmBuilder.CreateStore(&Arg, Alloca);
-                    context.namedValues[std::string(Arg.getName())] = Alloca;
-                    Idx++;
-                }
-            }
-
-            for (const auto& stmt : node.body) {
-                stmt->accept(*this);
-            }
-
-
-            if (node.returnValue) {
-                node.returnValue->accept(*this);
-                llvm::Value* retLLVMValue = getLastValue();
-                if (retLLVMValue) { 
-                    context.llvmBuilder.CreateRet(retLLVMValue);
-                } else {
-
-                    if (returnType->isVoidTy()) {
-                        context.llvmBuilder.CreateRetVoid();
-                    } else {
-                        std::cerr << "Warning: Non-void function " << node.name->name << " might be missing a return value generation." << std::endl;
-
-                        context.llvmBuilder.CreateRet(llvm::UndefValue::get(returnType));
-                    }
-                }
-            } else {
-
-                if (returnType->isVoidTy()) {
-                    context.llvmBuilder.CreateRetVoid();
-                } else {
-
-                    std::cerr << "Error: Non-void function " << node.name->name << " is missing an explicit return value node and does not return void." << std::endl;
-
-                     context.llvmBuilder.CreateRet(llvm::UndefValue::get(returnType));
-                }
-            }
-            lastLLVMValue = functionBeingDefined;
-        }
-
-        void CodegenVisitor::visit(umbra::FunctionCall& node){
-            llvm::Function* targetFunction = nullptr;
-            const std::string& calledFunctionName = node.functionName->name;
-            
-            if (calledFunctionName == "print") {
-                targetFunction = context.getPrintfFunction();
-                if (!targetFunction) {
-                    throw std::runtime_error("Failed to get or declare 'printf' function from context.");
-                }
-                
-                std::string formatString = "";
-                std::vector<llvm::Value*> printfArgs;
-                
-                for (const auto& argExpr : node.arguments) {
-                    argExpr->accept(*this);
-                    llvm::Value* argValue = getLastValue();
-
-                    if (!argValue) {
-                         throw std::runtime_error("Attempted to print a null value.");
-                    }
-
-                    llvm::Type* argLLVMType = argValue->getType();
-                    
-                    if (argLLVMType->isPointerTy()) {
-                        if (argLLVMType->getPointerElementType()->isIntegerTy(8)) {
-                            formatString += "%s";
-                            printfArgs.push_back(argValue);
-                        } else {
-                            argValue = context.llvmBuilder.CreateLoad(
-                                argLLVMType->getPointerElementType(),
-                                argValue
-                            );
-                            argLLVMType = argValue->getType();
-                            formatString += createFormatStringSpecifier(argLLVMType);
-                            printfArgs.push_back(argValue);
-                        }
-                    } else {
-                        formatString += createFormatStringSpecifier(argLLVMType);
-                        printfArgs.push_back(argValue);
-                    }
-                    formatString += " ";
-                }
-                
-                if (!formatString.empty()) {
-                    formatString.pop_back(); 
-                }
-
-                llvm::Value* formatStrPtr = context.llvmBuilder.CreateGlobalStringPtr(formatString.c_str(), "printf_format_str");
-                
-                std::vector<llvm::Value*> callArgs;
-                callArgs.push_back(formatStrPtr);
-                
-                for (llvm::Value* val : printfArgs) {
-                    callArgs.push_back(val);
-                }
-
-                lastLLVMValue = context.llvmBuilder.CreateCall(targetFunction, callArgs, "calltmp_" + calledFunctionName);
-                
-            } else {
-                std::vector<llvm::Value*> llvmArgs;
-                for (const auto& argExpr : node.arguments) {
-                    argExpr->accept(*this);
-                    llvmArgs.push_back(getLastValue());
-                }
-                targetFunction = context.llvmModule.getFunction(calledFunctionName);
-                if (!targetFunction) {
-                    throw std::runtime_error("User-defined function not found in LLVM module: " + calledFunctionName);
-                }
-                lastLLVMValue = context.llvmBuilder.CreateCall(targetFunction, llvmArgs, "calltmp_" + calledFunctionName);
-            }
-        }
-
-        void CodegenVisitor::visit(umbra::ExpressionStatement& node){
-            node.exp->accept(*this);
-            lastLLVMValue = getLastValue();
-        }
-
-        void CodegenVisitor::visit(umbra::PrimaryExpression& node){
-            if (node.identifier) {
-                node.identifier->accept(*this);
-                lastLLVMValue = getLastValue();
-            } else if (node.literal) {
-                node.literal->accept(*this);
-                lastLLVMValue = getLastValue();
-            } else if (node.functionCall) {
-                node.functionCall->accept(*this);
-                lastLLVMValue = getLastValue();
-            }
-        }
-
-        void CodegenVisitor::visit(umbra::VariableDeclaration& node){
-            
-            llvm::Type* llvmType = mapBuiltinTypeToLLVMType(*node.type);
-
-            llvm::AllocaInst* alloca = context.llvmBuilder.CreateAlloca(
-                llvmType,
-                nullptr,
-                node.name->name
-            );
-
-            if (!node.initializer) {
-                if (llvmType->isIntegerTy()) {
-                    context.llvmBuilder.CreateStore(
-                        llvm::ConstantInt::get(llvmType, 0),
-                        alloca
-                    );
-                } else if (llvmType->isFloatingPointTy()) {
-                    context.llvmBuilder.CreateStore(
-                        llvm::ConstantFP::get(llvmType, 0.0),
-                        alloca
-                    );
-                } else if (llvmType->isPointerTy()) {
-                    context.llvmBuilder.CreateStore(
-                        llvm::ConstantPointerNull::get(
-                        llvm::cast<llvm::PointerType>(llvmType)),
-                        alloca
-                    );
-                }
-            } else {
-                node.initializer->accept(*this);
-                llvm::Value* initValue = getLastValue();
-                context.llvmBuilder.CreateStore(initValue, alloca);
-            }
-
-            context.namedValues[node.name->name] = alloca;
-            lastLLVMValue = alloca;
-        }
-
-        void CodegenVisitor::visit(umbra::AssignmentStatement& node){
-            node.value->accept(*this);
-            llvm::Value* valueToStore = getLastValue();
-
-            llvm::Value* targetAlloca = context.namedValues[node.target->name];
-            if (!targetAlloca) {
-                throw std::runtime_error("Unknown variable name: " + node.target->name);
-            }
-
-            llvm::Type* targetType = targetAlloca->getType()->getPointerElementType();
-
-            if (node.index) {
-                node.index->accept(*this);
-                llvm::Value* indexValue = getLastValue();
-
-                // Index to dereference the pointer and actual array index value
-                std::vector<llvm::Value*> indices = {
-                    llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 0)),
-                    indexValue
-                };
-
-                    llvm::Value* elementPtr = context.llvmBuilder.CreateGEP(
-                        targetType,
-                        targetAlloca,
-                        indices,
-                        node.target->name + ".idx"
-                    );
-
-                    context.llvmBuilder.CreateStore(valueToStore, elementPtr);
-            } else {
-                context.llvmBuilder.CreateStore(valueToStore, targetAlloca);
-            }
-
-            lastLLVMValue = valueToStore;
-        }
-        
-        void CodegenVisitor::visit(umbra::RepeatTimesStatement& node){
-            node.times->accept(*this);
-            llvm::Value* timesValue = getLastValue();
-
-            llvm::Function* currentFunction = context.llvmBuilder.GetInsertBlock()->getParent();
-
-            llvm::BasicBlock* conditionBB = llvm::BasicBlock::Create(
-                context.llvmContext, 
-                "repeat.times.cond", 
-                currentFunction);
-            llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(
-                context.llvmContext, 
-                "repeat.times.body");
-            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
-                context.llvmContext, 
-                "repeat.times.end");
-
-            llvm::AllocaInst* counter = context.llvmBuilder.CreateAlloca(
-                llvm::Type::getInt32Ty(context.llvmContext),
-                nullptr, "repeat.counter");
-            context.llvmBuilder.CreateStore(
-                llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 0)),
-                counter);
-
-            context.llvmBuilder.CreateBr(conditionBB);
-            context.llvmBuilder.SetInsertPoint(conditionBB);
-
-            llvm::Value* counterValue = context.llvmBuilder.CreateLoad(
-                llvm::Type::getInt32Ty(context.llvmContext),
-                counter,
-                "counter.load"
-            );
-            llvm::Value* condValue = context.llvmBuilder.CreateICmpSLT(
-                counterValue,
-                timesValue,
-                "repeat.times.cond");
-            
-            context.llvmBuilder.CreateCondBr(condValue, bodyBB, endBB);
-
-            currentFunction->getBasicBlockList().push_back(bodyBB);
-            context.llvmBuilder.SetInsertPoint(bodyBB);
-
-            for (const auto& statement : node.body) {
-                statement->accept(*this);
-            }
-
-            llvm::Value* newCounterValue = context.llvmBuilder.CreateAdd(
-                counterValue,
-                llvm::ConstantInt::get(context.llvmContext, llvm::APInt(32, 1)),
-                "counter.increment");
-            context.llvmBuilder.CreateStore(newCounterValue, counter);
-
-            context.llvmBuilder.CreateBr(conditionBB);
-
-            currentFunction->getBasicBlockList().push_back(endBB);
-            context.llvmBuilder.SetInsertPoint(endBB);
-
-            lastLLVMValue = nullptr;
-        }
-
-        void CodegenVisitor::visit(umbra::RepeatIfStatement& node) {
-
+            default:
+                return nullptr;
         }
     }
-}
+
+    llvm::Value* CodegenVisitor::visitIdentifier(Identifier* node){
+        auto it = Ctxt.namedValues.find(node->name);
+        if (it != Ctxt.namedValues.end())
+            return it->second;
+        return nullptr;
+    }
+
+    llvm::Value* CodegenVisitor::visitPrimaryExpression(PrimaryExpression* node){
+        // Delegar según el contenido real
+        if (node->functionCall) return visit(node->functionCall.get());
+        if (node->literal) return visit(node->literal.get());
+        if (node->identifier) return visit(node->identifier.get());
+        if (node->parenthesized) return emitExpr(node->parenthesized.get());
+        // Identificadores, arrays, etc., aún no implementados para codegen mínimo
+        return nullptr;
+    }
+
+    llvm::Value* CodegenVisitor::emitExpr(Expression* expr){
+        if (!expr) return nullptr;
+        return visit(expr);
+    }
+
+    static bool isIntTy(llvm::Value* V, unsigned bits){
+        return V && V->getType()->isIntegerTy(bits);
+    }
+
+    static bool isBoolLike(llvm::Value* V){
+        return V && V->getType()->isIntegerTy(1);
+    }
+
+    static llvm::Value* toBool(llvm::IRBuilder<>& B, llvm::Value* V){
+        if(!V) return V;
+        if (isBoolLike(V)) return V;
+        if (isIntTy(V, 32)) {
+            return B.CreateICmpNE(V, llvm::ConstantInt::get(V->getType(), 0), "tobool");
+        }
+        // Fallback: no soportado aún
+        return V;
+    }
+
+    llvm::Value* CodegenVisitor::visitBinaryExpression(BinaryExpression* node){
+        llvm::Value* L = emitExpr(node->left.get());
+        llvm::Value* R = emitExpr(node->right.get());
+        if (!L || !R) return nullptr;
+        const std::string& Op = node->op;
+
+        // Aritméticos básicos
+        if (Op == "+") return Ctxt.llvmBuilder.CreateAdd(L, R, "addtmp");
+        if (Op == "-") return Ctxt.llvmBuilder.CreateSub(L, R, "subtmp");
+        if (Op == "*") return Ctxt.llvmBuilder.CreateMul(L, R, "multmp");
+        if (Op == "/") return Ctxt.llvmBuilder.CreateSDiv(L, R, "divtmp");
+        if (Op == "%") return Ctxt.llvmBuilder.CreateSRem(L, R, "modtmp");
+
+        // Lógicos palabra clave
+        if (Op == "and") {
+            L = toBool(Ctxt.llvmBuilder, L);
+            R = toBool(Ctxt.llvmBuilder, R);
+            return Ctxt.llvmBuilder.CreateAnd(L, R, "andtmp");
+        }
+        if (Op == "or") {
+            L = toBool(Ctxt.llvmBuilder, L);
+            R = toBool(Ctxt.llvmBuilder, R);
+            return Ctxt.llvmBuilder.CreateOr(L, R, "ortmp");
+        }
+
+        // Comparadores palabra clave
+        if (Op == "less_than")   return Ctxt.llvmBuilder.CreateICmpSLT(L, R, "cmptmp");
+        if (Op == "greater_than") return Ctxt.llvmBuilder.CreateICmpSGT(L, R, "cmptmp");
+        if (Op == "less_or_equal") return Ctxt.llvmBuilder.CreateICmpSLE(L, R, "cmptmp");
+        if (Op == "greater_or_equal") return Ctxt.llvmBuilder.CreateICmpSGE(L, R, "cmptmp");
+        if (Op == "equal" || Op == "==") return Ctxt.llvmBuilder.CreateICmpEQ(L, R, "cmptmp");
+        if (Op == "different" || Op == "!=") return Ctxt.llvmBuilder.CreateICmpNE(L, R, "cmptmp");
+
+        return nullptr;
+    }
+
+    llvm::Value* CodegenVisitor::visitFunctionCall(FunctionCall* node){
+        if (!node || !node->functionName) return nullptr;
+        const std::string& fname = node->functionName->name;
+        // Por ahora solo soportamos print(string|int, ...) -> void mapeado a printf
+        if (fname == "print") {
+            if (!node->arguments.empty()) {
+                // Construir formato dinámico simple: %s por cada string; %d por ints
+                std::string fmtStr;
+                std::vector<llvm::Value*> callArgs;
+
+                for (size_t i = 0; i < node->arguments.size(); ++i) {
+                    if (dynamic_cast<StringLiteral*>(node->arguments[i].get())) fmtStr += "%s";
+                    else if (dynamic_cast<NumericLiteral*>(node->arguments[i].get())) fmtStr += "%d";
+                    else fmtStr += "%d";
+                }
+                fmtStr += "\n"; // asegurar salto de línea si no lo trae
+                auto* fmt = getOrCreateGlobalString(Ctxt, fmtStr, "fmt");
+                callArgs.push_back(fmt);
+                for (auto& a : node->arguments) {
+                    llvm::Value* v = emitExpr(a.get());
+                    if (v && v->getType()->isIntegerTy(1)) {
+                        // subir bool a i32 para printf
+                        v = Ctxt.llvmBuilder.CreateZExt(v, llvm::Type::getInt32Ty(Ctxt.llvmContext));
+                    }
+                    callArgs.push_back(v);
+                }
+                llvm::Function* printfFn = Ctxt.getPrintfFunction();
+                return Ctxt.llvmBuilder.CreateCall(printfFn, callArgs);
+            }
+            return nullptr;
+        }
+        // Funciones del usuario: buscar en el módulo y llamar
+        llvm::Function* callee = Ctxt.llvmModule.getFunction(fname);
+        if (!callee) return nullptr;
+        std::vector<llvm::Value*> argsV;
+        argsV.reserve(node->arguments.size());
+        for (auto& a : node->arguments) {
+            llvm::Value* v = emitExpr(a.get());
+            argsV.push_back(v);
+        }
+        return Ctxt.llvmBuilder.CreateCall(callee, argsV);
+    }
+
+    llvm::Value* CodegenVisitor::visitReturnExpression(ReturnExpression* node){
+        if (!node->returnValue) {
+            Ctxt.llvmBuilder.CreateRetVoid();
+            return nullptr;
+        }
+        llvm::Value* v = emitExpr(node->returnValue.get());
+        // Ajustar bool -> i32 si la función retorna i32
+        llvm::Function* F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();
+        if (F && F->getReturnType()->isIntegerTy(32) && v && v->getType()->isIntegerTy(1)) {
+            v = Ctxt.llvmBuilder.CreateZExt(v, llvm::Type::getInt32Ty(Ctxt.llvmContext));
+        }
+        Ctxt.llvmBuilder.CreateRet(v);
+        return v;
+    }
+
+    llvm::Value* CodegenVisitor::visitIfStatement(IfStatement* node){
+        llvm::Function* F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();
+        // Crear bloques para cada rama y un bloque final de merge
+        std::vector<llvm::BasicBlock*> thenBlocks;
+        thenBlocks.reserve(node->branches.size());
+        for (size_t i = 0; i < node->branches.size(); ++i) {
+            thenBlocks.push_back(llvm::BasicBlock::Create(Ctxt.llvmContext, "if.then" + std::to_string(i), F));
+        }
+        llvm::BasicBlock* elseBlock = nullptr;
+        if (!node->elseBranch.empty()) {
+            elseBlock = llvm::BasicBlock::Create(Ctxt.llvmContext, "if.else", F);
+        }
+        llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(Ctxt.llvmContext, "if.end", F);
+
+        // Emisión en cascada: cond0 ? then0 : cond1 ? then1 : ... : else/merge
+        llvm::BasicBlock* nextCondBB = nullptr;
+        for (size_t i = 0; i < node->branches.size(); ++i) {
+            // Evaluar condición i en el bloque actual
+            llvm::Value* condV = emitExpr(node->branches[i].condition.get());
+            condV = toBool(Ctxt.llvmBuilder, condV);
+            if (!condV) condV = llvm::ConstantInt::getFalse(Ctxt.llvmContext);
+
+            // Preparar bloque para la siguiente condición o else/merge
+            if (i + 1 < node->branches.size()) {
+                nextCondBB = llvm::BasicBlock::Create(Ctxt.llvmContext, "if.cond" + std::to_string(i+1), F);
+            } else {
+                nextCondBB = elseBlock ? elseBlock : mergeBB;
+            }
+
+            Ctxt.llvmBuilder.CreateCondBr(condV, thenBlocks[i], nextCondBB);
+
+            // Emitir cuerpo de la rama i
+            Ctxt.llvmBuilder.SetInsertPoint(thenBlocks[i]);
+            for (auto& S : node->branches[i].body) {
+                visit(S.get());
+            }
+            if (!thenBlocks[i]->getTerminator()) {
+                Ctxt.llvmBuilder.CreateBr(mergeBB);
+            }
+
+            // Establecer punto de inserción para evaluar la siguiente condición
+            Ctxt.llvmBuilder.SetInsertPoint(nextCondBB);
+        }
+
+        // Else opcional
+        if (elseBlock) {
+            for (auto& S : node->elseBranch) {
+                visit(S.get());
+            }
+            if (!elseBlock->getTerminator()) {
+                Ctxt.llvmBuilder.CreateBr(mergeBB);
+            }
+        }
+
+        // Continuación
+        Ctxt.llvmBuilder.SetInsertPoint(mergeBB);
+        return nullptr;
+    }
+
+} // namespace code_gen
+} // namespace umbra

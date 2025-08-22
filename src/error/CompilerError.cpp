@@ -1,4 +1,4 @@
-#include "CompilerError.h"
+#include "umbra/error/CompilerError.h"
 #include <iostream>
 #include <sstream>
 

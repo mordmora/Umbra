@@ -1,41 +1,53 @@
-#include "SymbolTable.h"
+#include "umbra/semantic/SymbolTable.h"
+#include <assert.h>
+#include <stdexcept>
+#include "umbra/semantic/SemanticType.h"
+
+#include<iostream>
 
 namespace umbra {
-    
-SymbolTable::SymbolTable(StringInterner &stringInterner) 
-: 
-stringInterner(stringInterner) {}
 
-bool 
-SymbolTable::addSymbol(std::unique_ptr<Symbol> symbol) {
-    const std::string* key = &symbol->name;
-    auto [it, inserted] = symbols.emplace(key, std::move(symbol));
-    return inserted;
-}
-
-bool 
-SymbolTable::removeSymbol(const std::string* key) {
-    return symbols.erase(key) > 0;
-}
-
-Symbol* 
-SymbolTable::getSymbol(const std::string& name) const {
-    auto key = stringInterner.get(name);
-    if (!key) return nullptr;
-    
-    auto it = symbols.find(key);
-    return (it != symbols.end()) ? it->second.get() : nullptr;
-}
-
-void 
-SymbolTable::printAllSymbols() const {
-    std::cout << "All symbols in the symbol table:" << std::endl;
-    for (const auto& pair : symbols) {
-        std::cout << "Symbol: " << *pair.first 
-                  << ", Type: " << static_cast<int>(pair.second->type->builtinType)
-                  << std::endl;
+    SymbolTable::SymbolTable() {
+        scopes.emplace_back();
     }
-}
+
+    void SymbolTable::enterScope(){
+        scopes.emplace_back();
+    }
+
+    void SymbolTable::exitScope(){
+        assert(!scopes.empty());
+        if (scopes.size() > 1) {
+            scopes.pop_back();
+        } else {
+            std::cout << "Warning: Trying to exit global scope" << std::endl;
+        }
+    }
+
+    int SymbolTable::getCurrentScopeLevel() const {
+        return scopes.size() - 1;
+    }
+
+    void SymbolTable::insert(const std::string& name, Symbol symbol){
+        if (scopes.empty()) {
+            throw std::runtime_error("No hay scopes disponibles para insertar simbolo: " + name);
+        }
 
 
+        if(scopes.back().count(name)){
+            throw std::runtime_error("Redefinicion de simbolo: " + name);
+        }
+        scopes.back()[name] = symbol;
+
+    }
+
+    Symbol SymbolTable::lookup(const std::string& name) const {
+        for(auto it = scopes.rbegin(); it != scopes.rend(); ++it ){
+            auto found = it->find(name);
+            if(found != it->end()){
+                return found->second;
+            }
+        }
+        return Symbol{SemanticType::Error, SymbolKind::VARIABLE, {}, 0, 0};
+    }
 }

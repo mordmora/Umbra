@@ -1,3 +1,6 @@
-func sum(int a, int b) -> void {
-    print("hola mundo desde otra funcion\n")
+func suma(int a, int b) -> int {
+    return a+b
+}
+func start(int a, int b) -> void {
+    int s = suma(1,2)
 }

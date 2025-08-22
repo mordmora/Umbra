@@ -1,5 +1,5 @@
-#include "../../src/lexer/Lexer.h"
-#include "../../src/lexer/Tokens.h"
+#include "umbra/lexer/Lexer.h"
+#include "umbra/lexer/Tokens.h"
 #include <gtest/gtest.h>
 #include <vector>
 
