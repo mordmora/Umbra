@@ -224,7 +224,6 @@ llvm::Value *CodegenVisitor::visitFunctionCall(FunctionCall *node) {
     // Por ahora solo soportamos print(string|int, ...) -> void mapeado a printf
     if (fname == "print") {
         if (!node->arguments.empty()) {
-            // Construir formato dinámico simple: %s por cada string; %d por ints
             std::string fmtStr;
             std::vector<llvm::Value *> callArgs;
 
@@ -279,6 +278,16 @@ llvm::Value *CodegenVisitor::visitReturnExpression(ReturnExpression *node) {
     Ctxt.llvmBuilder.CreateRet(v);
     return v;
 }
+
+llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node){
+
+    const std::string& vName = node->name->name;
+
+    llvm::Type*
+
+
+}
+
 
 llvm::Value *CodegenVisitor::visitIfStatement(IfStatement *node) {
     llvm::Function *F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();
@@ -361,10 +370,8 @@ llvm::Value *CodegenVisitor::visitRepeatTimesStatement(RepeatTimesStatement *nod
     llvm::BasicBlock *loopBodyBB = llvm::BasicBlock::Create(Ctxt.llvmContext, "for.body", F);
     llvm::BasicBlock *loopEndBB = llvm::BasicBlock::Create(Ctxt.llvmContext, "for.end", F);
 
-    // Construir una bifurcacion, salto inicial de la condicion
     Ctxt.llvmBuilder.CreateBr(loopCondBB);
 
-    // loop.cond: cargar contador y comparar con timesVal (signed less than)
     Ctxt.llvmBuilder.SetInsertPoint(loopCondBB);
     llvm::Value *counterVal = Ctxt.llvmBuilder.CreateLoad(llvm::Type::getInt32Ty(Ctxt.llvmContext),
                                                           counterAlloca, "counter.load");
@@ -377,7 +384,6 @@ llvm::Value *CodegenVisitor::visitRepeatTimesStatement(RepeatTimesStatement *nod
         visit(stmt.get());
     }
 
-    // Incrementar contador
     llvm::Value *currentCounterVal = Ctxt.llvmBuilder.CreateLoad(
         llvm::Type::getInt32Ty(Ctxt.llvmContext), counterAlloca, "current.counter.load");
     llvm::Value *inc = Ctxt.llvmBuilder.CreateAdd(
@@ -385,7 +391,6 @@ llvm::Value *CodegenVisitor::visitRepeatTimesStatement(RepeatTimesStatement *nod
         "for.inc");
     Ctxt.llvmBuilder.CreateStore(inc, counterAlloca);
 
-    // Volver a condicion
     Ctxt.llvmBuilder.CreateBr(loopCondBB);
 
     // loop.end: continuar

@@ -1,5 +1,7 @@
 func start() -> void {
-    if ( 1 less_than 2 ) {
-        print("Hola mundo\n")
+    if(1 less_than 2){
+        print("Verdadero")
+    }else{
+        print("Falso")
     }
 }
