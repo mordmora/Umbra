@@ -283,7 +283,7 @@ llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node)
 
     const std::string& vName = node->name->name;
 
-    llvm::Type*
+    llvm::Type* v;
 
 
 }
