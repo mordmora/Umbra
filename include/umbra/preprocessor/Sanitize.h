@@ -54,7 +54,7 @@ class Sanitizer {
 
     private:
     std::string& input;
-
+    OutBuffer outBuff;
 };
 
 }

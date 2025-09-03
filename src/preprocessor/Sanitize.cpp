@@ -6,7 +6,4 @@ namespace umbra {
     std::string Sanitizer::convertInternalEncoding(std::string& inputBytes){
 
     }
-
-
-
 }
