@@ -97,7 +97,6 @@ class ASTNode {
             default: return "Unknown";
         }
     }
-
 };
 
 } // namespace umbra

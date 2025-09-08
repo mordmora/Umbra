@@ -84,7 +84,6 @@ public:
             return false;
         }
 
-        stripUtf8BOM(out);
         return true;
     }
 
@@ -103,15 +102,6 @@ public:
     }
 
 private:
-    /// Elimina un BOM UTF-8 (0xEF 0xBB 0xBF) al inicio del buffer si existe.
-    static void stripUtf8BOM(std::string& s) {
-        if (s.size() >= 3 &&
-            static_cast<unsigned char>(s[0]) == 0xEF &&
-            static_cast<unsigned char>(s[1]) == 0xBB &&
-            static_cast<unsigned char>(s[2]) == 0xBF) {
-            s.erase(0, 3);
-        }
-    }
 
     /// Reporta un error al ErrorManager (si no es nulo) con un prefijo consistente.
     static void reportError(ErrorManager* err, const std::string& msg) {

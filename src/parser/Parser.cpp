@@ -305,7 +305,6 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition(){
             std::move(parameters)
         ), std::move(returnType),
         std::move(body));
-
 }
 
 std::unique_ptr<Type> Parser::parseType(){

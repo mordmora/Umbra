@@ -1,5 +1,6 @@
 func start () -> void {
-    repeat 3 times {
-        print("Hola mundo\n")
+    int a = 10
+    repeat 5 times {
+        print("Hola mundo")
     }
 }

@@ -49,6 +49,7 @@ namespace code_gen {
         llvm::Value* visitBooleanLiteral(BooleanLiteral* node);
         llvm::Value* visitIfStatement(IfStatement* node);
         llvm::Value* visitRepeatTimesStatement(RepeatTimesStatement* node);
+        llvm::Value* visitVariableDeclaration(VariableDeclaration* node);
 
         private:
         llvm::Value* emitExpr(Expression* expr);
