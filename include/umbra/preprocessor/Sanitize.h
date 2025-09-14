@@ -20,8 +20,9 @@ struct OutBuffer {
 
 enum class Encoding {
     UTF8,
-    UTF16,
-    UNICODE
+    UTF16BE,
+    UTF16LE,
+    UNKNOWN
 };
 
 class Sanitizer {
