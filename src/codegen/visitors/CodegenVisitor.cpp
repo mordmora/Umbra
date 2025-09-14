@@ -224,30 +224,49 @@ llvm::Value *CodegenVisitor::visitFunctionCall(FunctionCall *node) {
     // Por ahora solo soportamos print(string|int, ...) -> void mapeado a printf
     if (fname == "print") {
         if (!node->arguments.empty()) {
+            // Construir formato dinámico
             std::string fmtStr;
             std::vector<llvm::Value *> callArgs;
 
-            for (size_t i = 0; i < node->arguments.size(); ++i) {
-                if (dynamic_cast<StringLiteral *>(node->arguments[i].get()))
-                    fmtStr += "%s";
-                else if (dynamic_cast<NumericLiteral *>(node->arguments[i].get()))
-                    fmtStr += "%d";
-                else
-                    fmtStr += "%d";
+            // Obtener el formato de string
+            auto *strLit = dynamic_cast<StringLiteral *>(node->arguments[0].get());
+            if (!strLit) return nullptr;
+            
+            fmtStr = strLit->value;
+            size_t argIdx = 1;
+            size_t pos = 0;
+
+            while((pos = fmtStr.find("{}")) != std::string::npos && argIdx < node->arguments.size()) {
+                // Detectar tipo del argumento
+                auto &arg = node->arguments[argIdx];
+                std::string fmtCode = "%d";
+                if (dynamic_cast<StringLiteral *>(arg.get()))
+                    fmtCode = "%s"; 
+                else if (dynamic_cast<NumericLiteral *>(arg.get()))
+                    fmtCode = "%d";
+                else if (dynamic_cast<BooleanLiteral *>(arg.get()))
+                    fmtCode = "%d";
+                else if (dynamic_cast<CharLiteral *>(arg.get()))
+                    fmtCode = "%c";
+                fmtStr.replace(pos, 2, fmtCode);
+                ++argIdx;
             }
-            fmtStr += "\n"; // asegurar salto de línea si no lo trae
+            fmtStr += "\n";
             auto *fmt = getOrCreateGlobalString(Ctxt, fmtStr, "fmt");
             callArgs.push_back(fmt);
-            for (auto &a : node->arguments) {
-                llvm::Value *v = emitExpr(a.get());
+
+            // Agregar los argumentos
+            for (size_t i = 1; i < node->arguments.size(); ++i) {
+                llvm::Value *v = emitExpr(node->arguments[i].get());
                 if (v && v->getType()->isIntegerTy(1)) {
-                    // subir bool a i32 para printf
+                    // Extender bool a int32 para printf
                     v = Ctxt.llvmBuilder.CreateZExt(v, llvm::Type::getInt32Ty(Ctxt.llvmContext));
                 }
                 callArgs.push_back(v);
             }
-            llvm::Function *printfFn = Ctxt.getPrintfFunction();
-            return Ctxt.llvmBuilder.CreateCall(printfFn, callArgs);
+            // Llamar a printf
+            llvm::Function *printfFunc = Ctxt.getPrintfFunction();
+            return Ctxt.llvmBuilder.CreateCall(printfFunc, callArgs);
         }
         return nullptr;
     }
