@@ -1,79 +1,112 @@
-# Umbra Lang Compiler
-Este repositorio contiene la implementación del compilador Umbra Lang. El proyecto está estructurado de la siguiente manera:
+# Umbra Compiler
 
-```plaintext
-│ umbra-lang/
-│
-├── src/                    # Ficheros fuente para el compilador
-│   ├── lexer/              # Aplicación del analizador léxico
-│   ├── parser/             # Analizador sintáctico 
-│   ├── ast/                # Definiciones del AST
-│   ├── codegen/            # Generación de código para LLVM IR
-│   └── main.cpp            # Punto de entrada principal del compilador
-│
-├── include/                # Ficheros de cabecera públicos
-│
-├── lib/                    # Bibliotecas externas
-│
-├── test/                   # Ficheros de prueba
-│   ├── CMakeLists.txt      # Definición de pruebas        
-│   ├── lexer_tests/        # Pruebas para el analizador léxico
-│   ├── parser_tests/       # Pruebas del analizador sintáctico 
-│   └── codegen_tests/      # Pruebas de generación de código
-│
-├── examples/               # Ejemplos de programas Umbra Lang
-│
-├── docs/                   # Ficheros de documentación
-│
-├── build/                  # Construcción de directorio de salida
-│
-├── .vscode/                # Ajustes específicos de VS Code
-│   ├── tasks.json          # Configuración de las tareas de construcción
-│   └── launch.json         # Configuración del depurador
-│
-├── CMakeLists.txt          # Archivo de configuración CMake
-├── .gitignore              # Fichero Git Ignore
-└── README.md               # Este archivo
+Umbra es un compilador experimental para un lenguaje de propósito general, diseñado como laboratorio de compiladores y para aprendizaje de técnicas modernas de frontend y backend.
+
+## Estructura del Proyecto
+
+```
+Umbra/
+├── include/
+│   ├── umbra/
+│   │   ├── ast/              # Definiciones de nodos del AST y Visitor
+│   │   ├── codegen/          # Contexto y visitantes para generación de código LLVM
+│   │   ├── error/            # Manejo de errores y reportes
+│   │   ├── io/               # Utilidades de lectura de archivos (UmbraIO)
+│   │   ├── lexer/            # Lexer y tokens
+│   │   ├── parser/           # Parser y definición de la gramática
+│   │   ├── preprocessor/     # Preprocesador para directivas 'use'
+│   │   ├── semantic/         # Análisis semántico, tipos y tabla de símbolos
+│   │   ├── utils/            # Utilidades generales (formatos, helpers)
+│   │   └── ...               # Otros módulos
+├── src/
+│   ├── ast/
+│   ├── codegen/
+│   ├── error/
+│   ├── io/
+│   ├── lexer/
+│   ├── parser/
+│   ├── preprocessor/
+│   ├── semantic/
+│   ├── utils/
+│   └── main.cpp              # Punto de entrada del compilador
+├── examples/                 # Programas de ejemplo en Umbra
+├── tests/                    # Pruebas unitarias y de integración
+├── CMakeLists.txt            # Build system
+└── README.md                 # Este archivo
 ```
 
-## Contenido del Directorio
+## Principales módulos
 
-**src/**: Contiene todo el código fuente del compilador Umbra Lang.
-- **lexer/:** Implementación del analizador léxico.
-- **parser/:** Contendrá el analizador sintáctico (por implementar).
-- **ast/:** Definiciones para los nodos del Árbol de Sintaxis Abstracta.
-- **codegen/:** Módulo de generación de código para producir LLVM IR.
-- **main.cpp: ** El punto de entrada principal del compilador.
+- **AST**: Nodos del árbol de sintaxis y patrón Visitor.
+- **Lexer**: Tokenización y análisis léxico.
+- **Parser**: Construcción del AST desde tokens.
+- **Preprocessor**: Resolución de directivas `use` e inclusión de archivos.
+- **Semantic**: Recolección de símbolos, validación de tipos y firmas, control de scopes.
+- **Codegen**: Generación de LLVM IR y mapeo a código máquina.
+- **IO**: Utilidad header-only para lectura eficiente de archivos fuente.
+- **Error**: Manejo y reporte de errores léxicos, sintácticos y semánticos.
+- **Utils**: Helpers para formatos de impresión, conversiones y otros algoritmos.
 
-**include/:** Ficheros de cabecera públicos, si el compilador expone alguna API pública.
+## Compilación
 
-**lib/:** Bibliotecas externas o dependencias, si se utiliza alguna.
+Requiere CMake y LLVM (>= 15).
 
-**test/:** Contiene todos los ficheros de prueba para asegurar la corrección del compilador.
+> Guía completa de instalación y configuración: [SETUP.md](SETUP.md)
 
-**examples/:** Programas de ejemplo de Umbra Lang para demostrar las características del lenguaje.
+```sh
+mkdir build
+cd build
+cmake ..
+make -j
+```
 
-**docs/:** Documentación del proyecto, especificaciones del lenguaje, etc.
+## Uso
 
-**build/:** Directorio para los artefactos de compilación (no rastreados en git).
+Ejemplo de compilación y ejecución de un programa Umbra:
 
-**.vscode/:** Configuración de Visual Studio Code para facilitar el desarrollo.
+```sh
+./bin/umbra ../examples/hola_mundo.umbra
+```
 
-**CMakeLists.txt:** Configuración del sistema de compilación CMake.
+## Ejemplos
 
-**.gitignore:** Especifica los archivos no rastreados intencionadamente para ignorarlos.
+- `examples/hola_mundo.umbra`: Hola mundo con print.
+- `examples/if.umbra`: Condicionales.
+- `examples/io.umbra`: Prueba de lectura y print.
 
-**README.md:** Proporciona una visión general del proyecto (¡estás aquí!).
+## Documentación
 
+- El código está documentado con Doxygen en los headers principales.
+- Para generar la documentación:
+  ```sh
+  doxygen Doxyfile
+  ```
 
-## Primeros Pasos
+## Contribuir
 
-- [Montaje](./SETUP.md)
+- Forkea el repositorio y crea una rama para tus cambios.
+- Haz PRs contra `main` siguiendo la convención de módulos y documentación.
+- Usa `clang-format` para mantener el estilo.
 
-- [Cómo contribuir](./CONTRIBUTING.md)
+> Revisa la guía detallada de contribución: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-- [Pruebas](./tests/TESTING.md)
+## Preguntas Frecuentes
 
+**¿Qué versiones de LLVM son compatibles?**
+> LLVM 20.
+
+**¿Cómo agrego un nuevo nodo al AST?**
+> Añade la clase en `include/umbra/ast/Nodes.h` y actualiza el archivo de nodos para el Visitor (`VisitorNodes.def`).
+
+**¿Cómo reporto errores léxicos/sintácticos/semánticos?**
+> Usa el módulo `ErrorManager` y revisa los ejemplos en `src/error/ErrorManager.cpp`.
+
+**¿Cómo extiendo el preprocesador para nuevas directivas?**
+> Modifica `src/preprocessor/Preprocessor.cpp` y añade la lógica en el método `processFile`.
+
+**¿Cómo genero el IR optimizado?**
+> Usa `opt` de LLVM sobre el archivo `.ll` generado antes de compilar con `llc`.
 
 ## Licencia
-Apache 2.0 "Umbra" 
+
+MIT

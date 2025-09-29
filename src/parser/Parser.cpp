@@ -209,7 +209,6 @@ Lexer::Token Parser::consume(TokenType type, const std::string& message) {
     errorManager->addError(
         std::make_unique<CompilerError>(ErrorType::SYNTACTIC,
         message, peek().line, peek().column));
-    throw std::runtime_error(message);
 }
 
 bool Parser::isTypeToken(const Lexer::Token& token) {
@@ -770,6 +769,10 @@ std::unique_ptr<RepeatIfStatement> Parser::parseRepeatIfStatement() {
  * @param column Columna en la línea donde se detectó el error.
  */
 void Parser::error(const std::string& message, int line, int column) {
+
+
+
+
     errorManager->addError(std::make_unique<CompilerError>(ErrorType::SYNTACTIC, message, line, column));
 }
 

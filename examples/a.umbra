@@ -1,6 +1,4 @@
-func suma(int a, int b) -> int {
-    return a+b
-}
-func start(int a, int b) -> void {
-    int s = suma(1,2)
+
+func start() ->  {
+
 }
