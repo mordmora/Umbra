@@ -2,7 +2,7 @@
 /*
 <program> ::= { <function_definition> }
 
-<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" "\n"
+<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" <newline>
 
 <parameter_list> ::= <param> { "," <param> }
 
@@ -13,26 +13,45 @@
 
 <statement_list> ::= { <statement> <newline> }
 
-<statement> ::= <variable_declaration> 
-              | <assignment_statement> 
-              | <conditional> 
-              | <loop> 
-              | <memory_management> 
-              | <return_statement> 
-              | <expression> 
+<statement> ::= <variable_declaration>
+              | <assignment_statement>
+              | <conditional>
+              | <repeat>
+              | <repeat_if>
+              | <memory_management>
+              | <return_statement>
+              | <struct_definition>
+              | <classic_for>
+              | <expression>
 
-<variable_declaration> ::= <type> <identifier> [ "=" <expression> ] 
+<constructor_statement> ::= <identifier> "(" ")"
 
-<assignment_statement> ::= <identifier> [ "[" <expression> "]" ] "=" <expression> 
+<struct_definition> ::= "struct" <identifier> "=" "{" <newline> <field_list>? "}" <newline>
 
-<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] "\n"
+<field_list> ::= <field> <newline> (<field> <newline>)*
 
-<loop> ::= "repeat" ( <integer_literal> "times" | "if" <expression> ) "{" <statement_list> "}" 
+<field> ::= <identifier> : <type>
 
-<memory_management> ::= "new" <type> "[" <expression> "]" 
-                      | "delete" <identifier> 
+<variable_declaration> ::= <type> <identifier> [ "=" <expression> ]
 
-<return_statement> ::= "return" <expression> 
+<assignment_statement> ::= <identifier> [ "[" <expression> "]" ] "=" <expression>
+
+<conditional> ::= "if" <expression> "{" <statement_list> "}" { "elseif" <expression> "{" <statement_list> "}" } [ "else" "{" <statement_list> "}" ] <newline>
+
+<repeat> ::= "repeat" ( <integer_literal> "times") "{" <statement_list> "}"
+
+<repeat_if> ::= "repeat" "if" <expression> "{" <statement_list> "}"
+
+<classic_for> ::= "for" "(" <for_init> ";" <expression>? ";" <for_update> ")" "{" <statement_list> "}"
+
+<for_init>   ::= <variable_declaration> | <assignment_statement> | ε
+
+<for_update> ::= <assignment_statement> | <function_call> | ε
+
+<memory_management> ::= "new" <type> "[" <expression> "]"
+                      | "delete" <identifier>
+
+<return_statement> ::= "return" <expression>
 
 <expression> ::= <logical_or_expression>
 
@@ -50,7 +69,7 @@
 
 <unary_expression> ::= [ ( "ptr" | "ref" | "access" ) ] <primary_expression>
 
-<primary_expression> ::= <identifier> 
+<primary_expression> ::= <identifier>
                        | <literal>
                        | <function_call>
                        | "(" <expression> ")"
