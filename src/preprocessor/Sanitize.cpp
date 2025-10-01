@@ -23,4 +23,29 @@ namespace umbra {
         }
         return inputBytes;
     }
+
+    std::string Sanitizer::removeComments(std::string& inputBytes) {
+        bool comentario = false;
+        int indiceInicioComentario = -1;
+        for (size_t i = 0; i < inputBytes.length(); i++) {
+            if (i < inputBytes.length() - 1 && inputBytes[i] == '/' && inputBytes[i + 1] == '/' && !comentario) {
+                indiceInicioComentario = i;
+                comentario = true;
+            }
+            if (comentario) { // se está escaneando un comentario si comentario = true
+                if (inputBytes[i] == '\n' || i == inputBytes.length() - 1) { // se llegó al final del comentario
+                    if (i == inputBytes.length() - 1) {
+                        inputBytes.erase(indiceInicioComentario, i - indiceInicioComentario + 1);
+                    }
+                    else {
+                        inputBytes.erase(indiceInicioComentario, i - indiceInicioComentario); // si el comentario termina en "\n"
+                                                                                              // se deja el salto de línea 
+                    }
+                    comentario = false;
+                    i = indiceInicioComentario - 1;
+                }
+            }
+        }
+    }
+
 }
