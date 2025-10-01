@@ -46,6 +46,7 @@ namespace umbra {
                 }
             }
         }
+        return inputBytes;
     }
 
 }
