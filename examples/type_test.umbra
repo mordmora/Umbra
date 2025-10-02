@@ -1,0 +1,12 @@
+func start() -> void {
+    int x = 5
+    int y = 10
+
+    // Esto debería funcionar
+    int z = x + y
+
+    // Ahora necesitamos crear un caso donde haya type mismatch
+    // Por ahora el compilador solo maneja int y string, así que necesitamos un string
+
+    print("{}", z)
+}

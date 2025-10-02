@@ -1,0 +1,11 @@
+func factorial(int n) -> int {
+    if (n less_than 2) {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+func start() -> void {
+    int result = factorial(5)
+    print("Factorial: {}", result)
+}

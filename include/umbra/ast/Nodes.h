@@ -219,8 +219,6 @@ namespace umbra {
     // Primary expression node
     class PrimaryExpression : public Expression {
     public:
-
-
         enum Type {
             IDENTIFIER,
             LITERAL,
@@ -230,7 +228,6 @@ namespace umbra {
             MEMBER_ACCESS,
             CAST_EXPRESSION,
             TERNARY_EXPRESSION,
-
         } exprType;
 
         // Builder
@@ -242,7 +239,6 @@ namespace umbra {
         PrimaryExpression(std::unique_ptr<MemberAccessExpression> memberAccess) : Expression(NodeKind::PRIMARY_EXPRESSION), memberAccess(std::move(memberAccess)){ exprType = MEMBER_ACCESS; };
         PrimaryExpression(std::unique_ptr<CastExpression> castExpr) : Expression(NodeKind::PRIMARY_EXPRESSION), castExpression(std::move(castExpr)) { exprType = CAST_EXPRESSION; };
         PrimaryExpression(std::unique_ptr<TernaryExpression> ternaryExpr) : Expression(NodeKind::PRIMARY_EXPRESSION), ternaryExpression(std::move(ternaryExpr)) { exprType = TERNARY_EXPRESSION; };
-
         // Members
         std::unique_ptr<Identifier> identifier;
         std::unique_ptr<Literal> literal;

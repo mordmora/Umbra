@@ -1,0 +1,7 @@
+func testInt() -> int {
+    return 42
+}
+
+func start() -> void {
+    print("{}", 5)
+}

@@ -26,6 +26,8 @@ namespace code_gen {
                 return llvm::Type::getInt8Ty(Ctxt);
             case BuiltinType::String:
                 return llvm::PointerType::get(llvm::Type::getInt8Ty(Ctxt), 0);
+            case BuiltinType::Float:
+                return llvm::Type::getFloatTy(Ctxt);
             default:
                 return llvm::Type::getVoidTy(Ctxt);
         }
@@ -50,6 +52,7 @@ namespace code_gen {
         llvm::Value* visitIfStatement(IfStatement* node);
         llvm::Value* visitRepeatTimesStatement(RepeatTimesStatement* node);
         llvm::Value* visitVariableDeclaration(VariableDeclaration* node);
+        llvm::Value* visitAssignmentStatement(AssignmentStatement* node);
 
         private:
         llvm::Value* emitExpr(Expression* expr);

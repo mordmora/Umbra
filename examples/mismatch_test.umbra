@@ -1,0 +1,8 @@
+func start() -> void {
+    if (true) {
+        int x = 5
+    }
+    print("{}", x)
+
+    int y = x + 10
+}

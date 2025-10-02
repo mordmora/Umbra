@@ -25,6 +25,25 @@ namespace umbra {
         }
     }
 
+    inline std::string semanticTypeToString(SemanticType sType){
+        switch(sType){
+            case SemanticType::None: return "None";
+            case SemanticType::Int: return "Int";
+            case SemanticType::Float: return "Float";
+            case SemanticType::String: return "String";
+            case SemanticType::Char: return "Char";
+            case SemanticType::Double: return "Double";
+            case SemanticType::Bool: return "Bool";
+            case SemanticType::Array: return "Array";
+            case SemanticType::Null: return "Null";
+            case SemanticType::Void: return "Void";
+            case SemanticType::Undef: return "Undef";
+            case SemanticType::UserDefType: return "UserDefType";
+            case SemanticType::Error: return "Error";
+            default: return "Unknown";
+        }
+    }
+
     inline std::string getPrintArgsFormat(std::string& str){
 
         //Algoritmo aun en construcción, no tocar por favor :)

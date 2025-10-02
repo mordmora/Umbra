@@ -29,6 +29,7 @@ namespace umbra {
 
         Lexer::Token lookAhead(int distance);
         bool isTypeToken(const Lexer::Token& token);
+        bool isAssignmentAhead();
         bool match(TokenType type);
         bool check(TokenType type) const;
         Lexer::Token advance();
@@ -46,6 +47,7 @@ namespace umbra {
         std::vector<std::unique_ptr<Statement>> parseStatementList();
         std::unique_ptr<Statement> parseStatement();
         std::unique_ptr<VariableDeclaration> parseVariableDeclaration();
+        std::unique_ptr<AssignmentStatement> parseAssignmentStatement();
         std::unique_ptr<Expression> parseExpression();
         std::unique_ptr<Expression> parseLogicalOr();
         std::unique_ptr<Expression> parseLogicalAnd();

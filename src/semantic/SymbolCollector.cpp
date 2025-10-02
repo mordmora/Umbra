@@ -114,33 +114,52 @@ void SymbolCollector::visitVariableDeclaration(VariableDeclaration* node){
     };
 
     if(node->initializer != nullptr){
+        validateCallsInExpression(node->initializer.get());
 
-        if(node->initializer->getKind() == NodeKind::FUNCTION_CALL){
-
-            auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->initializer.get());
-            if(primaryExpr && primaryExpr->functionCall) {
-                if(!validateFunctionCall(primaryExpr->functionCall.get())) {
-                    return;
-                }
-                std::string& name = primaryExpr->functionCall->functionName->name;
-                auto rvalSym = symTable.lookup(name);
-                if(rvalSym.type != builtinTypeToSemaType(node->type->builtinType)){
-                    std::string msg = "Type mismatch: function '" + name + "' returns " + std::to_string(static_cast<int>(rvalSym.type)) +
-                                      ", but variable '" + node->name->name + "' is type " + std::to_string(static_cast<int>(node->type->builtinType));
-                    errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
-                    return;
-                }
-            }
-        }
-
-        auto rvalType = typeCk.visit(node->initializer.get());
-        node->initializer->builtinExpressionType = semaTypeToBuiltinType(rvalType);
-        if(rvalType == SemanticType::Error){
-            errorManager.addError(std::make_unique<SemanticError>("Invalid initializer expression", 0, 0, SemanticError::Action::ERROR));
-            return;
-        }
+        // TypeCk ahora reporta errores específicos a través de errorManager,
+        // por lo que no necesitamos agregar un mensaje genérico aquí.
+        (void)typeCk.visit(node->initializer.get());
+        // Si el resultado es Error, TypeCk ya reportó el problema específico
     }
     symTable.insert(node->name->name, varSymb);
+}
+
+void SymbolCollector::visitAssignmentStatement(AssignmentStatement* node){
+    auto Sym = theContext.symbolTable.lookup(node->target->name);
+    if(Sym.type == SemanticType::Error){
+        std::string msg = "Cannot assign to undefined variable '" + node->target->name + "' (variable not declared in current scope)";
+        errorManager.addError(
+            std::make_unique<CompilerError>(
+                ErrorType::SEMANTIC,
+                msg,
+                Sym.line,
+                Sym.col
+            )
+        );
+        return; // No continuar validando si la variable no existe
+    }
+    validateCallsInExpression(node->value.get());
+
+    SemanticType semaT = typeCk.visit(node->value.get());
+
+    // TypeCk ya reportó errores específicos si hubo problemas en la expresión
+    if(semaT == SemanticType::Error){
+        return; // El error específico ya fue reportado por TypeCk
+    }
+
+    if(semaT != Sym.type){
+        std::string msg = "Type mismatch in assignment: variable '" + node->target->name +
+                          "' has type '" + semanticTypeToString(Sym.type) +
+                          "' but assigned value has type '" + semanticTypeToString(semaT) + "'";
+        errorManager.addError(
+            std::make_unique<CompilerError>(
+                ErrorType::SEMANTIC,
+                msg,
+                Sym.line,
+                Sym.col
+            )
+        );
+    }
 }
 
 /// @brief Visita directa a una llamada a función (si aparece aislada).
@@ -154,7 +173,7 @@ void SymbolCollector::visitFunctionCall(FunctionCall* node){
 /// @brief Si el PrimaryExpression contiene una llamada, la valida.
 /// @param node Nodo primario a revisar.
 void SymbolCollector::visitPrimaryExpression(PrimaryExpression* node) {
-    if(node && node->getKind() == NodeKind::FUNCTION_CALL) {
+    if(node && node->exprType == PrimaryExpression::Type::EXPRESSION_CALL) {
         if(node->functionCall) {
             validateFunctionCall(node->functionCall.get());
         }
@@ -164,13 +183,9 @@ void SymbolCollector::visitPrimaryExpression(PrimaryExpression* node) {
 /// @brief Valida llamadas que aparecen como statement (expresión suelta).
 /// @param node Statement con expresión; si es llamada, se valida.
 void SymbolCollector::visitExpressionStatement(ExpressionStatement* node) {
-    if(node && node->exp) {
-        if(node->exp->getKind() == NodeKind::FUNCTION_CALL) {
-            auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->exp.get());
-            if(primaryExpr && primaryExpr->functionCall) {
-                validateFunctionCall(primaryExpr->functionCall.get());
-            }
-        }
+    PrimaryExpression* pExpr = dynamic_cast<PrimaryExpression*>(node->exp.get());
+    if(pExpr != nullptr){
+        visitPrimaryExpression(pExpr);
     }
 }
 
@@ -198,30 +213,36 @@ bool SymbolCollector::validateFunctionCall(FunctionCall* node) {
         return false;
     }
 
-    if(node->functionName->name == "print"){
-        // TODO: parsear formato "{$n}" y validar args extra (variádica).
-        // Por ahora, se delega a TypeCk y al codegen para el mapeo a printf.
-        std::string_view arg1 = node->functionName->name;
-        (void)arg1; // silenciar warning por ahora
-    }
-
     std::vector<SemanticType> argTypes = extractArgumentTypes(node->arguments);
-
     const auto& expectedTypes = symbolFCall.signature.argTypes;
-    if(argTypes.size() != expectedTypes.size()) {
-        std::string msg = "Wrong number of arguments for function '" + node->functionName->name + "'. Expected: " +
-                          std::to_string(expectedTypes.size()) + ", Got: " + std::to_string(argTypes.size());
-        errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
-        return false;
+
+    if(symbolFCall.signature.isVarArg) {
+        if(argTypes.size() < expectedTypes.size()) {
+            std::string msg = "Wrong number of arguments for function '" + node->functionName->name + "'. Expected at least: " +
+                              std::to_string(expectedTypes.size()) + ", Got: " + std::to_string(argTypes.size());
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            return false;
+        }
+    } else {
+        if(argTypes.size() != expectedTypes.size()) {
+            std::string msg = "Wrong number of arguments for function '" + node->functionName->name + "'. Expected: " +
+                              std::to_string(expectedTypes.size()) + ", Got: " + std::to_string(argTypes.size());
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            return false;
+        }
     }
 
-    bool typesMatch = std::equal(argTypes.begin(), argTypes.end(), expectedTypes.begin());
-    if(!typesMatch) {
-        std::string msg = "Argument types don't match function signature for '" + node->functionName->name + "'";
-        errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
-        return false;
+    for(size_t i = 0; i < expectedTypes.size(); ++i) {
+        if(argTypes[i] != expectedTypes[i]) {
+            std::string msg = "Type mismatch in argument " + std::to_string(i + 1) + " of function '" + node->functionName->name +
+                              "': expected type '" + semanticTypeToString(expectedTypes[i]) +
+                              "' but got type '" + semanticTypeToString(argTypes[i]) + "'";
+            errorManager.addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            return false;
+        }
     }
-    node->argTypes = argTypes;
+
+    node->argTypes = std::move(argTypes);
     node->semaT = symbolFCall.signature.returnType;
     return true;
 }
@@ -231,14 +252,41 @@ bool SymbolCollector::validateFunctionCall(FunctionCall* node) {
  * @param arguments Vector de expresiones de argumentos.
  * @return Vector de tipos inferidos en el mismo orden.
  */
+void SymbolCollector::validateCallsInExpression(Expression* expr) {
+    if(!expr) return;
+
+    if(expr->getKind() == NodeKind::PRIMARY_EXPRESSION) {
+        auto* primaryExpr = dynamic_cast<PrimaryExpression*>(expr);
+        if(primaryExpr && primaryExpr->exprType == PrimaryExpression::Type::EXPRESSION_CALL && primaryExpr->functionCall) {
+            validateFunctionCall(primaryExpr->functionCall.get());
+            for(auto& arg : primaryExpr->functionCall->arguments) {
+                validateCallsInExpression(arg.get());
+            }
+        }
+    } else if(expr->getKind() == NodeKind::BINARY_EXPRESSION) {
+        auto* binExpr = dynamic_cast<BinaryExpression*>(expr);
+        if(binExpr) {
+            validateCallsInExpression(binExpr->left.get());
+            validateCallsInExpression(binExpr->right.get());
+        }
+    } else if(expr->getKind() == NodeKind::UNARY_EXPRESSION) {
+        auto* unaryExpr = dynamic_cast<UnaryExpression*>(expr);
+        if(unaryExpr) {
+            validateCallsInExpression(unaryExpr->operand.get());
+        }
+    }
+}
+
 std::vector<SemanticType> SymbolCollector::extractArgumentTypes(const std::vector<std::unique_ptr<Expression>>& arguments) {
     std::vector<SemanticType> argTypes;
 
     std::transform(arguments.begin(), arguments.end(),
                   std::back_inserter(argTypes),
                   [this](const std::unique_ptr<Expression>& arg) {
+                      validateCallsInExpression(arg.get());
                       return typeCk.visit(arg.get());
                   });
+
     return argTypes;
 }
 
@@ -289,7 +337,6 @@ void SymbolCollector::validateEntryPoint() {
     if (sym.kind != SymbolKind::FUCNTION || sym.signature.argTypes.size() != 0) {
         errorManager.addError(std::make_unique<SemanticError>(
             "Entry point 'start' must be a function with no parameters", 0, 0, SemanticError::Action::ERROR));
-        return;
     }
     if (!(sym.signature.returnType == SemanticType::Void || sym.signature.returnType == SemanticType::Int)) {
         errorManager.addError(std::make_unique<SemanticError>(

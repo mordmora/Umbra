@@ -4,6 +4,7 @@
 #include"umbra/ast/Nodes.h"
 #include<memory>
 #include"umbra/semantic/SemanticType.h"
+#include"umbra/semantic/SemanticContext.h"
 
 /*
     TypeCk es un visitante sencillo que se encarga de inferir y calcular los tipos de
@@ -15,8 +16,13 @@
 
 namespace umbra {
 
+    class ErrorManager;
+
     class TypeCk : public BaseV<std::unique_ptr, TypeCk, SemanticType> {
     public:
+
+        explicit TypeCk(SemanticContext& ctxt, ErrorManager* errMgr = nullptr)
+            : ctxt(ctxt), errorManager(errMgr) {}
 
         SemanticType getRvalExprType();
 
@@ -26,6 +32,15 @@ namespace umbra {
 
         SemanticType visitStringLiteral(StringLiteral* node);
 
+        SemanticType visitPrimaryExpression(PrimaryExpression* node);
+
+        SemanticType visitFunctionCall(FunctionCall* node);
+
+        SemanticType visitIdentifier(Identifier* node);
+
+        private:
+        SemanticContext ctxt;
+        ErrorManager* errorManager;
 
     };
 

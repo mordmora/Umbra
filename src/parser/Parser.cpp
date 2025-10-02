@@ -211,6 +211,15 @@ Lexer::Token Parser::consume(TokenType type, const std::string& message) {
         message, peek().line, peek().column));
 }
 
+bool Parser::isAssignmentAhead(){
+    auto it = current;
+    ++it;
+    while(it != tokens.end() && it->type == TokenType::TOK_NEWLINE){
+        ++it;
+    }
+    return it != tokens.end() && it->type == TokenType::TOK_ASSIGN;
+}
+
 bool Parser::isTypeToken(const Lexer::Token& token) {
     return token.type == TokenType::TOK_INT
     || token.type == TokenType::TOK_FLOAT
@@ -349,6 +358,9 @@ std::unique_ptr<Statement> Parser::parseStatement(){
         return parseVariableDeclaration();
     }
     if(check(TokenType::TOK_IDENTIFIER)){
+        if(isAssignmentAhead()){
+            return parseAssignmentStatement();
+        }
         return std::make_unique<ExpressionStatement>(parseFunctionCall());
     }
     if (match(TokenType::TOK_REPEAT)) {
@@ -390,7 +402,8 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
     }
 
     Lexer::Token name = consume(TokenType::TOK_IDENTIFIER, "Expected variable name");
-
+    auto identifier = std::make_unique<Identifier>(name.lexeme);
+    identifier->builtinExpressionType = type->builtinType;
     if(match(TokenType::TOK_ASSIGN)){
         // skip newlines before parsing initializer expression
         skipNewLines();
@@ -402,13 +415,32 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
         }
         return std::make_unique<VariableDeclaration>(
             std::move(type),
-            std::make_unique<Identifier>(name.lexeme),
+            std::move(identifier),
             std::move(initializer)
         );
     }
     return std::make_unique<VariableDeclaration>(std::move(type),
-    std::make_unique<Identifier>(name.lexeme), nullptr);
+    std::move(identifier), nullptr);
 }
+
+std::unique_ptr<AssignmentStatement> Parser::parseAssignmentStatement(){
+
+    Lexer::Token idT = consume(TokenType::TOK_IDENTIFIER, "Expected identifier in assignment");
+    auto ID = std::make_unique<Identifier>(idT.lexeme);
+
+    consume(TokenType::TOK_ASSIGN, "Expected \"=\" after identifier");
+    skipNewLines();
+
+    auto init = parseExpression();
+    if(!init){
+        error("Expected expression after \"=\"", peek().line, peek().column);
+        synchronize();
+        return nullptr;
+    }
+
+    return std::make_unique<AssignmentStatement>(std::move(ID), std::move(init));
+}
+
 
 /**
  * @brief Inicia el análisis de una expresión.
@@ -604,7 +636,6 @@ std::unique_ptr<Expression> Parser::parseFunctionCall(){
     consume(TokenType::TOK_RIGHT_PAREN, "Expected ) in expression");
 
     auto functionCall = std::make_unique<FunctionCall>(std::move(id), std::move(args));
-
     return std::make_unique<PrimaryExpression>(std::move(functionCall));
 }
 

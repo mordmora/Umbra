@@ -1,0 +1,19 @@
+func testInt() -> int {
+    return 42
+}
+
+func testVoid() -> void {
+    print("{}", 123)
+}
+
+func start() -> void {
+    int x = 5
+
+    // Error: Asignar resultado de función void a variable int
+    int y = testVoid()
+
+    // Error: Type mismatch en asignación
+    x = testInt()  // Esto debería funcionar
+
+    print("{}", x)
+}

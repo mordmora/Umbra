@@ -19,8 +19,6 @@ namespace umbra {
         assert(!scopes.empty());
         if (scopes.size() > 1) {
             scopes.pop_back();
-        } else {
-            std::cout << "Warning: Trying to exit global scope" << std::endl;
         }
     }
 

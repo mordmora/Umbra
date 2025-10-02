@@ -1,0 +1,8 @@
+func testVoid() -> void {
+    print("{}", 123)
+}
+
+func start() -> void {
+    int y = testVoid()
+    print("{}", y)
+}

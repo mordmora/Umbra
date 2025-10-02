@@ -1,0 +1,23 @@
+func suma(int a, int b) -> int {
+    return a + b
+}
+
+func start() -> void {
+    // Error 1: Variable no declarada
+    int x = y + 5
+
+    // Error 2: Variable fuera de scope
+    if (true) {
+        int z = 10
+    }
+    int w = z + 1
+
+    // Error 3: Función no definida
+    foo()
+
+    // Error 4: Número incorrecto de argumentos
+    int result = suma(5)
+
+    // Error 5: Variable no declarada en asignación
+    undeclared = 42
+}

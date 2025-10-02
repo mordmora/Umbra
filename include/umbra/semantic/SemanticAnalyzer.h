@@ -52,7 +52,7 @@ namespace umbra {
              */
             SemanticAnalyzer(ErrorManager& errManager, ProgramNode* root)
                 : context(symTable),
-                  typeCk(),
+                  typeCk(context, &errManager),
                   errorManager(errManager),
                   rootASTNode(root),
                   collector(context, symTable, root, typeCk, errorManager)

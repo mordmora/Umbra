@@ -128,9 +128,13 @@ llvm::Value *CodegenVisitor::visitNumericLiteral(NumericLiteral *node) {
 
 llvm::Value *CodegenVisitor::visitIdentifier(Identifier *node) {
     auto it = Ctxt.namedValues.find(node->name);
-    if (it != Ctxt.namedValues.end())
-        return it->second;
-    return nullptr;
+    if(it == Ctxt.namedValues.end()) return nullptr;
+
+    llvm::Value* val = it->second;
+    if(auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(val)){
+        return Ctxt.llvmBuilder.CreateLoad(alloca->getAllocatedType(), alloca, node->name + ".ld");
+    }
+    return val;
 }
 
 llvm::Value *CodegenVisitor::visitPrimaryExpression(PrimaryExpression *node) {
@@ -231,22 +235,21 @@ llvm::Value *CodegenVisitor::visitFunctionCall(FunctionCall *node) {
             // Obtener el formato de string
             auto *strLit = dynamic_cast<StringLiteral *>(node->arguments[0].get());
             if (!strLit) return nullptr;
-            
+
             fmtStr = strLit->value;
             size_t argIdx = 1;
             size_t pos = 0;
 
-            while((pos = fmtStr.find("{}")) != std::string::npos && argIdx < node->arguments.size()) {
-                // Detectar tipo del argumento
-                auto &arg = node->arguments[argIdx];
+            while((pos = fmtStr.find("{}")) != std::string::npos && argIdx < node->argTypes.size()) {
+                auto &arg = node->argTypes[argIdx];
                 std::string fmtCode = "%d";
-                if (dynamic_cast<StringLiteral *>(arg.get()))
-                    fmtCode = "%s"; 
-                else if (dynamic_cast<NumericLiteral *>(arg.get()))
+                if (arg == SemanticType::String)
+                    fmtCode = "%s";
+                else if (arg == SemanticType::Int || arg == SemanticType::Bool)
                     fmtCode = "%d";
-                else if (dynamic_cast<BooleanLiteral *>(arg.get()))
-                    fmtCode = "%d";
-                else if (dynamic_cast<CharLiteral *>(arg.get()))
+                else if (arg == SemanticType::Float)
+                    fmtCode = "%f";
+                else if (arg == SemanticType::Char)
                     fmtCode = "%c";
                 fmtStr.replace(pos, 2, fmtCode);
                 ++argIdx;
@@ -301,12 +304,55 @@ llvm::Value *CodegenVisitor::visitReturnExpression(ReturnExpression *node) {
 llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node){
 
     const std::string& vName = node->name->name;
+    llvm::Type* vType = builtinTypeToLLVMType(node->type.get()->builtinType, Ctxt.llvmContext);
 
-    llvm::Type* v;
+    llvm::Function* F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();
+    llvm::IRBuilder<> entryBuilder(&F->getEntryBlock(), F->getEntryBlock().begin());
+    auto* alloca = entryBuilder.CreateAlloca(vType, nullptr, vName);
 
+    Ctxt.namedValues[vName] = alloca;
+
+    llvm::Value* initVal = nullptr;
+    if(node->initializer){
+        initVal = emitExpr(node->initializer.get());
+        if(initVal && vType->isIntegerTy(32) && initVal->getType()->isIntegerTy(1)){
+            llvm::outs() << "Is float\n";
+            initVal = Ctxt.llvmBuilder.CreateZExt(initVal, vType, vName + ".zext");
+        }else if(initVal && vType->isFloatTy() && initVal->getType()->isIntegerTy(32)){
+            llvm::outs() << "Is float\n";
+            initVal = Ctxt.llvmBuilder.CreateSIToFP(initVal, vType, vName + ".sitofp");
+        }
+    }else{
+        initVal = llvm::Constant::getNullValue(vType);
+    }
+
+    Ctxt.llvmBuilder.CreateStore(initVal, alloca);
+    return alloca;
 
 }
 
+llvm::Value* CodegenVisitor::visitAssignmentStatement(AssignmentStatement* node){
+
+    auto it = Ctxt.namedValues.find(node->target->name);
+    if(it == Ctxt.namedValues.end()){
+        return nullptr;
+    }
+
+    llvm::Value* ptr = it->second;
+    auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr);
+    if(!alloca) return nullptr;
+
+    llvm::Value* rhs = emitExpr(node->value.get());
+    if(!rhs) return nullptr;
+
+    llvm::Type* destTy = alloca->getAllocatedType();
+    if(destTy->isIntegerTy(32) && rhs->getType()->isIntegerTy(32)){
+        rhs = Ctxt.llvmBuilder.CreateZExt(rhs, destTy, "bool_to_i32");
+    }else if (destTy->isFloatTy() && rhs->getType()->isIntegerTy(32)){
+        rhs = Ctxt.llvmBuilder.CreateSIToFP(rhs, destTy, "i32_to_float");
+    }
+    return Ctxt.llvmBuilder.CreateStore(rhs, alloca);
+}
 
 llvm::Value *CodegenVisitor::visitIfStatement(IfStatement *node) {
     llvm::Function *F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();

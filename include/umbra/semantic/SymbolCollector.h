@@ -81,6 +81,8 @@ namespace umbra {
          */
         void visitVariableDeclaration(VariableDeclaration* node);
 
+        void visitAssignmentStatement(AssignmentStatement* node);
+
         /**
          * @brief Visita directa de una llamada a función (si aparece aislada) para validarla.
          */
@@ -102,6 +104,12 @@ namespace umbra {
          * @return true si la llamada es válida; false en caso contrario.
          */
         bool validateFunctionCall(FunctionCall* node);
+
+        /**
+         * @brief Valida recursivamente todas las llamadas a función dentro de una expresión.
+         * @param expr Expresión a analizar (puede contener llamadas anidadas).
+         */
+        void validateCallsInExpression(Expression* expr);
 
         /**
          * @brief Convierte los argumentos de una llamada a su SemanticType usando TypeCk.

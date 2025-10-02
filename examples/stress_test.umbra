@@ -1,0 +1,36 @@
+func sum(int a, int b) -> int {
+    return a + b
+}
+
+func divide(int a, int b) -> int {
+    return a / b
+}
+
+func test_types(int x, float y, bool z) -> void {
+    print("Testing types")
+}
+
+func start() -> void {
+    int a = 10
+    int b = 0
+    float c = 3.14
+    bool flag = true
+    int result = sum(a,b)
+    print("Sum result: {}", result)
+
+    int div_result = divide(a, b)
+    print("Division by zero: {}", div_result)
+
+    string s = "hello"
+    int num_from_string = s
+
+    bool condition = a + b
+
+    int uninitialized
+    print("Uninitialized: {}", uninitialized)
+
+    if (a less_than b) {
+        int x = 5
+    }
+    print("Out of scope: {}", x)
+}
