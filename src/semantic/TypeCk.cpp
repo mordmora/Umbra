@@ -39,35 +39,49 @@ namespace umbra{
     }
 
     SemanticType TypeCk::visitPrimaryExpression(PrimaryExpression* node){
+        static int recursionDepth = 0;
         if(!node) return SemanticType::Error;
 
+        // Protección contra recursión infinita
+        if(++recursionDepth > 1000) {
+            if(errorManager) {
+                std::string msg = "Internal error: infinite recursion detected in type checking";
+                errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            }
+            --recursionDepth;
+            return SemanticType::Error;
+        }
+
+        SemanticType result = SemanticType::Error;
         switch(node->exprType){
             case PrimaryExpression::IDENTIFIER:
-                if(node->identifier) return visit(node->identifier.get());
+                if(node->identifier) result = visit(node->identifier.get());
                 break;
             case PrimaryExpression::LITERAL:
-                if(node->literal) return visit(node->literal.get());
+                if(node->literal) result = visit(node->literal.get());
                 break;
             case PrimaryExpression::EXPRESSION_CALL:
-                if(node->functionCall) return visit(node->functionCall.get());
+                if(node->functionCall) result = visit(node->functionCall.get());
                 break;
             case PrimaryExpression::PARENTHESIZED:
-                if(node->parenthesized) return visit(node->parenthesized.get());
+                if(node->parenthesized) result = visit(node->parenthesized.get());
                 break;
             case PrimaryExpression::ARRAY_ACCESS:
-                if(node->arrayAccess) return visit(node->arrayAccess.get());
+                if(node->arrayAccess) result = visit(node->arrayAccess.get());
                 break;
             case PrimaryExpression::MEMBER_ACCESS:
-                if(node->memberAccess) return visit(node->memberAccess.get());
+                if(node->memberAccess) result = visit(node->memberAccess.get());
                 break;
             case PrimaryExpression::CAST_EXPRESSION:
-                if(node->castExpression) return visit(node->castExpression.get());
+                if(node->castExpression) result = visit(node->castExpression.get());
                 break;
             case PrimaryExpression::TERNARY_EXPRESSION:
-                if(node->ternaryExpression) return visit(node->ternaryExpression.get());
+                if(node->ternaryExpression) result = visit(node->ternaryExpression.get());
                 break;
         }
-        return SemanticType::Error;
+
+        --recursionDepth;
+        return result;
     }
 
     SemanticType TypeCk::visitFunctionCall(FunctionCall* node){

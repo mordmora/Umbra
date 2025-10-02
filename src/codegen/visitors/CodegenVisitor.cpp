@@ -61,6 +61,7 @@ llvm::Value *CodegenVisitor::visitFunctionDefinition(FunctionDefinition *node) {
         visit(S.get());
     }
 
+
     // Si el bloque actual no tiene terminador, insertar retorno por defecto acorde al tipo
     llvm::BasicBlock *curBB = Ctxt.llvmBuilder.GetInsertBlock();
     if (curBB && !curBB->getTerminator()) {
@@ -275,8 +276,9 @@ llvm::Value *CodegenVisitor::visitFunctionCall(FunctionCall *node) {
     }
     // Funciones del usuario: buscar en el módulo y llamar
     llvm::Function *callee = Ctxt.llvmModule.getFunction(fname);
-    if (!callee)
+    if (!callee) {
         return nullptr;
+    }
     std::vector<llvm::Value *> argsV;
     argsV.reserve(node->arguments.size());
     for (auto &a : node->arguments) {
@@ -315,7 +317,12 @@ llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node)
     llvm::Value* initVal = nullptr;
     if(node->initializer){
         initVal = emitExpr(node->initializer.get());
-        if(initVal && vType->isIntegerTy(32) && initVal->getType()->isIntegerTy(1)){
+        
+        // Si el inicializador retorna void (error semántico), usar null en su lugar
+        if(initVal && initVal->getType()->isVoidTy()){
+            initVal = llvm::Constant::getNullValue(vType);
+        }
+        else if(initVal && vType->isIntegerTy(32) && initVal->getType()->isIntegerTy(1)){
             llvm::outs() << "Is float\n";
             initVal = Ctxt.llvmBuilder.CreateZExt(initVal, vType, vName + ".zext");
         }else if(initVal && vType->isFloatTy() && initVal->getType()->isIntegerTy(32)){
@@ -326,7 +333,9 @@ llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node)
         initVal = llvm::Constant::getNullValue(vType);
     }
 
-    Ctxt.llvmBuilder.CreateStore(initVal, alloca);
+    if(initVal){
+        Ctxt.llvmBuilder.CreateStore(initVal, alloca);
+    }
     return alloca;
 
 }

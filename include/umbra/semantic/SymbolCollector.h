@@ -99,6 +99,21 @@ namespace umbra {
         void visitExpressionStatement(ExpressionStatement* node);
 
         /**
+         * @brief Visita statements if/elseif/else, validando condiciones y cuerpos.
+         */
+        void visitIfStatement(IfStatement* node);
+
+        /**
+         * @brief Visita statements repeat times, validando la expresión de veces y el cuerpo.
+         */
+        void visitRepeatTimesStatement(RepeatTimesStatement* node);
+
+        /**
+         * @brief Visita statements repeat if (while), validando la condición y el cuerpo.
+         */
+        void visitRepeatIfStatement(RepeatIfStatement* node);
+
+        /**
          * @brief Valida semánticamente una llamada a función y propaga tipos al nodo.
          * @param node Nodo de llamada.
          * @return true si la llamada es válida; false en caso contrario.
