@@ -191,7 +191,7 @@ void SymbolCollector::visitExpressionStatement(ExpressionStatement* node) {
 
 void SymbolCollector::visitIfStatement(IfStatement* node) {
     if(!node) return;
-    
+
     // Validar condiciones y cuerpos de todas las ramas (if, elseif)
     for(auto& branch : node->branches) {
         if(branch.condition) {
@@ -201,7 +201,7 @@ void SymbolCollector::visitIfStatement(IfStatement* node) {
             visit(stmt.get());
         }
     }
-    
+
     // Validar rama else si existe
     for(auto& stmt : node->elseBranch) {
         visit(stmt.get());
@@ -210,12 +210,12 @@ void SymbolCollector::visitIfStatement(IfStatement* node) {
 
 void SymbolCollector::visitRepeatTimesStatement(RepeatTimesStatement* node) {
     if(!node) return;
-    
+
     // Validar la expresión de veces
     if(node->times) {
         validateCallsInExpression(node->times.get());
     }
-    
+
     // Visitar el cuerpo del bucle
     for(auto& stmt : node->body) {
         visit(stmt.get());
@@ -224,12 +224,12 @@ void SymbolCollector::visitRepeatTimesStatement(RepeatTimesStatement* node) {
 
 void SymbolCollector::visitRepeatIfStatement(RepeatIfStatement* node) {
     if(!node) return;
-    
+
     // Validar la condición
     if(node->condition) {
         validateCallsInExpression(node->condition.get());
     }
-    
+
     // Visitar el cuerpo del bucle
     for(auto& stmt : node->body) {
         visit(stmt.get());
@@ -302,7 +302,7 @@ bool SymbolCollector::validateFunctionCall(FunctionCall* node) {
 void SymbolCollector::validateCallsInExpression(Expression* expr) {
     static int recursionDepth = 0;
     if(!expr) return;
-    
+
     // Protección contra recursión infinita
     if(++recursionDepth > 1000) {
         std::string msg = "Internal error: infinite recursion in validateCallsInExpression";
@@ -331,7 +331,7 @@ void SymbolCollector::validateCallsInExpression(Expression* expr) {
             validateCallsInExpression(unaryExpr->operand.get());
         }
     }
-    
+
     --recursionDepth;
 }
 

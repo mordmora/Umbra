@@ -317,7 +317,7 @@ llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node)
     llvm::Value* initVal = nullptr;
     if(node->initializer){
         initVal = emitExpr(node->initializer.get());
-        
+
         // Si el inicializador retorna void (error semántico), usar null en su lugar
         if(initVal && initVal->getType()->isVoidTy()){
             initVal = llvm::Constant::getNullValue(vType);
