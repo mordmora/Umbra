@@ -1,4 +1,5 @@
 #include "umbra/preprocessor/Sanitize.h"
+#include<utf8proc.h>
 #include<string>
 
 namespace umbra {
@@ -41,6 +42,16 @@ namespace umbra {
         return inputBytes;
     }
 
+    std::string normalizeEncondign(std::string& inputBytes){
+	utf8proc_uint8_t *normalized = utf8proc_NFC(reinterpret_cast<const utf8proc_uint8_t*>(inputBytes.c_str()));
+	if(!normalized){
+		return inputBytes;
+	}
+	std::string result(reinterpret_cast<char *>(normalized));
+	free(normalized);
+	return result;
+    }
+
     std::string Sanitizer::removeComments(std::string& inputBytes) {
         bool comentario = false;
         int indiceInicioComentario = -1;
@@ -65,5 +76,4 @@ namespace umbra {
         }
         return inputBytes;
     }
-
 }
