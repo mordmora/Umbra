@@ -33,6 +33,8 @@ enum class NodeKind {
     CAST_EXPRESSION,
     MEMBER_ACCESS_EXPRESSION,
     PARENTHESIZED,
+    INCREMENT_EXPRESSION,
+    DECREMENT_EXPRESSION,
 
     // Literals
     LITERAL,
@@ -89,6 +91,8 @@ class ASTNode {
             case NodeKind::TERNARY_EXPRESSION: return "TernaryExpression";
             case NodeKind::CAST_EXPRESSION: return "CastExpression";
             case NodeKind::MEMBER_ACCESS_EXPRESSION: return "MemberAccessExpression";
+            case NodeKind::INCREMENT_EXPRESSION: return "IncrementExpression";
+            case NodeKind::DECREMENT_EXPRESSION: return "DecrementExpression";
             case NodeKind::LITERAL: return "Literal";
             case NodeKind::NUMERIC_LITERAL: return "NumericLiteral";
             case NodeKind::BOOLEAN_LITERAL: return "BooleanLiteral";

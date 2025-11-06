@@ -1,0 +1,17 @@
+func start() -> void {
+    int x = 5
+    
+    int y = ++x
+    print("Pre-incremento: x={} y={}", x, y)
+    
+    int z = x++
+    print("Post-incremento: x={} z={}", x, z)
+    
+    int a = --x
+    print("Pre-decremento: x={} a={}", x, a)
+    
+    int b = x--
+    print("Post-decremento: x={} b={}", x, b)
+    
+    print("Valor final de x: {}", x)
+}

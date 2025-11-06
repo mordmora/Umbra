@@ -4,6 +4,7 @@ bin/
 lib/
 out/
 .cache/
+.github/
 
 # Archivos generados por CMake
 CMakeCache.txt

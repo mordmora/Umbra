@@ -97,6 +97,10 @@ class BaseV {
                 DISPATCH(CastExpression);
             case NodeKind::MEMBER_ACCESS_EXPRESSION:
                 DISPATCH(MemberAccessExpression);
+            case NodeKind::INCREMENT_EXPRESSION:
+                DISPATCH(IncrementExpression);
+            case NodeKind::DECREMENT_EXPRESSION:
+                DISPATCH(DecrementExpression);
             case NodeKind::PARENTHESIZED:
                 // Handle parenthesized expressions as PrimaryExpression
                 DISPATCH(PrimaryExpression);
@@ -150,6 +154,8 @@ class BaseV {
     RetTy visitTernaryExpression(TernaryExpression*)       { return defaultVisit(); }
     RetTy visitCastExpression(CastExpression*)             { return defaultVisit(); }
     RetTy visitMemberAccessExpression(MemberAccessExpression*) { return defaultVisit(); }
+    RetTy visitIncrementExpression(IncrementExpression*)   { return defaultVisit(); }
+    RetTy visitDecrementExpression(DecrementExpression*)   { return defaultVisit(); }
     RetTy visitLiteral(Literal*)                           { return defaultVisit(); }
     RetTy visitNumericLiteral(NumericLiteral*)             { return defaultVisit(); }
     RetTy visitBooleanLiteral(BooleanLiteral*)             { return defaultVisit(); }

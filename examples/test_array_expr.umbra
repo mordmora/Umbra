@@ -1,0 +1,7 @@
+func start() -> void {
+    int [10][1]a
+    int [(1+2)]b
+    int n
+    n = 5
+    int [n]c
+}

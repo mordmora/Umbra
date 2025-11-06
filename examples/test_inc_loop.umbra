@@ -1,0 +1,31 @@
+func start() -> void {
+    int [10]numbers
+    
+    int i = 0
+    repeat 10 times {
+        numbers[i] = i * 2
+        i++
+    }
+    
+    print("Array inicializado:")
+    i = 0
+    repeat 10 times {
+        print("numbers[{}] = {}", i, numbers[i])
+        ++i
+    }
+    
+    print("\nSuma de todos los elementos:")
+    int sum = 0
+    i = 0
+    repeat 10 times {
+        sum = sum + numbers[i++]
+    }
+    print("Suma total: {}", sum)
+    
+    print("\nArray en reversa:")
+    i = 9
+    repeat 10 times {
+        print("numbers[{}] = {}", i, numbers[i])
+        i--
+    }
+}

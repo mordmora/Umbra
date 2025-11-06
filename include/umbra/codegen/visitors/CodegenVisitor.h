@@ -53,9 +53,13 @@ namespace code_gen {
         llvm::Value* visitRepeatTimesStatement(RepeatTimesStatement* node);
         llvm::Value* visitVariableDeclaration(VariableDeclaration* node);
         llvm::Value* visitAssignmentStatement(AssignmentStatement* node);
+        llvm::Value* visitArrayAccess(ArrayAccessExpression* node);
+        llvm::Value* visitIncrementExpression(IncrementExpression* node);
+        llvm::Value* visitDecrementExpression(DecrementExpression* node);
 
         private:
         llvm::Value* emitExpr(Expression* expr);
+        llvm::Value* getArrayElementPtr(ArrayAccessExpression* node);
         CodegenContext& Ctxt;
     };
 

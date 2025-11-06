@@ -1,0 +1,4 @@
+func start() -> void {
+    int [10]a
+    float [5]b
+}

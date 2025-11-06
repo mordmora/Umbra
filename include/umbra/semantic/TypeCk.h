@@ -37,6 +37,12 @@ namespace umbra {
         SemanticType visitFunctionCall(FunctionCall* node);
 
         SemanticType visitIdentifier(Identifier* node);
+        
+        SemanticType visitArrayAccessExpression(ArrayAccessExpression* node);
+        
+        SemanticType visitIncrementExpression(IncrementExpression* node);
+        
+        SemanticType visitDecrementExpression(DecrementExpression* node);
 
         private:
         SemanticContext ctxt;

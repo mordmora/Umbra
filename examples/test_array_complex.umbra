@@ -1,0 +1,11 @@
+func start() -> void {
+    int [10]arr
+    int i = 2
+    
+    int x = arr[i]
+    int y = arr[i + 1]
+    int z = arr[(i * 2)]
+    
+    arr[i] = 100
+    arr[i + 1] = 200
+}

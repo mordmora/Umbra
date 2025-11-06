@@ -1,0 +1,10 @@
+func start() -> void {
+    int [10]n
+    int limit = 10
+    int ii = 0
+    repeat limit times {
+        n[ii+10] = ii
+        print("{} ", n[ii])
+        ii = ii + 1
+    }
+}

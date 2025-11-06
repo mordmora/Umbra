@@ -1,0 +1,11 @@
+func start() -> void {
+    int [3][4][5]tensor
+    int i = 1
+    int j = 2
+    int k = 3
+    
+    tensor[0][0][0] = 100
+    tensor[i][j][k] = tensor[0][0][0]
+    
+    int result = tensor[i][j][k]
+}
