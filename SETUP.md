@@ -11,14 +11,14 @@ El proyecto requiere **LLVM** para su compilación. A continuación te mostramos
 ### Instalación de Dependencias
 #### Linux
 
-> Dependencias principales: LLVM 20, Boost Program Options, GoogleTest, CMake y un compilador C++17.
+> Dependencias principales: LLVM 20, Boost Program Options, GoogleTest, utf8proc, CMake y un compilador C++17.
 
 ##### Distribuciones basadas en Debian (Ubuntu, etc.)
 
-1) CMake, toolchain y Boost Program Options:
+1) CMake, toolchain, Boost Program Options y utf8proc:
 ```bash
 sudo apt update
-sudo apt install -y cmake g++ build-essential libboost-program-options-dev
+sudo apt install -y cmake g++ build-essential libboost-program-options-dev libutf8proc-dev
 ```
 
 2) LLVM 20 (desde apt.llvm.org):
@@ -44,9 +44,9 @@ sudo cmake --install /usr/src/googletest/build
 
 ##### Distribuciones basadas en Arch (Arch, Manjaro)
 
-1) CMake, toolchain y Boost:
+1) CMake, toolchain, Boost y utf8proc:
 ```bash
-sudo pacman -Syu --needed cmake base-devel gcc boost
+sudo pacman -Syu --needed cmake base-devel gcc boost utf8proc
 ```
 
 2) LLVM/Clang/Lld (Arch suele proveer la versión reciente):
@@ -119,6 +119,16 @@ cmake -DLLVM_DIR=/usr/lib/llvm-20/lib/cmake/llvm ..
 find_package(Boost REQUIRED COMPONENTS program_options)
 include_directories(${Boost_INCLUDE_DIRS})
 # target_link_libraries(tu_target PRIVATE Boost::program_options)
+```
+
+- utf8proc:
+
+```cmake
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(UTF8PROC REQUIRED utf8proc)
+include_directories(${UTF8PROC_INCLUDE_DIRS})
+link_directories(${UTF8PROC_LIBRARY_DIRS})
+# target_link_libraries(tu_target PRIVATE ${UTF8PROC_LIBRARIES})
 ```
 
 - GoogleTest (sistema):
