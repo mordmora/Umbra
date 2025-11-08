@@ -139,7 +139,6 @@ llvm::Value *CodegenVisitor::visitIdentifier(Identifier *node) {
 }
 
 llvm::Value *CodegenVisitor::visitPrimaryExpression(PrimaryExpression *node) {
-    // Delegar según el contenido real
     if (node->functionCall)
         return visit(node->functionCall.get());
     if (node->literal)
@@ -148,7 +147,8 @@ llvm::Value *CodegenVisitor::visitPrimaryExpression(PrimaryExpression *node) {
         return visit(node->identifier.get());
     if (node->parenthesized)
         return emitExpr(node->parenthesized.get());
-    // Identificadores, arrays, etc., aún no implementados para codegen mínimo
+    if (node->arrayAccess)
+        return visitArrayAccess(node->arrayAccess.get());
     return nullptr;
 }
 
@@ -306,31 +306,49 @@ llvm::Value *CodegenVisitor::visitReturnExpression(ReturnExpression *node) {
 llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node){
 
     const std::string& vName = node->name->name;
-    llvm::Type* vType = builtinTypeToLLVMType(node->type.get()->builtinType, Ctxt.llvmContext);
+    llvm::Type* baseType = builtinTypeToLLVMType(node->type.get()->builtinType, Ctxt.llvmContext);
+    llvm::Type* vType = baseType;
+    
+    if(node->type->arrayDimensions > 0 && !node->type->arraySizes.empty()){
+        for(int i = node->type->arrayDimensions - 1; i >= 0; --i){
+            llvm::Value* sizeVal = emitExpr(node->type->arraySizes[i].get());
+            uint64_t size = 0;
+            
+            if(auto constInt = llvm::dyn_cast<llvm::ConstantInt>(sizeVal)){
+                size = constInt->getZExtValue();
+            } else {
+                size = 1;
+            }
+            
+            vType = llvm::ArrayType::get(vType, size);
+        }
+    }
 
     llvm::Function* F = Ctxt.llvmBuilder.GetInsertBlock()->getParent();
     llvm::IRBuilder<> entryBuilder(&F->getEntryBlock(), F->getEntryBlock().begin());
     auto* alloca = entryBuilder.CreateAlloca(vType, nullptr, vName);
 
     Ctxt.namedValues[vName] = alloca;
+    Ctxt.valueTypes[alloca] = vType;
+
+    if(node->type->arrayDimensions > 0){
+        return alloca;
+    }
 
     llvm::Value* initVal = nullptr;
     if(node->initializer){
         initVal = emitExpr(node->initializer.get());
 
-        // Si el inicializador retorna void (error semántico), usar null en su lugar
         if(initVal && initVal->getType()->isVoidTy()){
-            initVal = llvm::Constant::getNullValue(vType);
+            initVal = llvm::Constant::getNullValue(baseType);
         }
-        else if(initVal && vType->isIntegerTy(32) && initVal->getType()->isIntegerTy(1)){
-            llvm::outs() << "Is float\n";
-            initVal = Ctxt.llvmBuilder.CreateZExt(initVal, vType, vName + ".zext");
-        }else if(initVal && vType->isFloatTy() && initVal->getType()->isIntegerTy(32)){
-            llvm::outs() << "Is float\n";
-            initVal = Ctxt.llvmBuilder.CreateSIToFP(initVal, vType, vName + ".sitofp");
+        else if(initVal && baseType->isIntegerTy(32) && initVal->getType()->isIntegerTy(1)){
+            initVal = Ctxt.llvmBuilder.CreateZExt(initVal, baseType, vName + ".zext");
+        }else if(initVal && baseType->isFloatTy() && initVal->getType()->isIntegerTy(32)){
+            initVal = Ctxt.llvmBuilder.CreateSIToFP(initVal, baseType, vName + ".sitofp");
         }
     }else{
-        initVal = llvm::Constant::getNullValue(vType);
+        initVal = llvm::Constant::getNullValue(baseType);
     }
 
     if(initVal){
@@ -342,25 +360,127 @@ llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node)
 
 llvm::Value* CodegenVisitor::visitAssignmentStatement(AssignmentStatement* node){
 
-    auto it = Ctxt.namedValues.find(node->target->name);
-    if(it == Ctxt.namedValues.end()){
-        return nullptr;
-    }
-
-    llvm::Value* ptr = it->second;
-    auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr);
-    if(!alloca) return nullptr;
-
     llvm::Value* rhs = emitExpr(node->value.get());
     if(!rhs) return nullptr;
 
-    llvm::Type* destTy = alloca->getAllocatedType();
-    if(destTy->isIntegerTy(32) && rhs->getType()->isIntegerTy(32)){
-        rhs = Ctxt.llvmBuilder.CreateZExt(rhs, destTy, "bool_to_i32");
-    }else if (destTy->isFloatTy() && rhs->getType()->isIntegerTy(32)){
-        rhs = Ctxt.llvmBuilder.CreateSIToFP(rhs, destTy, "i32_to_float");
+    if(auto id = dynamic_cast<Identifier*>(node->target.get())){
+        auto it = Ctxt.namedValues.find(id->name);
+        if(it == Ctxt.namedValues.end()){
+            return nullptr;
+        }
+
+        llvm::Value* ptr = it->second;
+        auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr);
+        if(!alloca) return nullptr;
+
+        llvm::Type* destTy = alloca->getAllocatedType();
+        if(destTy->isIntegerTy(32) && rhs->getType()->isIntegerTy(32)){
+            rhs = Ctxt.llvmBuilder.CreateZExt(rhs, destTy, "bool_to_i32");
+        }else if (destTy->isFloatTy() && rhs->getType()->isIntegerTy(32)){
+            rhs = Ctxt.llvmBuilder.CreateSIToFP(rhs, destTy, "i32_to_float");
+        }
+        return Ctxt.llvmBuilder.CreateStore(rhs, alloca);
     }
-    return Ctxt.llvmBuilder.CreateStore(rhs, alloca);
+    
+    if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->target.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
+            llvm::Value* elementPtr = getArrayElementPtr(primaryExpr->arrayAccess.get());
+            if(!elementPtr) return nullptr;
+            return Ctxt.llvmBuilder.CreateStore(rhs, elementPtr);
+        }
+    }
+    
+    return nullptr;
+}
+
+llvm::Value* CodegenVisitor::getArrayElementPtr(ArrayAccessExpression* node){
+    llvm::Value* basePtr = nullptr;
+    llvm::Type* baseType = nullptr;
+    bool isFirstLevel = false;
+    
+    if(auto id = dynamic_cast<Identifier*>(node->array.get())){
+        auto it = Ctxt.namedValues.find(id->name);
+        if(it == Ctxt.namedValues.end()){
+            return nullptr;
+        }
+        basePtr = it->second;
+        
+        auto typeIt = Ctxt.valueTypes.find(basePtr);
+        if(typeIt != Ctxt.valueTypes.end()){
+            baseType = typeIt->second;
+        } else if(auto alloca = llvm::dyn_cast<llvm::AllocaInst>(basePtr)){
+            baseType = alloca->getAllocatedType();
+        }
+        isFirstLevel = true;
+    } else if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->array.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
+            basePtr = getArrayElementPtr(primaryExpr->arrayAccess.get());
+            if(!basePtr) return nullptr;
+            
+            auto typeIt = Ctxt.valueTypes.find(basePtr);
+            if(typeIt != Ctxt.valueTypes.end()){
+                baseType = typeIt->second;
+            }
+        }
+    } else {
+        basePtr = emitExpr(node->array.get());
+        if(!basePtr) return nullptr;
+        
+        auto typeIt = Ctxt.valueTypes.find(basePtr);
+        if(typeIt != Ctxt.valueTypes.end()){
+            baseType = typeIt->second;
+        }
+    }
+    
+    if(!basePtr || !baseType) return nullptr;
+    
+    llvm::Value* indexVal = emitExpr(node->index.get());
+    if(!indexVal) return nullptr;
+    
+    std::vector<llvm::Value*> indices;
+    if(isFirstLevel){
+        indices.push_back(llvm::ConstantInt::get(llvm::Type::getInt64Ty(Ctxt.llvmContext), 0));
+    }
+    indices.push_back(indexVal);
+    
+    llvm::Type* elementType = nullptr;
+    if(auto arrayType = llvm::dyn_cast<llvm::ArrayType>(baseType)){
+        elementType = arrayType->getElementType();
+        
+        llvm::Value* elementPtr = Ctxt.llvmBuilder.CreateInBoundsGEP(
+            baseType,
+            basePtr,
+            indices,
+            "arrayidx"
+        );
+        
+        Ctxt.valueTypes[elementPtr] = elementType;
+        return elementPtr;
+    }
+    
+    return nullptr;
+}
+
+llvm::Value* CodegenVisitor::visitArrayAccess(ArrayAccessExpression* node){
+    llvm::Value* elementPtr = getArrayElementPtr(node);
+    if(!elementPtr) return nullptr;
+    
+    auto typeIt = Ctxt.valueTypes.find(elementPtr);
+    if(typeIt == Ctxt.valueTypes.end()){
+        return nullptr;
+    }
+    
+    llvm::Type* elementType = typeIt->second;
+    
+    if(llvm::isa<llvm::ArrayType>(elementType)){
+        return elementPtr;
+    }
+    
+    return Ctxt.llvmBuilder.CreateLoad(
+        elementType,
+        elementPtr,
+        "arrayload"
+    );
 }
 
 llvm::Value *CodegenVisitor::visitIfStatement(IfStatement *node) {
@@ -470,6 +590,114 @@ llvm::Value *CodegenVisitor::visitRepeatTimesStatement(RepeatTimesStatement *nod
     // loop.end: continuar
     Ctxt.llvmBuilder.SetInsertPoint(loopEndBB);
     return nullptr;
+}
+
+llvm::Value* CodegenVisitor::visitIncrementExpression(IncrementExpression* node){
+    llvm::Value* varPtr = nullptr;
+    llvm::Type* varType = nullptr;
+    
+    if(auto id = dynamic_cast<Identifier*>(node->operand.get())){
+        auto it = Ctxt.namedValues.find(id->name);
+        if(it == Ctxt.namedValues.end()){
+            return nullptr;
+        }
+        varPtr = it->second;
+        if(auto alloca = llvm::dyn_cast<llvm::AllocaInst>(varPtr)){
+            varType = alloca->getAllocatedType();
+        }
+    }
+    else if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->operand.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
+            varPtr = getArrayElementPtr(primaryExpr->arrayAccess.get());
+            if(!varPtr) return nullptr;
+            
+            auto typeIt = Ctxt.valueTypes.find(varPtr);
+            if(typeIt != Ctxt.valueTypes.end()){
+                varType = typeIt->second;
+            }
+        }
+    }
+    
+    if(!varPtr || !varType){
+        return nullptr;
+    }
+    
+    llvm::Value* oldValue = Ctxt.llvmBuilder.CreateLoad(varType, varPtr, "inc.old");
+    llvm::Value* newValue = nullptr;
+    
+    if(varType->isIntegerTy()){
+        newValue = Ctxt.llvmBuilder.CreateAdd(
+            oldValue,
+            llvm::ConstantInt::get(varType, 1),
+            "inc.result"
+        );
+    } else if(varType->isFloatTy()){
+        newValue = Ctxt.llvmBuilder.CreateFAdd(
+            oldValue,
+            llvm::ConstantFP::get(varType, 1.0),
+            "inc.result"
+        );
+    } else {
+        return nullptr;
+    }
+    
+    Ctxt.llvmBuilder.CreateStore(newValue, varPtr);
+    
+    return node->isPrefix ? newValue : oldValue;
+}
+
+llvm::Value* CodegenVisitor::visitDecrementExpression(DecrementExpression* node){
+    llvm::Value* varPtr = nullptr;
+    llvm::Type* varType = nullptr;
+    
+    if(auto id = dynamic_cast<Identifier*>(node->operand.get())){
+        auto it = Ctxt.namedValues.find(id->name);
+        if(it == Ctxt.namedValues.end()){
+            return nullptr;
+        }
+        varPtr = it->second;
+        if(auto alloca = llvm::dyn_cast<llvm::AllocaInst>(varPtr)){
+            varType = alloca->getAllocatedType();
+        }
+    }
+    else if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->operand.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
+            varPtr = getArrayElementPtr(primaryExpr->arrayAccess.get());
+            if(!varPtr) return nullptr;
+            
+            auto typeIt = Ctxt.valueTypes.find(varPtr);
+            if(typeIt != Ctxt.valueTypes.end()){
+                varType = typeIt->second;
+            }
+        }
+    }
+    
+    if(!varPtr || !varType){
+        return nullptr;
+    }
+    
+    llvm::Value* oldValue = Ctxt.llvmBuilder.CreateLoad(varType, varPtr, "dec.old");
+    llvm::Value* newValue = nullptr;
+    
+    if(varType->isIntegerTy()){
+        newValue = Ctxt.llvmBuilder.CreateSub(
+            oldValue,
+            llvm::ConstantInt::get(varType, 1),
+            "dec.result"
+        );
+    } else if(varType->isFloatTy()){
+        newValue = Ctxt.llvmBuilder.CreateFSub(
+            oldValue,
+            llvm::ConstantFP::get(varType, 1.0),
+            "dec.result"
+        );
+    } else {
+        return nullptr;
+    }
+    
+    Ctxt.llvmBuilder.CreateStore(newValue, varPtr);
+    
+    return node->isPrefix ? newValue : oldValue;
 }
 
 } // namespace code_gen

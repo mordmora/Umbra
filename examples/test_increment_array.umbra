@@ -1,0 +1,26 @@
+func start() -> void {
+    int [5]arr
+    
+    int i = 0
+    arr[i] = 10
+    print("arr[0] inicial: {}", arr[i])
+    
+    arr[i]++
+    print("Después de arr[i]++: {}", arr[i])
+    
+    ++arr[i]
+    print("Después de ++arr[i]: {}", arr[i])
+    
+    arr[i]--
+    print("Después de arr[i]--: {}", arr[i])
+    
+    --arr[i]
+    print("Después de --arr[i]: {}", arr[i])
+    
+    int j = 1
+    arr[j] = arr[i]++
+    print("arr[0]={} arr[1]={}", arr[0], arr[1])
+    
+    arr[j+1] = ++arr[i]
+    print("arr[0]={} arr[2]={}", arr[0], arr[2])
+}

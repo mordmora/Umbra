@@ -125,9 +125,42 @@ void SymbolCollector::visitVariableDeclaration(VariableDeclaration* node){
 }
 
 void SymbolCollector::visitAssignmentStatement(AssignmentStatement* node){
-    auto Sym = theContext.symbolTable.lookup(node->target->name);
+    Identifier* baseIdentifier = nullptr;
+    if(auto id = dynamic_cast<Identifier*>(node->target.get())){
+        baseIdentifier = id;
+    } else if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->target.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
+            Expression* current = primaryExpr->arrayAccess->array.get();
+            while(auto innerPrimary = dynamic_cast<PrimaryExpression*>(current)){
+                if(innerPrimary->exprType == PrimaryExpression::ARRAY_ACCESS && innerPrimary->arrayAccess){
+                    current = innerPrimary->arrayAccess->array.get();
+                } else if(innerPrimary->exprType == PrimaryExpression::IDENTIFIER && innerPrimary->identifier){
+                    baseIdentifier = innerPrimary->identifier.get();
+                    break;
+                } else {
+                    break;
+                }
+            }
+            if(!baseIdentifier && dynamic_cast<Identifier*>(current)){
+                baseIdentifier = dynamic_cast<Identifier*>(current);
+            }
+        }
+    }
+    
+    if(!baseIdentifier){
+        errorManager.addError(
+            std::make_unique<CompilerError>(
+                ErrorType::SEMANTIC,
+                "Invalid assignment target",
+                0, 0
+            )
+        );
+        return;
+    }
+    
+    auto Sym = theContext.symbolTable.lookup(baseIdentifier->name);
     if(Sym.type == SemanticType::Error){
-        std::string msg = "Cannot assign to undefined variable '" + node->target->name + "' (variable not declared in current scope)";
+        std::string msg = "Cannot assign to undefined variable '" + baseIdentifier->name + "' (variable not declared in current scope)";
         errorManager.addError(
             std::make_unique<CompilerError>(
                 ErrorType::SEMANTIC,
@@ -136,20 +169,30 @@ void SymbolCollector::visitAssignmentStatement(AssignmentStatement* node){
                 Sym.col
             )
         );
-        return; // No continuar validando si la variable no existe
+        return;
     }
     validateCallsInExpression(node->value.get());
 
     SemanticType semaT = typeCk.visit(node->value.get());
 
-    // TypeCk ya reportó errores específicos si hubo problemas en la expresión
     if(semaT == SemanticType::Error){
-        return; // El error específico ya fue reportado por TypeCk
+        return;
     }
 
-    if(semaT != Sym.type){
-        std::string msg = "Type mismatch in assignment: variable '" + node->target->name +
-                          "' has type '" + semanticTypeToString(Sym.type) +
+    SemanticType targetType = Sym.type;
+    
+    if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->target.get())){
+        if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS){
+            targetType = typeCk.visit(node->target.get());
+            if(targetType == SemanticType::Error){
+                return;
+            }
+        }
+    }
+
+    if(semaT != targetType){
+        std::string msg = "Type mismatch in assignment: target has type '" + 
+                          semanticTypeToString(targetType) +
                           "' but assigned value has type '" + semanticTypeToString(semaT) + "'";
         errorManager.addError(
             std::make_unique<CompilerError>(

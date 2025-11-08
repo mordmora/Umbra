@@ -114,4 +114,59 @@ namespace umbra{
         return SemanticType::Error;
     }
 
+    SemanticType TypeCk::visitArrayAccessExpression(ArrayAccessExpression* node){
+        SemanticType arrayType = visit(node->array.get());
+        
+        if(arrayType == SemanticType::Error){
+            return SemanticType::Error;
+        }
+        
+        SemanticType indexType = visit(node->index.get());
+        if(indexType != SemanticType::Int){
+            if(errorManager){
+                std::string msg = "Array index must be of type Int, got " + semanticTypeToString(indexType);
+                errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            }
+            return SemanticType::Error;
+        }
+        
+        return arrayType;
+    }
+
+    SemanticType TypeCk::visitIncrementExpression(IncrementExpression* node){
+        SemanticType operandType = visit(node->operand.get());
+        
+        if(operandType == SemanticType::Error){
+            return SemanticType::Error;
+        }
+        
+        if(operandType != SemanticType::Int && operandType != SemanticType::Float){
+            if(errorManager){
+                std::string msg = "Increment operator requires numeric type (Int or Float), got " + semanticTypeToString(operandType);
+                errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            }
+            return SemanticType::Error;
+        }
+        
+        return operandType;
+    }
+
+    SemanticType TypeCk::visitDecrementExpression(DecrementExpression* node){
+        SemanticType operandType = visit(node->operand.get());
+        
+        if(operandType == SemanticType::Error){
+            return SemanticType::Error;
+        }
+        
+        if(operandType != SemanticType::Int && operandType != SemanticType::Float){
+            if(errorManager){
+                std::string msg = "Decrement operator requires numeric type (Int or Float), got " + semanticTypeToString(operandType);
+                errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+            }
+            return SemanticType::Error;
+        }
+        
+        return operandType;
+    }
+
 }

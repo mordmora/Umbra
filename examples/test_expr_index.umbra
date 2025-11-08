@@ -1,0 +1,9 @@
+func start() -> void {
+    int [10][10]matrix
+    int i = 5
+    
+    matrix[i][i] = 42
+    matrix[i + 1][i - 1] = matrix[i][i]
+    
+    int x = matrix[i * 2][i]
+}

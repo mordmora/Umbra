@@ -1,0 +1,4 @@
+func start() -> void {
+    int [3][4]matrix
+    int x = matrix[1][2]
+}

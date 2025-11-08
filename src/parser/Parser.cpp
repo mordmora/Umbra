@@ -209,6 +209,8 @@ Lexer::Token Parser::consume(TokenType type, const std::string& message) {
     errorManager->addError(
         std::make_unique<CompilerError>(ErrorType::SYNTACTIC,
         message, peek().line, peek().column));
+    
+    return currentToken;
 }
 
 bool Parser::isAssignmentAhead(){
@@ -217,6 +219,23 @@ bool Parser::isAssignmentAhead(){
     while(it != tokens.end() && it->type == TokenType::TOK_NEWLINE){
         ++it;
     }
+    
+    while(it != tokens.end() && it->type == TokenType::TOK_LEFT_BRACKET){
+        ++it;
+        int bracketDepth = 1;
+        while(it != tokens.end() && bracketDepth > 0){
+            if(it->type == TokenType::TOK_LEFT_BRACKET){
+                ++bracketDepth;
+            } else if(it->type == TokenType::TOK_RIGHT_BRACKET){
+                --bracketDepth;
+            }
+            ++it;
+        }
+        while(it != tokens.end() && it->type == TokenType::TOK_NEWLINE){
+            ++it;
+        }
+    }
+    
     return it != tokens.end() && it->type == TokenType::TOK_ASSIGN;
 }
 
@@ -326,7 +345,35 @@ std::unique_ptr<Type> Parser::parseType(){
     if (typeStr == BuiltinType::Undef) {
         error("Invalid type", peek().line, peek().column);
     }
-    return std::make_unique<Type>(typeStr);
+
+    int arrayDimensions = 0;
+    std::vector<std::unique_ptr<Expression>> arraySizes;
+    
+    while (check(TokenType::TOK_LEFT_BRACKET)) {
+        advance();
+        
+        if (check(TokenType::TOK_RIGHT_BRACKET)) {
+            error("Expected array size expression after '['", peek().line, peek().column);
+            advance();
+            return std::make_unique<Type>(typeStr, 0, std::vector<std::unique_ptr<Expression>>());
+        }
+        
+        auto sizeExpr = parseExpression();
+        
+        if (!sizeExpr) {
+            error("Invalid array size expression", peek().line, peek().column);
+            if (check(TokenType::TOK_RIGHT_BRACKET)) {
+                advance();
+            }
+            return std::make_unique<Type>(typeStr, 0, std::vector<std::unique_ptr<Expression>>());
+        }
+
+        consume(TokenType::TOK_RIGHT_BRACKET, "Expected ']' after array size");
+        arraySizes.push_back(std::move(sizeExpr));
+        arrayDimensions++;
+    }
+
+    return std::make_unique<Type>(typeStr, arrayDimensions, std::move(arraySizes));
 }
 
 std::vector<std::unique_ptr<Statement>> Parser::parseStatementList(){
@@ -361,7 +408,10 @@ std::unique_ptr<Statement> Parser::parseStatement(){
         if(isAssignmentAhead()){
             return parseAssignmentStatement();
         }
-        return std::make_unique<ExpressionStatement>(parseFunctionCall());
+        return std::make_unique<ExpressionStatement>(parseExpression());
+    }
+    if(check(TokenType::TOK_INCREMENT) || check(TokenType::TOK_DECREMENT)){
+        return std::make_unique<ExpressionStatement>(parseExpression());
     }
     if (match(TokenType::TOK_REPEAT)) {
         if (check(TokenType::TOK_IF)) {
@@ -426,19 +476,33 @@ std::unique_ptr<VariableDeclaration> Parser::parseVariableDeclaration(){
 std::unique_ptr<AssignmentStatement> Parser::parseAssignmentStatement(){
 
     Lexer::Token idT = consume(TokenType::TOK_IDENTIFIER, "Expected identifier in assignment");
-    auto ID = std::make_unique<Identifier>(idT.lexeme);
+    std::unique_ptr<Expression> target = std::make_unique<Identifier>(idT.lexeme);
+
+    while(check(TokenType::TOK_LEFT_BRACKET)){
+        advance();
+        auto index = parseExpression();
+        if(!index){
+            error("Expected expression inside array access", peek().line, peek().column);
+            synchronize();
+            return nullptr;
+        }
+        consume(TokenType::TOK_RIGHT_BRACKET, "Expected ']' after array index");
+        
+        auto arrayAccess = std::make_unique<ArrayAccessExpression>(std::move(target), std::move(index));
+        target = std::make_unique<PrimaryExpression>(std::move(arrayAccess));
+    }
 
     consume(TokenType::TOK_ASSIGN, "Expected \"=\" after identifier");
     skipNewLines();
 
-    auto init = parseExpression();
-    if(!init){
+    auto value = parseExpression();
+    if(!value){
         error("Expected expression after \"=\"", peek().line, peek().column);
         synchronize();
         return nullptr;
     }
 
-    return std::make_unique<AssignmentStatement>(std::move(ID), std::move(init));
+    return std::make_unique<AssignmentStatement>(std::move(target), std::move(value));
 }
 
 
@@ -548,33 +612,82 @@ std::unique_ptr<Expression> Parser::parseMultiplicative(){
 std::unique_ptr<Expression> Parser::parseUnary(){
     if(check(TokenType::TOK_PTR) || check(TokenType::TOK_REF) || check(TokenType::TOK_ACCESS)){
         auto op = advance();
-        auto operand = parsePrimary();
+        auto operand = parsePostfix();
         return std::make_unique<UnaryExpression>(op.lexeme, std::move(operand));
     }
-    return parsePrimary();
+    
+    if(check(TokenType::TOK_INCREMENT)){
+        advance();
+        auto operand = parseUnary();
+        return std::make_unique<IncrementExpression>(std::move(operand), true);
+    }
+    
+    if(check(TokenType::TOK_DECREMENT)){
+        advance();
+        auto operand = parseUnary();
+        return std::make_unique<DecrementExpression>(std::move(operand), true);
+    }
+    
+    return parsePostfix();
+}
+
+std::unique_ptr<Expression> Parser::parsePostfix(){
+    auto expr = parsePrimary();
+    
+    while(true){
+        if(check(TokenType::TOK_LEFT_BRACKET)){
+            advance();
+            auto index = parseExpression();
+            if(!index){
+                error("Expected expression inside array access", peek().line, peek().column);
+                if(check(TokenType::TOK_RIGHT_BRACKET)){
+                    advance();
+                }
+                return expr;
+            }
+            consume(TokenType::TOK_RIGHT_BRACKET, "Expected ']' after array index");
+            auto arrayAccess = std::make_unique<ArrayAccessExpression>(std::move(expr), std::move(index));
+            expr = std::make_unique<PrimaryExpression>(std::move(arrayAccess));
+        }
+        else if(check(TokenType::TOK_INCREMENT)){
+            advance();
+            expr = std::make_unique<IncrementExpression>(std::move(expr), false);
+        }
+        else if(check(TokenType::TOK_DECREMENT)){
+            advance();
+            expr = std::make_unique<DecrementExpression>(std::move(expr), false);
+        }
+        else {
+            break;
+        }
+    }
+    
+    return expr;
 }
 
 std::unique_ptr<Expression> Parser::parsePrimary(){
-
-
     if(check(TokenType::TOK_IDENTIFIER)){
         if(lookAhead(1).type == TokenType::TOK_LEFT_PAREN){
             return parseFunctionCall();
         }
         return parseIdentifier();
-
-    }if(check(TokenType::TOK_NUMBER)
+    }
+    
+    if(check(TokenType::TOK_NUMBER)
     || check(TokenType::TOK_CHAR_LITERAL)
     || check(TokenType::TOK_STRING_LITERAL)
     || check(TokenType::TOK_TRUE)
     || check(TokenType::TOK_FALSE)){
         return parseLiteral();
-    }if(check(TokenType::TOK_LEFT_PAREN)){
+    }
+    
+    if(check(TokenType::TOK_LEFT_PAREN)){
         advance();
         auto expr = parseExpression();
         consume(TokenType::TOK_RIGHT_PAREN, "Expected ')' after expression");
         return std::make_unique<PrimaryExpression>(std::move(expr));
     }
+    
     return nullptr;
 }
 

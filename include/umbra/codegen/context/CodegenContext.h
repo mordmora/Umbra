@@ -19,6 +19,7 @@ namespace umbra {
             llvm::IRBuilder<> llvmBuilder;
             std::unordered_map<std::string, llvm::Value*> namedValues;
             std::unordered_map<std::string, llvm::Value*> globalStrings;
+            std::unordered_map<llvm::Value*, llvm::Type*> valueTypes;
 
             llvm::Function* getPrintfFunction();
 

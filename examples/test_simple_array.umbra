@@ -1,0 +1,5 @@
+func start() -> void {
+    int [10]arr
+    int x = arr[5]
+    arr[3] = 42
+}

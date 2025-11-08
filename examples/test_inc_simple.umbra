@@ -1,0 +1,10 @@
+func start() -> void {
+    int [5]arr
+    
+    int i = 0
+    arr[i] = 10
+    print("arr[0]: {}", arr[i])
+    
+    arr[i]++
+    print("arr[0] after ++: {}", arr[i])
+}

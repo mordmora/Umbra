@@ -25,6 +25,8 @@ namespace umbra {
     class CastExpression;
     class MemberAccessExpression;
     class ReturnExpression;
+    class IncrementExpression;
+    class DecrementExpression;
 
     class Symbol;
     // Expression base class
@@ -78,11 +80,12 @@ namespace umbra {
     // Type node
     class Type : public ASTNode {
     public:
-        Type(BuiltinType builtinType, int arrayDimensions = 0)
-            : ASTNode(NodeKind::TYPE), builtinType(builtinType), arrayDimensions(arrayDimensions) {}
+        Type(BuiltinType builtinType, int arrayDimensions = 0, std::vector<std::unique_ptr<Expression>> arraySizes = {})
+            : ASTNode(NodeKind::TYPE), builtinType(builtinType), arrayDimensions(arrayDimensions), arraySizes(std::move(arraySizes)) {}
 
         BuiltinType builtinType;
-        int arrayDimensions = 0; // Number of dimensions if it's an array
+        int arrayDimensions = 0;
+        std::vector<std::unique_ptr<Expression>> arraySizes;
 
     };
 
@@ -119,11 +122,10 @@ namespace umbra {
     // Assignment statement node
     class AssignmentStatement : public Statement {
     public:
-        AssignmentStatement(std::unique_ptr<Identifier> target, std::unique_ptr<Expression> value)
+        AssignmentStatement(std::unique_ptr<Expression> target, std::unique_ptr<Expression> value)
             : Statement(NodeKind::ASSIGNMENT_STATEMENT), target(std::move(target)), value(std::move(value)) {}
 
-        std::unique_ptr<Identifier> target;
-        std::unique_ptr<Expression> index; // For array assignment
+        std::unique_ptr<Expression> target;
         std::unique_ptr<Expression> value;
     };
 
@@ -214,6 +216,26 @@ namespace umbra {
 
         std::string op; // Operator (e.g., ptr, ref, access)
         std::unique_ptr<Expression> operand;
+    };
+
+    // Increment expression node (pre and post)
+    class IncrementExpression : public Expression {
+    public:
+        IncrementExpression(std::unique_ptr<Expression> operand, bool isPrefix)
+            : Expression(NodeKind::INCREMENT_EXPRESSION), operand(std::move(operand)), isPrefix(isPrefix) {}
+
+        std::unique_ptr<Expression> operand;
+        bool isPrefix;
+    };
+
+    // Decrement expression node (pre and post)
+    class DecrementExpression : public Expression {
+    public:
+        DecrementExpression(std::unique_ptr<Expression> operand, bool isPrefix)
+            : Expression(NodeKind::DECREMENT_EXPRESSION), operand(std::move(operand)), isPrefix(isPrefix) {}
+
+        std::unique_ptr<Expression> operand;
+        bool isPrefix;
     };
 
     // Primary expression node

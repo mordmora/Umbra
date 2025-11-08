@@ -1,0 +1,9 @@
+func start() -> void {
+    int [3][4]matrix
+    int [2][3][4]tensor
+    
+    int x = matrix[1][2]
+    matrix[0][1] = 42
+    
+    int y = tensor[0][1][2]
+}
