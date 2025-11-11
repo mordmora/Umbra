@@ -73,6 +73,19 @@ add_library(umbra_lexer ${LEXER_SOURCES})
 target_link_libraries(umbra_lexer PUBLIC umbra_error)
 target_include_directories(umbra_lexer PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
+# FIND UTF8PROC
+find_library(UTF8PROC_LIB utf8proc)
+
+if(UTF8PROC_LIB)
+    message(STATUS "Found utf8proc at: ${UTF8PROC_LIB}")
+    target_link_libraries(umbra_lexer PUBLIC ${UTF8PROC_LIB})
+else()
+    message(FATAL_ERROR "utf8proc not found. Install it with: sudo apt install libutf8proc-dev")
+endif()
+
+target_link_libraries(umbra_lexer PUBLIC umbra_error)
+target_include_directories(umbra_lexer PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
 # PARSER
 file(GLOB_RECURSE PARSER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/parser/*.cpp)
 add_library(umbra_parser ${PARSER_SOURCES})
