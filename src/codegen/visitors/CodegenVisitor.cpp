@@ -396,7 +396,6 @@ llvm::Value* CodegenVisitor::visitAssignmentStatement(AssignmentStatement* node)
 llvm::Value* CodegenVisitor::getArrayElementPtr(ArrayAccessExpression* node){
     llvm::Value* basePtr = nullptr;
     llvm::Type* baseType = nullptr;
-    bool isFirstLevel = false;
     
     if(auto id = dynamic_cast<Identifier*>(node->array.get())){
         auto it = Ctxt.namedValues.find(id->name);
@@ -411,7 +410,6 @@ llvm::Value* CodegenVisitor::getArrayElementPtr(ArrayAccessExpression* node){
         } else if(auto alloca = llvm::dyn_cast<llvm::AllocaInst>(basePtr)){
             baseType = alloca->getAllocatedType();
         }
-        isFirstLevel = true;
     } else if(auto primaryExpr = dynamic_cast<PrimaryExpression*>(node->array.get())){
         if(primaryExpr->exprType == PrimaryExpression::ARRAY_ACCESS && primaryExpr->arrayAccess){
             basePtr = getArrayElementPtr(primaryExpr->arrayAccess.get());
@@ -436,11 +434,14 @@ llvm::Value* CodegenVisitor::getArrayElementPtr(ArrayAccessExpression* node){
     
     llvm::Value* indexVal = emitExpr(node->index.get());
     if(!indexVal) return nullptr;
-    
-    std::vector<llvm::Value*> indices;
-    if(isFirstLevel){
-        indices.push_back(llvm::ConstantInt::get(llvm::Type::getInt64Ty(Ctxt.llvmContext), 0));
+    // GEP expects 64-bit indices for pointer arithmetic
+    if(indexVal->getType()->isIntegerTy() && indexVal->getType()->getIntegerBitWidth() < 64){
+        indexVal = Ctxt.llvmBuilder.CreateZExt(indexVal, llvm::Type::getInt64Ty(Ctxt.llvmContext), "idx64");
     }
+
+    std::vector<llvm::Value*> indices;
+    // Always start with zero when indexing into an array value
+    indices.push_back(llvm::ConstantInt::get(llvm::Type::getInt64Ty(Ctxt.llvmContext), 0));
     indices.push_back(indexVal);
     
     llvm::Type* elementType = nullptr;

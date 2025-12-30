@@ -1,0 +1,24 @@
+func start() -> void {
+    int [5][5]arr
+    int it = 0
+    int jt = 0
+    repeat 5 times {
+        jt = 0
+        repeat 5 times {
+            arr[it][jt] = it + jt
+            jt++
+        } 
+        it++
+    }
+
+    it = 0
+    repeat 5 times {
+        jt = 0
+        repeat 5 times {
+            print("[{}][{}] = {}",it, jt, arr[it][jt])
+            jt++
+        } 
+        it++
+    }
+
+}
