@@ -1,3 +1,14 @@
+/**
+ * @file Lexer.h
+ * @brief Definición del analizador léxico para el lenguaje Umbra
+ * @author Umbra Team
+ * @version 2.0
+ * 
+ * @details Define la clase Lexer que convierte código fuente en tokens.
+ * Implementa un analizador léxico optimizado con tabla de despacho O(1)
+ * y clasificación de caracteres mediante tablas precalculadas.
+ */
+
 #ifndef LEXER_H
 #define LEXER_H
 
@@ -5,66 +16,91 @@
 #include "Tokens.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace umbra {
 
 /**
- * @brief Clase analizador léxico que convierte texto fuente en tokens
+ * @class Lexer
+ * @brief Analizador léxico que convierte texto fuente en tokens
  * 
- * El Lexer es responsable de analizar el texto fuente carácter por carácter
- * y generar una secuencia de tokens que representan los elementos léxicos
+ * @details El Lexer procesa el código fuente carácter por carácter,
+ * generando una secuencia de tokens que representan elementos léxicos
  * del lenguaje (números, identificadores, operadores, etc.).
+ * 
+ * Características:
+ * - Tabla de despacho para procesamiento O(1) de operadores
+ * - Tablas de clasificación de caracteres precalculadas
+ * - Soporte para literales numéricos, cadenas y caracteres
+ * - Manejo de secuencias de escape
+ * - Reporte de errores con contexto visual
  */
 class Lexer {
-  public:
+public:
+    //==========================================================================
+    // Estructuras Públicas
+    //==========================================================================
+    
     /**
-     * @brief Estructura que representa un token léxico
+     * @struct Token
+     * @brief Representa un token léxico del código fuente
      */
     struct Token {
         TokenType type;      ///< Tipo del token
         std::string lexeme;  ///< Texto literal del token
-        int line;           ///< Línea donde se encontró el token
-        int column;         ///< Columna donde se encontró el token
+        int line;            ///< Línea donde se encontró (1-indexed)
+        int column;          ///< Columna donde se encontró (1-indexed)
+
+        /// @brief Constructor por defecto
+        Token() : type(TokenType::TOK_EOF), lexeme(""), line(0), column(0) {}
 
         /**
          * @brief Constructor de Token
-         * @param t Tipo del token
-         * @param l Lexema del token
-         * @param ln Línea donde se encontró
-         * @param col Columna donde se encontró
+         * @param type Tipo del token
+         * @param start Puntero al inicio del lexema en el fuente
+         * @param length Longitud del lexema
+         * @param line Línea donde se encontró
+         * @param column Columna donde se encontró
          */
         Token(TokenType type, const char* start, size_t length, int line, int column)
-        : type(type), lexeme(start, length), line(line), column(column) {}
+            : type(type), lexeme(start, length), line(line), column(column) {}
 
-        inline std::string getLexeme() const {
-            return lexeme;
-        }
+        /// @brief Obtiene el lexema del token
+        inline const std::string& getLexeme() const { return lexeme; }
     };
 
+    //==========================================================================
+    // Constructores
+    //==========================================================================
+    
     /**
-     * @brief Constructor que inicializa el Lexer con texto fuente
-     * @param source Texto fuente a analizar
+     * @brief Constructor con gestor de errores interno
+     * @param source Código fuente a tokenizar
      */
-    Lexer(const std::string &source);
+    explicit Lexer(const std::string& source);
 
     /**
-     * @brief Constructor que inicializa el Lexer con texto fuente y un gestor de errores externo
-     * @param source Texto fuente a analizar
-     * @param externalErrorManager Gestor de errores externo
+     * @brief Constructor con gestor de errores externo
+     * @param source Código fuente a tokenizar
+     * @param externalErrorManager Referencia al gestor de errores externo
      */
-    Lexer(const std::string &source, ErrorManager &externalErrorManager);
+    Lexer(const std::string& source, ErrorManager& externalErrorManager);
 
+    //==========================================================================
+    // Interfaz Pública
+    //==========================================================================
+    
     /**
-     * @brief Analiza el texto fuente y genera una lista de tokens
+     * @brief Ejecuta el análisis léxico completo
      * @return Vector de tokens generados
      */
     std::vector<Token> tokenize();
 
     /**
-     * @brief Obtiene el gestor de errores actual
+     * @brief Obtiene el gestor de errores
      * @return Referencia constante al gestor de errores
      */
-    const ErrorManager &getErrorManager() const { return *errorManager; }
+    const ErrorManager& getErrorManager() const { return *errorManager; }
 
     /**
      * @brief Reinicia el estado del lexer
@@ -73,202 +109,203 @@ class Lexer {
 
     /**
      * @brief Observa el siguiente token sin consumirlo
-     * @return Token siguiente en la secuencia
+     * @return Copia del token actual
      */
     Token peekToken();
 
     /**
      * @brief Obtiene y consume el siguiente token
-     * @return Token siguiente en la secuencia
+     * @return Token consumido
      */
     Token getNextToken();
 
+    /**
+     * @brief Obtiene el código fuente
+     * @return Referencia al código fuente
+     */
     const std::string& getSource() const;
 
+private:
+    //==========================================================================
+    // Miembros de Datos
+    //==========================================================================
+    
+    std::string source;                                 ///< Código fuente
+    std::unique_ptr<ErrorManager> internalErrorManager; ///< Gestor interno
+    ErrorManager* errorManager;                         ///< Gestor activo
+    std::vector<Token> tokens;                          ///< Tokens generados
+    
+    /// @brief Tabla de despacho: mapea char → función manejadora
+    void (Lexer::*dispatchTable[256])() = {};
 
-  private:
-    std::string source;                                     ///< Texto fuente a analizar
-    std::unique_ptr<ErrorManager> internalErrorManager;     ///< Gestor de errores interno
-    ErrorManager *errorManager;                             ///< Puntero al gestor de errores actual
-    std::vector<Token> tokens;                              ///< Lista de tokens generados
-
-  
-  void (Lexer::*dispatchTable[256])() = {};                 ///< Tabla de despachadores para cada carácter
-
+    //==========================================================================
+    // Estado del Escáner
+    //==========================================================================
+    
     /**
-     * @brief Inicializa la tabla de despachadores
-     * 
-     * La tabla de despachadores asigna funciones a cada carácter
-     * para procesar diferentes tipos de tokens.
-     * 
-     * Cada función en la tabla se encarga de un tipo específico
-     * de token, como números, identificadores, operadores, etc.
-     * 
-     * La función setupDispatch() se encarga de llenar la tabla
-     * con las funciones correspondientes a cada carácter.
-     * 
-     * @note Esta función debe ser llamada antes de comenzar
-     * el análisis léxico para asegurar que la tabla esté
-     * correctamente configurada.
-     */
-
-    void setupDispatch();
-
-    void handlePlus();
-    void handleMinus();
-    void handleMultiply();
-    void handleDivide();
-    void handleEqual();
-    void handleLeftParen();
-    void handleRightParen();
-    void handleLeftBrace();
-    void handleRightBrace();
-    void handleLeftBracket();
-    void handleRightBracket();
-    void handleComma();
-    void handleDot();
-    void handleDoubleQuote();
-    void handleSingleQuote();
-    void handleColon();
-    void handleDefault(char c);
-
-    /**
-     * @brief Estados del autómata para el reconocimiento de números
+     * @enum State
+     * @brief Estados del autómata para reconocimiento de números
      */
     enum class State { 
         Start,          ///< Estado inicial
-        Integer,        ///< Reconociendo parte entera
-        Decimal,        ///< Reconociendo parte decimal
-        NotationNumber, ///< Reconociendo notación científica
+        Integer,        ///< Parte entera
+        Decimal,        ///< Parte decimal
+        NotationNumber, ///< Notación científica
         Acceptance,     ///< Estado de aceptación
         Rejection       ///< Estado de rechazo
     };
 
-    int current = 0;    ///< Posición actual en el texto fuente
-    int line = 1;       ///< Línea actual
-    int start = 0;      ///< Inicio del token actual
-    int column = 1;     ///< Columna actual
-    State state=State::Start;  ///< Estado actual del autómata
+    int current = 0;           ///< Posición actual en el fuente
+    int line = 1;              ///< Línea actual
+    int start = 0;             ///< Inicio del token actual
+    int column = 1;            ///< Columna actual
+    State state = State::Start;///< Estado del autómata
+    size_t tokenIndex = 0;     ///< Índice para iteración de tokens
 
+    //==========================================================================
+    // Inicialización
+    //==========================================================================
+    
     /**
-     * @brief Avanza al siguiente carácter del texto fuente
-     * @return Carácter actual
+     * @brief Inicializa la tabla de despacho
+     * @details Asigna manejadores a operadores y delimitadores
+     */
+    void setupDispatch();
+
+    //==========================================================================
+    // Manejadores de Tokens (Tabla de Despacho)
+    //==========================================================================
+    
+    void handlePlus();        ///< Procesa '+' o '++'
+    void handleMinus();       ///< Procesa '-', '--' o '->'
+    void handleMultiply();    ///< Procesa '*'
+    void handleDivide();      ///< Procesa '/' o comentario '//'
+    void handleEqual();       ///< Procesa '=' o '=='
+    void handleLeftParen();   ///< Procesa '('
+    void handleRightParen();  ///< Procesa ')'
+    void handleLeftBrace();   ///< Procesa '{'
+    void handleRightBrace();  ///< Procesa '}'
+    void handleLeftBracket(); ///< Procesa '['
+    void handleRightBracket();///< Procesa ']'
+    void handleComma();       ///< Procesa ','
+    void handleDot();         ///< Procesa '.' o número decimal
+    void handleDoubleQuote(); ///< Procesa '"' (cadena)
+    void handleSingleQuote(); ///< Procesa '\'' (carácter)
+    void handleColon();       ///< Procesa ':'
+    void handleLess();        ///< Procesa '<' o '<<'
+    void handleGreater();     ///< Procesa '>' o '>>'
+    
+    /**
+     * @brief Manejador por defecto para caracteres no en tabla
+     * @param c Carácter a procesar
+     */
+    void handleDefault(char c);
+
+    //==========================================================================
+    // Funciones de Navegación
+    //==========================================================================
+    
+    /**
+     * @brief Avanza al siguiente carácter
+     * @return Carácter consumido
      */
     char advance();
 
     /**
-     * @brief Verifica si se llegó al final del texto fuente
-     * @return true si no hay más caracteres que leer
+     * @brief Verifica si se llegó al final del fuente
+     * @return true si no hay más caracteres
      */
     bool isAtEnd() const;
 
     /**
-     * @brief Observa el siguiente carácter sin consumirlo
-     * @return Siguiente carácter o '\0' si es fin de archivo
+     * @brief Observa el carácter actual sin consumirlo
+     * @return Carácter actual o '\\0' si es fin
      */
     char peek() const;
 
     /**
-     * @brief Genera un mensaje de error léxico
-     * @param msg Mensaje de error
-     */
-
-    void reportLexicalError(const std::string& msg, int offset=0);
-
-    /**
-     * @brief Obtiene el contenido de una línea específica
-     * @param line Número de línea
-     * @return Contenido de la línea
-     */
-
-    std::string  getLineContent(int line) const;
-
-    
-    /**
-     * @brief Observa el carácter después del siguiente sin consumirlo
-     * @return Carácter después del siguiente o '\0' si es fin de archivo
+     * @brief Observa el siguiente carácter sin consumirlo
+     * @return Siguiente carácter o '\\0' si es fin
      */
     char peekNext() const;
 
     /**
-     * @brief Intenta hacer match con un carácter esperado
-     * @param expected Carácter esperado
-     * @return true si hay match y se consumió el carácter
+     * @brief Intenta consumir un carácter esperado
+     * @param expected Carácter a buscar
+     * @return true si se consumió el carácter
      */
     bool match(char expected);
 
+    //==========================================================================
+    // Emisión de Tokens
+    //==========================================================================
+    
     /**
-     * @brief Agrega un nuevo token a la lista
-     * @param type Tipo del token
+     * @brief Emite token con lexema desde start hasta current
+     * @param type Tipo de token
      */
     void addToken(TokenType type);
 
     /**
-     * @brief Agrega un nuevo token a la lista con un lexema específico
-     * @param type Tipo del token
-     * @param lexeme Lexema del token
-     * @param line Línea donde se encontró el token
-     * @param column Columna donde se encontró el token
+     * @brief Emite token con lexema específico
+     * @param type Tipo de token
+     * @param lexeme Puntero al lexema
+     * @param length Longitud del lexema
      */
     void addToken(TokenType type, const char* lexeme, size_t length);
 
-    /**
-     * @brief Agrega un nuevo token a la lista con un lexema específico
-     * @param type Tipo del token
-     * @param lexeme Lexema del token
-     */
+    //==========================================================================
+    // Escaneo de Literales
+    //==========================================================================
+    
+    void string();      ///< Procesa literal de cadena
+    void number();      ///< Procesa literal numérico
+    void charliteral(); ///< Procesa literal de carácter
+    void identifier();  ///< Procesa identificador o palabra clave
+    bool isBinary();    ///< Procesa literal binario
 
+    //==========================================================================
+    // Funciones de Clasificación
+    //==========================================================================
+    
     /**
-     * @brief Procesa una cadena de texto
-     */
-    void string();
-
-    /**
-     * @brief Procesa un número (entero, decimal o notación científica)
-     */
-    void number();
-
-    /**
-     * @brief Procesa un carácter literal
-     */
-    void charliteral();
-
-    /**
-     * @brief Procesa un identificador
-     */
-    void identifier();
-
-    /**
-     * @brief Verifica si un carácter es un signo de operación
+     * @brief Verifica si es operador
      * @param c Carácter a verificar
-     * @return true si es un signo de operación
+     * @return true si es operador
      */
     bool isSing(char c) const;
 
     /**
-     * @brief Verifica si un carácter es un espacio en blanco
+     * @brief Verifica si es espacio en blanco (incluye newline)
      * @param c Carácter a verificar
-     * @return true si es un espacio en blanco
+     * @return true si es espacio
      */
     bool isWhitespace(char c) const;
 
     /**
-     * @brief Verifica si un carácter es un espacio en blanco (incluye tab)
+     * @brief Verifica si es espacio en blanco (sin newline)
      * @param c Carácter a verificar
-     * @return true si es un espacio en blanco
+     * @return true si es espacio
      */
     bool isBlankSpace(char c) const;
 
+    //==========================================================================
+    // Manejo de Errores
+    //==========================================================================
+    
     /**
-     * @brief Verifica y procesa un número binario
-     * @param c Carácter inicial
-     * @return true si se procesó un número binario válido
+     * @brief Reporta un error léxico con contexto visual
+     * @param msg Mensaje de error
+     * @param offset Desplazamiento para el indicador
      */
-    bool isBinary();
+    void reportLexicalError(const std::string& msg, int offset = 0);
 
-    private:
-        size_t tokenIndex = 0;
-
+    /**
+     * @brief Obtiene el contenido de una línea
+     * @param lineNumber Número de línea (1-indexed)
+     * @return Contenido de la línea
+     */
+    std::string getLineContent(int lineNumber) const;
 };
 
 } // namespace umbra
