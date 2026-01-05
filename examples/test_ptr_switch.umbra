@@ -1,0 +1,9 @@
+func start() -> int {
+    int a = 5
+    int b = 15
+    ptr int p = ref a
+    int sum = access p
+    p = ref b
+    sum = sum + access p
+    return sum
+}

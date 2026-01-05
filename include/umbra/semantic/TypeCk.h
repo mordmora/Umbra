@@ -43,6 +43,8 @@ namespace umbra {
         SemanticType visitIncrementExpression(IncrementExpression* node);
         
         SemanticType visitDecrementExpression(DecrementExpression* node);
+        
+        SemanticType visitUnaryExpression(UnaryExpression* node);
 
         private:
         SemanticContext ctxt;

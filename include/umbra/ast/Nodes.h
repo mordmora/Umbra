@@ -83,10 +83,19 @@ namespace umbra {
         Type(BuiltinType builtinType, int arrayDimensions = 0, std::vector<std::unique_ptr<Expression>> arraySizes = {})
             : ASTNode(NodeKind::TYPE), builtinType(builtinType), arrayDimensions(arrayDimensions), arraySizes(std::move(arraySizes)) {}
 
+        // Constructor for pointer/reference types
+        Type(BuiltinType builtinType, std::unique_ptr<Type> baseType, bool isPointer, bool isReference)
+            : ASTNode(NodeKind::TYPE), builtinType(builtinType), baseType(std::move(baseType)),
+              isPointer(isPointer), isReference(isReference) {}
+
         BuiltinType builtinType;
         int arrayDimensions = 0;
         std::vector<std::unique_ptr<Expression>> arraySizes;
-
+        
+        // Pointer/Reference support
+        std::unique_ptr<Type> baseType = nullptr;  // The type being pointed to
+        bool isPointer = false;   // ptr int
+        bool isReference = false; // ref int
     };
 
     // Identifier node

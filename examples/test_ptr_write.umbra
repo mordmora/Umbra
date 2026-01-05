@@ -1,0 +1,6 @@
+func start() -> int {
+    int x = 10
+    ptr int p = ref x
+    access p = 25
+    return x
+}

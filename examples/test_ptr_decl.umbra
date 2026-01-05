@@ -1,0 +1,4 @@
+func start() -> int {
+    ptr int p
+    return 0
+}

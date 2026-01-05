@@ -33,6 +33,26 @@ namespace code_gen {
         }
     }
 
+    // Convert a Type node (including pointer/reference types) to LLVM type
+    inline llvm::Type* typeNodeToLLVMType(Type* typeNode, llvm::LLVMContext& Ctxt){
+        if(!typeNode) return llvm::Type::getVoidTy(Ctxt);
+        
+        // Handle pointer types: ptr <base_type>
+        if(typeNode->isPointer && typeNode->baseType){
+            llvm::Type* baseType = typeNodeToLLVMType(typeNode->baseType.get(), Ctxt);
+            return llvm::PointerType::get(baseType, 0);
+        }
+        
+        // Handle reference types: ref <base_type> (treated as pointers in LLVM)
+        if(typeNode->isReference && typeNode->baseType){
+            llvm::Type* baseType = typeNodeToLLVMType(typeNode->baseType.get(), Ctxt);
+            return llvm::PointerType::get(baseType, 0);
+        }
+        
+        // Handle basic types
+        return builtinTypeToLLVMType(typeNode->builtinType, Ctxt);
+    }
+
 
     class CodegenVisitor : public umbra::BaseV<std::unique_ptr, CodegenVisitor, llvm::Value*> {
         public:
@@ -56,10 +76,12 @@ namespace code_gen {
         llvm::Value* visitArrayAccess(ArrayAccessExpression* node);
         llvm::Value* visitIncrementExpression(IncrementExpression* node);
         llvm::Value* visitDecrementExpression(DecrementExpression* node);
+        llvm::Value* visitUnaryExpression(UnaryExpression* node);
 
         private:
         llvm::Value* emitExpr(Expression* expr);
         llvm::Value* getArrayElementPtr(ArrayAccessExpression* node);
+        llvm::Value* getAddressOf(Expression* expr);  // Helper to get address of an expression
         CodegenContext& Ctxt;
     };
 

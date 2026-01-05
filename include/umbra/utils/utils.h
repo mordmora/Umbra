@@ -40,6 +40,8 @@ namespace umbra {
             case SemanticType::Undef: return "Undef";
             case SemanticType::UserDefType: return "UserDefType";
             case SemanticType::Error: return "Error";
+            case SemanticType::Ptr: return "Ptr";
+            case SemanticType::Ref: return "Ref";
             default: return "Unknown";
         }
     }

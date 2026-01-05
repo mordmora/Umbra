@@ -169,4 +169,49 @@ namespace umbra{
         return operandType;
     }
 
+    SemanticType TypeCk::visitUnaryExpression(UnaryExpression* node){
+        if(!node || !node->operand){
+            return SemanticType::Error;
+        }
+
+        SemanticType operandType = visit(node->operand.get());
+        
+        if(operandType == SemanticType::Error){
+            return SemanticType::Error;
+        }
+
+        // Handle 'ref' operator - returns a pointer to the operand's type
+        if(node->op == "ref"){
+            // 'ref' takes the address of a variable, returns Ptr type
+            return SemanticType::Ptr;
+        }
+        
+        // Handle 'access' operator - dereferences a pointer
+        if(node->op == "access"){
+            // 'access' dereferences a pointer, the operand must be a Ptr
+            if(operandType != SemanticType::Ptr){
+                if(errorManager){
+                    std::string msg = "'access' operator requires pointer type, got " + semanticTypeToString(operandType);
+                    errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+                }
+                return SemanticType::Error;
+            }
+            // For now, return Int as we don't track the pointed-to type semantically yet
+            // TODO: Track pointed-to type for proper type checking
+            return SemanticType::Int;
+        }
+
+        // Handle 'ptr' operator (in expressions) - similar to 'ref'
+        if(node->op == "ptr"){
+            return SemanticType::Ptr;
+        }
+
+        // Unknown unary operator
+        if(errorManager){
+            std::string msg = "Unknown unary operator '" + node->op + "'";
+            errorManager->addError(std::make_unique<SemanticError>(msg, 0, 0, SemanticError::Action::ERROR));
+        }
+        return SemanticType::Error;
+    }
+
 }

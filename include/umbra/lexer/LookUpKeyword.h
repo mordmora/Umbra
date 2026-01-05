@@ -50,6 +50,10 @@ namespace umbra {
             case fnv1a_hash("less_or_equal", const_strlen("less_or_equal")): return TokenType::TOK_LESS_EQ;
             case fnv1a_hash("greater_or_equal", const_strlen("greater_or_equal")): return TokenType::TOK_GREATER_EQ;
             case fnv1a_hash("different", const_strlen("different")): return TokenType::TOK_DIFFERENT;
+
+            case fnv1a_hash("ptr", const_strlen("ptr")):           return TokenType::TOK_PTR;
+            case fnv1a_hash("ref", const_strlen("ref")):           return TokenType::TOK_REF;
+            case fnv1a_hash("access", const_strlen("access")):     return TokenType::TOK_ACCESS;
             default:                                                                      return TokenType::TOK_IDENTIFIER;
         }
     }

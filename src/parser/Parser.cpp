@@ -246,7 +246,9 @@ bool Parser::isTypeToken(const Lexer::Token& token) {
     || token.type == TokenType::TOK_CHAR
     || token.type == TokenType::TOK_STRING
     || token.type == TokenType::TOK_ARRAY
-    || token.type == TokenType::TOK_VOID;
+    || token.type == TokenType::TOK_VOID
+    || token.type == TokenType::TOK_PTR
+    || token.type == TokenType::TOK_REF;
 }
 
 //<program> ::= { <function_definition> }
@@ -339,6 +341,21 @@ std::unique_ptr<Type> Parser::parseType(){
     if(isTypeToken(peek()) == false){
         throw std::runtime_error("Expected type token");
     }
+
+    // Handle pointer type: ptr <type>
+    if (check(TokenType::TOK_PTR)) {
+        advance();
+        auto baseType = parseType();  // Recursively parse the base type
+        return std::make_unique<Type>(BuiltinType::Ptr, std::move(baseType), true, false);
+    }
+
+    // Handle reference type: ref <type>
+    if (check(TokenType::TOK_REF)) {
+        advance();
+        auto baseType = parseType();  // Recursively parse the base type
+        return std::make_unique<Type>(BuiltinType::Ref, std::move(baseType), false, true);
+    }
+
     auto typeStr = tokenTypeToBuiltin(peek());
     advance();
 

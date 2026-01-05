@@ -1,0 +1,4 @@
+func start() -> int {
+    int x = 10
+    return x
+}

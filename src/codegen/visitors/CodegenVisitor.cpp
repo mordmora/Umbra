@@ -306,10 +306,20 @@ llvm::Value *CodegenVisitor::visitReturnExpression(ReturnExpression *node) {
 llvm::Value* CodegenVisitor::visitVariableDeclaration(VariableDeclaration* node){
 
     const std::string& vName = node->name->name;
-    llvm::Type* baseType = builtinTypeToLLVMType(node->type.get()->builtinType, Ctxt.llvmContext);
+    
+    // Use typeNodeToLLVMType to handle pointer/reference types
+    llvm::Type* baseType = typeNodeToLLVMType(node->type.get(), Ctxt.llvmContext);
     llvm::Type* vType = baseType;
     
-    if(node->type->arrayDimensions > 0 && !node->type->arraySizes.empty()){
+    // For pointer types, baseType is already the pointer type
+    // Only apply array dimensions for non-pointer base types
+    bool isPointerType = node->type->isPointer || node->type->isReference;
+    
+    if(!isPointerType && node->type->arrayDimensions > 0 && !node->type->arraySizes.empty()){
+        // Get the actual base type for arrays (not the pointer)
+        llvm::Type* elementType = builtinTypeToLLVMType(node->type->builtinType, Ctxt.llvmContext);
+        vType = elementType;
+        
         for(int i = node->type->arrayDimensions - 1; i >= 0; --i){
             llvm::Value* sizeVal = emitExpr(node->type->arraySizes[i].get());
             uint64_t size = 0;
@@ -699,6 +709,99 @@ llvm::Value* CodegenVisitor::visitDecrementExpression(DecrementExpression* node)
     Ctxt.llvmBuilder.CreateStore(newValue, varPtr);
     
     return node->isPrefix ? newValue : oldValue;
+}
+
+llvm::Value* CodegenVisitor::getAddressOf(Expression* expr){
+    // Get the address (pointer) of an expression
+    // This is used by 'ref' operator
+    
+    if(!expr) return nullptr;
+    
+    // Handle identifiers - get the alloca directly
+    if(auto* id = dynamic_cast<Identifier*>(expr)){
+        auto it = Ctxt.namedValues.find(id->name);
+        if(it != Ctxt.namedValues.end()){
+            return it->second;  // Return the alloca/pointer directly
+        }
+        return nullptr;
+    }
+    
+    // Handle array access - get the GEP pointer
+    if(auto* arrayAccess = dynamic_cast<ArrayAccessExpression*>(expr)){
+        return getArrayElementPtr(arrayAccess);
+    }
+    
+    // Handle primary expression that wraps other expressions
+    if(auto* primary = dynamic_cast<PrimaryExpression*>(expr)){
+        if(primary->identifier){
+            return getAddressOf(primary->identifier.get());
+        }
+        if(primary->arrayAccess){
+            return getArrayElementPtr(primary->arrayAccess.get());
+        }
+    }
+    
+    // Cannot take address of other expressions (e.g., literals)
+    return nullptr;
+}
+
+llvm::Value* CodegenVisitor::visitUnaryExpression(UnaryExpression* node){
+    if(!node || !node->operand) return nullptr;
+    
+    const std::string& op = node->op;
+    
+    // Handle 'ref' operator - get address of operand
+    if(op == "ref"){
+        return getAddressOf(node->operand.get());
+    }
+    
+    // Handle 'access' operator - dereference pointer
+    if(op == "access"){
+        llvm::Value* ptrVal = emitExpr(node->operand.get());
+        if(!ptrVal) return nullptr;
+        
+        // The operand should be a pointer type
+        if(!ptrVal->getType()->isPointerTy()){
+            return nullptr;
+        }
+        
+        // For opaque pointers in LLVM 15+, we need to know the pointed-to type
+        // We'll try to determine it from the context or assume i32 for now
+        llvm::Type* pointeeType = nullptr;
+        
+        // Try to get the pointee type from our stored type info
+        if(auto* loadInst = llvm::dyn_cast<llvm::LoadInst>(ptrVal)){
+            // If ptrVal came from a load, get the type from the alloca
+            if(auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(loadInst->getPointerOperand())){
+                llvm::Type* allocaType = alloca->getAllocatedType();
+                if(allocaType->isPointerTy()){
+                    // It's a pointer to pointer, we need the element type
+                    // With opaque pointers, we store type info separately
+                    auto typeIt = Ctxt.valueTypes.find(alloca);
+                    if(typeIt != Ctxt.valueTypes.end() && typeIt->second->isPointerTy()){
+                        // Try to find the pointed-to type from variable declaration context
+                        // For now, default to i32
+                        pointeeType = llvm::Type::getInt32Ty(Ctxt.llvmContext);
+                    }
+                }
+            }
+        }
+        
+        // Default to i32 if we couldn't determine the type
+        if(!pointeeType){
+            pointeeType = llvm::Type::getInt32Ty(Ctxt.llvmContext);
+        }
+        
+        return Ctxt.llvmBuilder.CreateLoad(pointeeType, ptrVal, "deref");
+    }
+    
+    // Handle 'ptr' in expressions (same as ref for now)
+    if(op == "ptr"){
+        return getAddressOf(node->operand.get());
+    }
+    
+    // Unknown operator
+    return nullptr;
 }
 
 } // namespace code_gen
