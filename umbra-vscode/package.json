@@ -1,0 +1,47 @@
+{
+  "name": "umbra-language",
+  "displayName": "Umbra Language",
+  "description": "Syntax highlighting and language support for the Umbra programming language",
+  "version": "1.0.0",
+  "publisher": "umbra-team",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "icon": "images/umbra-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umbra-team/umbra-vscode"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "umbra",
+        "aliases": [
+          "Umbra",
+          "umbra"
+        ],
+        "extensions": [
+          ".umbra"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "umbra",
+        "scopeName": "source.umbra",
+        "path": "./syntaxes/umbra.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'Ready to publish'",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^2.22.0"
+  }
+}

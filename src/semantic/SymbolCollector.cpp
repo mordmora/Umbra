@@ -226,10 +226,24 @@ void SymbolCollector::visitPrimaryExpression(PrimaryExpression* node) {
 /// @brief Valida llamadas que aparecen como statement (expresión suelta).
 /// @param node Statement con expresión; si es llamada, se valida.
 void SymbolCollector::visitExpressionStatement(ExpressionStatement* node) {
+    if(!node || !node->exp) return;
+    
+    // Caso 1: FunctionCall directa (ej: print("hello"))
+    FunctionCall* fCall = dynamic_cast<FunctionCall*>(node->exp.get());
+    if(fCall != nullptr) {
+        validateFunctionCall(fCall);
+        return;
+    }
+    
+    // Caso 2: PrimaryExpression que puede contener llamada
     PrimaryExpression* pExpr = dynamic_cast<PrimaryExpression*>(node->exp.get());
     if(pExpr != nullptr){
         visitPrimaryExpression(pExpr);
+        return;
     }
+    
+    // Caso 3: Otras expresiones que pueden contener llamadas anidadas
+    validateCallsInExpression(node->exp.get());
 }
 
 void SymbolCollector::visitIfStatement(IfStatement* node) {

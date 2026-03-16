@@ -5,5 +5,6 @@ func start() -> int {
     int sum = access p
     p = ref b
     sum = sum + access p
-    return sum
+    print("sum: {}", sum)
+    return 0
 }

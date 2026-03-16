@@ -3,7 +3,7 @@ func start() -> void {
     
     int i = 0
     arr[i] = 10
-    print("arr[0]: {}", arr[i])
+    print("arr[0]: {} {} {}", arr[i], 1, 2)
     
     arr[i]++
     print("arr[0] after ++: {}", arr[i])

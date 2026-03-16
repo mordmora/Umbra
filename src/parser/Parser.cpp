@@ -444,7 +444,7 @@ std::unique_ptr<Type> Parser::parseType() {
             isReference
         );
     }
-    
+
     return std::make_unique<Type>(baseType, arrayDimensions, std::move(arraySizes));
 }
 
