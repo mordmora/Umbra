@@ -131,20 +131,20 @@ namespace umbra {
             llvm::errs() << "Warning: Entry point function 'start' returns a non-integer/non-void type. 'main' will return 0.\n";
             codegenContext.llvmBuilder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(codegenContext.llvmContext), 0, true));
         }
-        generateIRFile(codegenContext.llvmModule, options.outputIRFile);
-        return true;
+        return generateIRFile(codegenContext.llvmModule, options.outputIRFile);
     }
 
 
-    void Compiler::generateIRFile(llvm::Module& module, const std::string& filename){
+    bool Compiler::generateIRFile(llvm::Module& module, const std::string& filename){
         std::error_code errorCode;
         llvm::raw_fd_ostream outputStream(filename, errorCode);
         if (errorCode) {
             std::cerr << "Error opening file for writing: " << errorCode.message() << std::endl;
-            return;
+            return false;
         }
         module.print(outputStream, nullptr);
         outputStream.close();
+        return true;
     }
 
     bool Compiler::generateExecutable(const std::string& irFilename, const std::string& outputName){
@@ -199,7 +199,9 @@ namespace umbra {
             return false;
         }
 
-        generateExecutable(options.outputIRFile, options.outputExecName);
+        if (!generateExecutable(options.outputIRFile, options.outputExecName)) {
+            return false;
+        }
 
         std::cout << "Compilation successful!" << std::endl;
         return true;

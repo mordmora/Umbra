@@ -14,9 +14,12 @@
 
 #include "../error/ErrorManager.h"
 #include "Tokens.h"
+#include "umbra/source/SourceManager.h"
 #include <string>
 #include <vector>
 #include <memory>
+#include <string_view>
+#include <limits>
 
 namespace umbra {
 
@@ -50,6 +53,7 @@ public:
         std::string lexeme;  ///< Texto literal del token
         int line;            ///< Línea donde se encontró (1-indexed)
         int column;          ///< Columna donde se encontró (1-indexed)
+        Span span{std::numeric_limits<FileId>::max(), 0, 0}; ///< Rango en SourceFile, si existe
 
         /// @brief Constructor por defecto
         Token() : type(TokenType::TOK_EOF), lexeme(""), line(0), column(0) {}
@@ -85,6 +89,10 @@ public:
      * @param externalErrorManager Referencia al gestor de errores externo
      */
     Lexer(const std::string& source, ErrorManager& externalErrorManager);
+
+    /// SourceFile must outlive this lexer. Tokens retain its FileId and byte offsets.
+    explicit Lexer(const SourceFile& sourceFile);
+    Lexer(const SourceFile& sourceFile, ErrorManager& externalErrorManager);
 
     //==========================================================================
     // Interfaz Pública
@@ -123,14 +131,16 @@ public:
      * @brief Obtiene el código fuente
      * @return Referencia al código fuente
      */
-    const std::string& getSource() const;
+    std::string_view getSource() const;
 
 private:
     //==========================================================================
     // Miembros de Datos
     //==========================================================================
     
-    std::string source;                                 ///< Código fuente
+    std::string ownedSource;                            ///< Adaptador para texto legado
+    std::string_view source;                            ///< Vista del código fuente
+    const SourceFile* sourceFile = nullptr;
     std::unique_ptr<ErrorManager> internalErrorManager; ///< Gestor interno
     ErrorManager* errorManager;                         ///< Gestor activo
     std::vector<Token> tokens;                          ///< Tokens generados

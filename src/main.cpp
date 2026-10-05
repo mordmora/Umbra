@@ -69,10 +69,10 @@ int main(int argc, char *argv[]) {
 
     umbra::ErrorManager errorManager;
     umbra::Compiler compiler(options, errorManager);
-    compiler.compile();
+    const bool compiled = compiler.compile();
     if(errorManager.hasErrors()){
-        std::cout << errorManager.getErrorReport();
+        std::cerr << errorManager.getErrorReport();
     }
 
-    return 0;
+    return compiled && !errorManager.hasErrors() ? 0 : 1;
 }

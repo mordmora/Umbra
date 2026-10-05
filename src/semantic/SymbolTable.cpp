@@ -40,6 +40,7 @@ namespace umbra {
     }
 
     Symbol SymbolTable::lookup(const std::string& name) const {
+
         for(auto it = scopes.rbegin(); it != scopes.rend(); ++it ){
             auto found = it->find(name);
             if(found != it->end()){

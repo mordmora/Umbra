@@ -6,3 +6,4 @@ FetchContent_Declare(
 )
 # Pruebas unitarias para lógica del Lexer
 add_subdirectory(lexer)
+add_subdirectory(source)

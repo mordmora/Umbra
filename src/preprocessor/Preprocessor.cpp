@@ -1,36 +1,16 @@
 #include "umbra/preprocessor/Preprocessor.h"
-#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <iostream> // Para depuración
-#include "umbra/io/UmbraIO.h"
 
 namespace umbra {
 
 Preprocessor::Preprocessor(const std::string& mainFilePath) {
-    std::filesystem::path main_file_path_obj(mainFilePath);
-    std::filesystem::path canonical_main_path;
-
-    if (main_file_path_obj.empty()) {
-        throw std::runtime_error("La ruta del archivo principal no puede estar vacía.");
+    auto loaded = sourceManager.loadFile(mainFilePath);
+    if (auto* error = std::get_if<SourceError>(&loaded)) {
+        throw std::runtime_error(error->path.string() + ": " + error->message);
     }
-
-    try {
-
-        if (main_file_path_obj.is_absolute()) {
-            canonical_main_path = std::filesystem::weakly_canonical(main_file_path_obj);
-        } else {
-            canonical_main_path = std::filesystem::weakly_canonical(std::filesystem::current_path() / main_file_path_obj);
-        }
-    } catch (const std::filesystem::filesystem_error& e) {
-        throw std::runtime_error("Error al procesar la ruta del archivo principal '" + mainFilePath + "': " + e.what());
-    }
-
-    if (!std::filesystem::is_regular_file(canonical_main_path)) {
-        throw std::runtime_error("El archivo principal no existe o no es un archivo regular: " + canonical_main_path.string());
-    }
-
-    this->processedContent = processFile(canonical_main_path, 0);
+    processedContent = processFile(std::get<FileId>(loaded), 0);
 }
 
 std::string Preprocessor::getProcessedContent() const {
@@ -60,61 +40,27 @@ std::optional<std::string> Preprocessor::parseUseDirective(const std::string& li
     return std::nullopt;
 }
 
-// Resuelve la ruta de inclusión y devuelve una ruta canónica
-std::filesystem::path Preprocessor::resolveIncludePath(
-    const std::filesystem::path& currentFileCanonicalPath,
-    const std::string& includeDirectivePathStr) {
-
-    std::filesystem::path include_directive_path_obj(includeDirectivePathStr);
-    std::filesystem::path resolved_path;
-
-    if (include_directive_path_obj.is_absolute()) {
-        resolved_path = include_directive_path_obj;
-    } else {
-        // La ruta es relativa al directorio del archivo actual
-        std::filesystem::path current_file_directory = currentFileCanonicalPath.parent_path();
-        resolved_path = current_file_directory / include_directive_path_obj;
-    }
-
-    try {
-
-        return std::filesystem::weakly_canonical(resolved_path);
-    } catch (const std::filesystem::filesystem_error& e) {
-
-        std::cerr << "Advertencia al canonicalizar la ruta '" << resolved_path.string() << "': " << e.what() << ". Usando ruta normalizada léxicamente." << std::endl;
-        return resolved_path.lexically_normal();
-    }
-}
-
-std::string Preprocessor::processFile(const std::filesystem::path& currentFileCanonicalPath, int level) {
+std::string Preprocessor::processFile(FileId fileId, int level) {
+    const auto& source = sourceManager.file(fileId);
     if (level > MAX_INCLUDE_DEPTH) {
-        throw std::runtime_error("Profundidad máxima de inclusión excedida, posible inclusión cíclica involucrando: " + currentFileCanonicalPath.string());
+        throw std::runtime_error("Profundidad máxima de inclusión excedida, posible inclusión cíclica involucrando: " + source.path().string());
     }
 
-    const std::string canonicalPathStr = currentFileCanonicalPath.string();
-
-    if (includedFilesCanonicalPaths.count(canonicalPathStr)) {
+    if (!includedFiles.insert(fileId).second) {
         return ""; // Ya incluido
-    }
-    includedFilesCanonicalPaths.insert(canonicalPathStr);
-
-    // Sustituye ifstream por UmbraIO::readAll
-    std::string fileContent;
-    if (!UmbraIO::readAll(currentFileCanonicalPath, fileContent, nullptr)) {
-        throw std::runtime_error("No se pudo abrir o leer el archivo para inclusión: " + canonicalPathStr);
     }
 
     std::stringstream content_buffer;
     std::string line;
 
-    // Procesa por líneas desde el buffer leído
-    std::istringstream iss(fileContent);
+    std::istringstream iss(std::string(source.text()));
     while (std::getline(iss, line)) {
         if (auto included_file_directive_path = parseUseDirective(line)) {
-            std::filesystem::path next_file_to_include_canonical_path =
-                resolveIncludePath(currentFileCanonicalPath, *included_file_directive_path);
-
-            content_buffer << processFile(next_file_to_include_canonical_path, level + 1);
+            auto loaded = sourceManager.loadFile(*included_file_directive_path, fileId);
+            if (auto* error = std::get_if<SourceError>(&loaded)) {
+                throw std::runtime_error(error->path.string() + ": " + error->message);
+            }
+            content_buffer << processFile(std::get<FileId>(loaded), level + 1);
         } else {
             content_buffer << line << '\n';
         }

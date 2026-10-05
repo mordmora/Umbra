@@ -1,8 +1,10 @@
 
 /*
-<program> ::= { <function_definition> }
+<program> ::= { <use_declaration> } { <function_definition> }
 
-<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <type> "{" <statement_list> "}" <newline>
+<use_declaration> ::= "use" <string_literal> [ "as" <identifier> ] <newline>
+
+<function_definition> ::= "func" <identifier> "(" [ <parameter_list> ] ")" "->" <return_type> "{" <statement_list> "}" <newline>
 
 <parameter_list> ::= <param> { "," <param> }
 
@@ -10,6 +12,7 @@
 
 <type> ::= <simple_type> { "[]" }
 <simple_type> ::= "int" | "float" | "bool" | "char" | "string"
+<return_type> ::= <type> | "void"
 
 <statement_list> ::= { <statement> <newline> }
 
@@ -21,7 +24,7 @@
               | <memory_management>
               | <return_statement>
               | <struct_definition>
-              | <classic_for>
+              | <for_statement>
               | <expression>
 
 <constructor_statement> ::= <identifier> "(" ")"
@@ -42,7 +45,9 @@
 
 <repeat_if> ::= "repeat" "if" <expression> "{" <statement_list> "}"
 
-<classic_for> ::= "for" "(" <for_init> ";" <expression>? ";" <for_update> ")" "{" <statement_list> "}"
+<for_statement> ::= "for" ( <expression> | <for_clause> )? "{" <statement_list> "}"
+
+<for_clause> ::= [ <for_init> ] ";" [ <expression> ] ";" [ <for_update> ]
 
 <for_init>   ::= <variable_declaration> | <assignment_statement> | ε
 
@@ -51,7 +56,7 @@
 <memory_management> ::= "new" <type> "[" <expression> "]"
                       | "delete" <identifier>
 
-<return_statement> ::= "return" <expression>
+<return_statement> ::= "return" [ <expression> ]
 
 <expression> ::= <logical_or_expression>
 
@@ -69,12 +74,17 @@
 
 <unary_expression> ::= [ ( "ptr" | "ref" | "access" ) ] <primary_expression>
 
-<primary_expression> ::= <identifier>
-                       | <literal>
-                       | <function_call>
-                       | "(" <expression> ")"
+<primary_expression> ::= <postfix_expression>
 
-<function_call> ::= <identifier> "(" [ <argument_list> ] ")"
+<postfix_expression> ::= <atom> { "(" [ <argument_list> ] ")"
+                                | "." <identifier>
+                                | "[" <expression> "]" }
+
+<atom> ::= <qualified_identifier> | <literal> | "(" <expression> ")"
+
+<qualified_identifier> ::= <identifier> { "::" <identifier> }
+
+<function_call> ::= <qualified_identifier> "(" [ <argument_list> ] ")"
 
 <argument_list> ::= <expression> { "," <expression> }
 
@@ -90,11 +100,12 @@
 
 <string_literal> ::= '"' { <any_char> } '"'
 
-<identifier> ::= <letter> { <letter> | <digit> }
+<identifier> ::= ( "_" | <unicode_xid_start> ) { "_" | <unicode_xid_continue> }
 
 <newline> ::= "\\n"
 
-<letter> ::= "A" | ... | "Z" | "a" | ... | "z"
+<unicode_xid_start> ::= carácter Unicode con propiedad XID_Start
+<unicode_xid_continue> ::= carácter Unicode con propiedad XID_Continue
 
 <digit> ::= "0" | ... | "9"
 

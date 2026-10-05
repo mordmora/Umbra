@@ -12,6 +12,7 @@
 #include "umbra/lexer/Lexer.h"
 #include "umbra/lexer/Tokens.h"
 #include "umbra/lexer/LookUpKeyword.h"
+#include <algorithm>
 #include <cstring>
 
 namespace umbra {
@@ -81,7 +82,7 @@ constexpr char getEscapeChar(char c) {
  * @param source Código fuente a tokenizar
  */
 Lexer::Lexer(const std::string &source)
-    : source(source), 
+    : ownedSource(source), source(ownedSource),
       internalErrorManager(std::make_unique<ErrorManager>()),
       errorManager(internalErrorManager.get()) {
     setupDispatch();
@@ -93,8 +94,20 @@ Lexer::Lexer(const std::string &source)
  * @param externalErrorManager Referencia al gestor externo
  */
 Lexer::Lexer(const std::string &source, ErrorManager &externalErrorManager)
-    : source(source), 
+    : ownedSource(source), source(ownedSource),
       errorManager(&externalErrorManager) {
+    setupDispatch();
+}
+
+Lexer::Lexer(const SourceFile& file)
+    : source(file.text()), sourceFile(&file),
+      internalErrorManager(std::make_unique<ErrorManager>()),
+      errorManager(internalErrorManager.get()) {
+    setupDispatch();
+}
+
+Lexer::Lexer(const SourceFile& file, ErrorManager& externalErrorManager)
+    : source(file.text()), sourceFile(&file), errorManager(&externalErrorManager) {
     setupDispatch();
 }
 
@@ -290,6 +303,7 @@ std::vector<Lexer::Token> Lexer::tokenize() {
         }
     }
 
+    start = current;
     addToken(TokenType::TOK_EOF);
     return tokens;
 }
@@ -343,7 +357,7 @@ bool Lexer::match(char expected) {
  * @param type Tipo de token a emitir
  */
 void Lexer::addToken(TokenType type) {
-    addToken(type, &source[start], current - start);
+    addToken(type, source.empty() ? "" : source.data() + start, current - start);
 }
 
 /**
@@ -354,6 +368,14 @@ void Lexer::addToken(TokenType type) {
  */
 void Lexer::addToken(TokenType type, const char* lexeme, size_t length) {
     tokens.emplace_back(type, lexeme, length, line, column - length);
+    if (sourceFile) {
+        auto& token = tokens.back();
+        token.span = {sourceFile->id(), static_cast<std::uint32_t>(start),
+                      static_cast<std::uint32_t>(current)};
+        const auto location = sourceFile->lineColumn(token.span.begin);
+        token.line = static_cast<int>(location.line);
+        token.column = static_cast<int>(location.column);
+    }
 }
 
 //==============================================================================
@@ -511,7 +533,7 @@ void Lexer::identifier() {
 //==============================================================================
 
 /// @brief Obtiene el código fuente
-const std::string& Lexer::getSource() const { return source; }
+std::string_view Lexer::getSource() const { return source; }
 
 /// @brief Verifica si es signo de operación
 bool Lexer::isSing(char c) const {
@@ -586,7 +608,7 @@ std::string Lexer::getLineContent(int lineNumber) const {
     size_t lineStart = pos;
     while (pos < source.length() && source[pos] != '\n') ++pos;
     
-    return std::string(source, lineStart, pos - lineStart);
+    return std::string(source.substr(lineStart, pos - lineStart));
 }
 
 //==============================================================================
@@ -601,16 +623,24 @@ std::string Lexer::getLineContent(int lineNumber) const {
 void Lexer::reportLexicalError(const std::string& msg, int offset) {
     int tokenStartColumn = column - (current - start);
     int errorColumn = tokenStartColumn + offset;
+    int errorLine = line;
+    if (sourceFile) {
+        const auto location = sourceFile->lineColumn(
+            static_cast<std::uint32_t>(std::min(current, std::max(start + offset, 0))));
+        errorLine = static_cast<int>(location.line);
+        errorColumn = static_cast<int>(location.column);
+    }
 
-    std::string lineContent = getLineContent(line);
+    std::string lineContent = getLineContent(errorLine);
     
     std::string underline(errorColumn > 0 ? errorColumn - 1 : 0, ' ');
     underline += '^';
 
     std::string fullMessage = "\n" + lineContent + "\n" + underline + "\n" + msg;
+    if (sourceFile) fullMessage = sourceFile->path().string() + ":" + fullMessage;
 
     errorManager->addError(std::make_unique<CompilerError>(
-        ErrorType::LEXICAL, fullMessage, line, errorColumn));
+        ErrorType::LEXICAL, fullMessage, errorLine, errorColumn));
 }
 
 } // namespace umbra

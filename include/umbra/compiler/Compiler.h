@@ -42,7 +42,7 @@ namespace umbra {
             std::unique_ptr<ProgramNode> parse(std::vector<Lexer::Token>& tokens);
             bool semanticAnalyze(ProgramNode* programNode);
             bool generateCode(ProgramNode& programNode, std::string& moduleName);
-            void generateIRFile(llvm::Module& module, const std::string& filename);
+            bool generateIRFile(llvm::Module& module, const std::string& filename);
             bool generateExecutable(const std::string& irFilename, const std::string& outputName);
 
     };

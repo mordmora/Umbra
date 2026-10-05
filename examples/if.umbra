@@ -1,5 +1,5 @@
 func start() -> void {
-    if(1 less_than 2){
+    if(1 less_than 1){
         print("Verdadero")
     }else{
         print("Falso")
